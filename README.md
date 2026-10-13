@@ -136,11 +136,15 @@ Source order controls first-round label introduction; it does not represent
 physical uptake order or diauxic growth. The medium and uptake constraints
 belong to the upstream metabolic model, not this carbon-source list.
 
-Run atom mapping and selection:
+Run atom mapping and selection for all configured analyses:
 
 ```bash
 python3 run_carbon_tracing.py --config config.local.json --stage map
 ```
+
+To process only WT, add `WT` immediately after `run_carbon_tracing.py` (if WT is
+defined in your configuration). Do not add `--rounds` here: this stage performs
+mapping and selection only, without carbon propagation.
 
 Pure identity-preserving compartment transport bypasses the prediction tools
 and size limit. Boundary/exchange reactions require no two-sided mapping.
@@ -179,16 +183,14 @@ Selected mappings requiring review still participate in propagation.
 
 ## 5. Run carbon propagation
 
-```bash
-python3 run_carbon_tracing.py --config config.local.json --stage trace --rounds 1
-```
-
-This verifies the stored inputs and `Final_Mapping`, then propagates without
-calling prediction software. For both stages in one command:
+Run atom mapping, selection and carbon propagation together:
 
 ```bash
 python3 run_carbon_tracing.py --config config.local.json --rounds 10
 ```
+
+This example runs up to 10 propagation rounds. Later rounds reuse the selected
+atom correspondences without calling the prediction tools again.
 
 Each rerun starts from configured sources and replaces old carbon-flow and
 Summary sheets. It does not resume a previous unfinished enumeration.
