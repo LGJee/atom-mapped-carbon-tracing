@@ -1,0 +1,16 @@
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - setuptools=80.9.0
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cpu
+      - torch==2.5.1+cpu
+      - numpy==2.2.6
+      - pandas==2.3.3
+      - rdkit==2026.9.1
+      - transformers==4.44.2
+      - tokenizers==0.19.1
+      - huggingface-hub==0.36.2
+      - rxnmapper==0.4.3

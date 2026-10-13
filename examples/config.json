@@ -1,0 +1,29 @@
+{
+  "environment_dir": "../.envs",
+  "output_dir": "../results/example",
+  "rounds": 1,
+  "batch_size": 1,
+  "max_reaction_atoms": 800,
+  "mappers": ["LocalMapper", "RXNMapper", "EnzymeMap"],
+  "enzymemap": {
+    "dataset": "../data/enzymemap/processed_reactions.csv",
+    "rules": "../data/enzymemap/rules.pkl",
+    "rules_sha256": "21cdebccdda5ea4308555b6dd8dfb27413950725ace66e7b8cb7ed3dba2c1e1a",
+    "source_commit": "c91578856f11312d7941b290f8b773eb41b54973",
+    "normalize_protonation": true
+  },
+  "resources": {
+    "max_mapper_processes": 1,
+    "mapper_memory_gb": 6,
+    "max_carbon_processes": 1,
+    "carbon_memory_gb": null
+  },
+  "analyses": {
+    "Example": {
+      "input_file": "example_input.xlsx",
+      "reaction_sheet": "Nonzero",
+      "metabolite_sheet": "Metabolites",
+      "carbon_sources": ["acetaldehyde[e]"]
+    }
+  }
+}

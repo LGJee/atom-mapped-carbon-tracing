@@ -1,0 +1,21 @@
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6.13
+  - pip=21.3.1
+  - setuptools=58.0.4
+  - wheel=0.37.1
+  - pip:
+      - numpy==1.19.5
+      - pandas==1.1.5
+      - openpyxl==3.0.10
+      - rdkit-pypi==2021.9.4
+      - dataclasses==0.8
+      - torch==1.10.2
+      - dgl==1.1.0
+      - dgllife==0.3.2
+      - matplotlib==3.3.4
+      - networkx==2.5.1
+      - scipy==1.5.4
+      - scikit-learn==0.24.2
+      - git+https://github.com/snu-micc/LocalMapper.git@8ff6b3ff2109d834388d4e08ba69399ed3419cad

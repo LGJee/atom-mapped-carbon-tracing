@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.envs/
+.deps/
+.venv/
+data/
+model/
+results/
+config.local.json
+*.tmp.xlsx
+~$*
+*.log
