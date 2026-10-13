@@ -2,11 +2,12 @@
 
 Trace carbon-source atom origins through pFBA-active metabolic networks using
 LocalMapper, RXNMapper and EnzymeMap, consensus selection, and multi-round label
-propagation. Each strain produces one plain Excel workbook. This release does
-**not** include LLM-assisted mapping or automatic biochemical corrections.
+propagation. Configure one or more carbon sources for single-source or
+mixed-carbon cultures. Each analysis produces one plain Excel workbook.
+This release does **not** include LLM-assisted mapping or automatic biochemical corrections.
 
 ```text
-MATLAB + COBRA + Yeast9 → pFBA Excel
+Metabolic model + MATLAB/COBRA → pFBA Excel
                               ↓
             three independent atom-mapping tools
                               ↓
@@ -15,7 +16,7 @@ MATLAB + COBRA + Yeast9 → pFBA Excel
               carbon propagation → Excel results
 ```
 
-## 1. Install COBRA Toolbox and obtain Yeast9
+## 1. Install MATLAB and COBRA Toolbox
 
 Install MATLAB and [COBRA Toolbox](https://github.com/opencobra/cobratoolbox),
 initialize COBRA and configure a compatible LP solver according to the
@@ -29,57 +30,34 @@ git clone https://github.com/LGJee/atom-mapped-carbon-tracing.git
 cd atom-mapped-carbon-tracing
 ```
 
-Obtain `model/yeast-GEM.mat` and `model/yeast-GEM.yml` from
-[yeast-GEM v9.1.1](https://github.com/SysBioChalmers/yeast-GEM/tree/v9.1.1),
-commit `2d594ae1c4a2d550ccef120d96a58c7bbf586255`.
-Place both files in this project's `model/`, or configure their folder below.
-The files must be from the same version; the YAML reader targets this version's
-metabolite ID and SMILES annotation layout.
+## 2. Prepare input workbooks
 
-## 2. Generate input workbooks in MATLAB
+Provide one Excel workbook per metabolic network or culture condition, with
+nonzero reaction fluxes and metabolite structures. The Python workflow accepts
+any model that supplies the following schema; WT/IUPD names and Yeast9 reaction
+IDs are not required.
 
-Edit the settings at the start of [pFBA_network.m](pFBA_network.m), then run it
-after initializing COBRA. Set `cfg.cobraFolder` only if initialization should
-be performed from an explicit installation folder. The reference solver is
-`glpk`; choose an installed compatible solver when necessary.
-
-The script preserves these **study-specific**, not universal, conditions:
-
-| Setting | Reference value |
+| Sheet | Required columns |
 |---|---|
-| Model / growth objective | Yeast9 9.1.1 / `r_2111` |
-| Glucose lower bound during growth optimization | -1 mmol/gDW/h |
-| Oxygen lower bound | -1000 mmol/gDW/h |
-| IUPD | Delete `YML126C` (ERG13); add isoprenol utilization reactions |
-| IUPD isoprenol lower bound | -2.09 mmol/gDW/h |
-| Fixed growth | 50% of each strain's initial maximum |
-| WT glucose lower bound after fixing growth | -2 mmol/gDW/h |
-| Production objective / nonzero tolerance | Squalene `r_1012` / `abs(flux)>1e-8` |
+| Reaction sheet (any name) | `ReactionID`, `ReactionName`, `Flux`, `Equation` |
+| Metabolite sheet (any name) | `MetaboliteID`, `MetaboliteName`, `SMILES_Yeast9`, `SMILES_Manual` |
 
-Remaining medium bounds are inherited from the model. Negative exchange flux
-denotes uptake; a lower bound permits but does not force uptake.
-`optimizeCbModel(model,'max','one')` preserves the optimal production objective,
-then minimizes the sum of absolute fluxes. This is one representative pFBA
-solution, not every possible pathway or optimal solution.
-
-The script writes two workbooks:
-
-| Workbook | Reaction sheet | Metabolite sheet |
-|---|---|---|
-| `results/WT_pFBA_nonzero_reactions.xlsx` | `WT_nonzero` | `Metabolites` |
-| `results/IUPD_pFBA_nonzero_reactions.xlsx` | `IUPD_nonzero` | `Metabolites` |
-
-Reaction columns: `ReactionID`, `ReactionName`, `Flux`, `Equation`.
-Metabolite columns: `MetaboliteID`, `MetaboliteName`, `SMILES_Yeast9`, `SMILES_Manual`.
-Names include compartments, such as `D-glucose[c]`; manual SMILES take priority.
-The reference supplies manual structures for the added isoprenol metabolites
-and the specified FBP(4−) form. No PubChem lookup or Windows Excel COM is used.
-Running this MATLAB export again replaces its previous input exports.
-
-Other models may supply the same schema. Python does not require WT/IUPD
-reaction IDs. Equations use `=>`, `->` or `<=>`, terms separated by ` + `,
+Keep these SMILES column names for compatibility even when using another model.
+Either structure column may be blank; `SMILES_Manual` takes priority when supplied.
+Names must include compartments, such as `D-glucose[c]`, and match the names in
+reaction equations. Equations use `=>`, `->` or `<=>`, terms separated by ` + `,
 and positive integer stoichiometry, e.g. `A[c] + 2 B[c] => C[c]`.
-Fractional reactions and missing structures are recorded as unmappable.
+Flux sign determines the active direction. Fractional reactions and missing
+structures are recorded as unmappable.
+
+For MATLAB input generation, [pFBA_network.m](pFBA_network.m) is a Yeast9
+reference script. Adapt the model, medium bounds, growth constraint and objective
+to your own study before exporting. pFBA supplies one representative optimal
+flux distribution, not all possible pathways. See the optional
+[Yeast9 WT/IUPD example](docs/yeast9-example.md) for model downloads, exact
+reference conditions and output filenames.
+
+Already have compatible input workbooks? Continue with Python setup below.
 
 ## 3. Install Python environments and EnzymeMap data
 
@@ -122,7 +100,7 @@ On a timeout, rerun the downloader or obtain files from the
 and configure their paths. Rebuilding the original BRENDA-derived database is
 outside this workflow.
 
-## 4. Configure and run atom mapping
+## 4. Configure your network and carbon sources
 
 Edit [config.json](config.json), or copy it to `config.local.json` and pass
 `--config config.local.json`. Relative paths resolve against the configuration
@@ -130,9 +108,38 @@ file, not the terminal directory. Configure input/sheet names, ordered carbon
 sources, rounds, batch size, maximum reaction atoms, output and resource limits.
 Maximum reaction atoms counts **both sides combined**.
 
+Replace the study-specific `analyses` object in the supplied configuration
+with your own analysis, keeping the other installation and resource settings.
+Save the edited full configuration as `config.local.json`:
+
+```json
+{
+  "analyses": {
+    "MyCulture": {
+      "input_file": "inputs/my_network.xlsx",
+      "reaction_sheet": "Reactions",
+      "metabolite_sheet": "Metabolites",
+      "carbon_sources": [
+        "D-glucose[e]"
+      ]
+    }
+  }
+}
+```
+
+For a mixed-carbon culture, list every source to trace, for example
+`["D-glucose[e]", "ethanol[e]"]`. Each source must have a matching compartment-
+qualified name and a valid structure in the input. Use the nonzero reaction
+network computed for that culture's medium and constraints.
+
+Source order controls first-round label introduction; it does not represent
+physical uptake order or diauxic growth. The medium and uptake constraints
+belong to the upstream metabolic model, not this carbon-source list.
+
+Run atom mapping and selection:
+
 ```bash
-python3 run_carbon_tracing.py --stage map --rounds 1
-python3 run_carbon_tracing.py WT --stage map
+python3 run_carbon_tracing.py --config config.local.json --stage map
 ```
 
 Pure identity-preserving compartment transport bypasses the prediction tools
@@ -173,21 +180,21 @@ Selected mappings requiring review still participate in propagation.
 ## 5. Run carbon propagation
 
 ```bash
-python3 run_carbon_tracing.py --stage trace --rounds 1
+python3 run_carbon_tracing.py --config config.local.json --stage trace --rounds 1
 ```
 
 This verifies the stored inputs and `Final_Mapping`, then propagates without
 calling prediction software. For both stages in one command:
 
 ```bash
-python3 run_carbon_tracing.py --rounds 10
+python3 run_carbon_tracing.py --config config.local.json --rounds 10
 ```
 
 Each rerun starts from configured sources and replaces old carbon-flow and
 Summary sheets. It does not resume a previous unfinished enumeration.
 
-- Round one introduces sources in configured order: IUPD glucose first, then
-  isoprenol with previous states retained. Each reaction is processed at most
+- Round one introduces sources in configured order, retaining the states
+  reached from earlier sources. Each reaction is processed at most
   once per source phase; current-layer products become usable next layer.
 - Later rounds enumerate from the full accumulated state snapshot and merge
   results at the round boundary. Stop at the requested round or when neither
@@ -202,17 +209,19 @@ Summary sheets. It does not resume a previous unfinished enumeration.
   all labelled products, including cofactors. Reuse `ProductionID` only when
   compartment-qualified name and canonical labelled SMILES both match.
 
-Glucose initialization expects a six-membered ring form and uses biochemical
-C1–C6. Isoprenol is ordered from the hydroxyl end along
-the chain, then the terminal alkene carbon and methyl branch. Source ranges
-follow list order: glucose then isoprenol gives C1–C6 and C7–C11; isoprenol alone
-gives C1–C5. Other sources use carbon order in the supplied single-component
-SMILES, explicitly reported rather than claimed as biochemical numbering.
-Reaction-local map IDs are bridges, not these carbon-origin labels.
+Source labels occupy consecutive, nonoverlapping ranges in list order. A
+six-carbon source followed by a two-carbon source receives C1-C6 and C7-C8.
+Supported glucose and isoprenol structures have dedicated numbering rules;
+other sources use carbon order in the supplied single-component SMILES, which
+must not be interpreted as standard biochemical numbering. Glucose requires
+the supported six-membered ring form. See the
+[reference example](docs/yeast9-example.md) for its numbering details.
+Reaction-local map IDs are bridges, not carbon-origin labels.
 
 ## 6. Inspect Excel results
 
-Outputs are `results/Integrated/<strain>_integrated_carbon_tracing.xlsx`.
+Outputs are `<output_dir>/<analysis>_integrated_carbon_tracing.xlsx`.
+The default output directory is `results/Integrated`.
 MATLAB inputs remain unchanged. Close results in Excel before replacement;
 if rename is denied, a completed `.tmp.xlsx` remains. No timestamped intermediate
 result directories are created.
