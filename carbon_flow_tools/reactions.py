@@ -37,6 +37,23 @@ def clean(value) -> str:
     return "" if pd.isna(value) else str(value).strip()
 
 
+def get_smiles(row):
+    """Manual/input structures precede automatically retrieved candidates."""
+    return next(
+        (
+            clean(getattr(row, field, ""))
+            for field in (
+                "SMILES_Manual",
+                "SMILES_Model",
+                "SMILES_Yeast9",
+                "SMILES_Retrieved",
+            )
+            if clean(getattr(row, field, ""))
+        ),
+        "",
+    )
+
+
 def split_equation(equation: str) -> Tuple[str, str]:
     for arrow in ("<=>", "=>", "->"):
         if arrow in equation:
@@ -121,9 +138,7 @@ def prepare_reactions(
 ) -> List[PreparedReaction]:
     smiles_by_name = {}
     for row in metabolites.itertuples(index=False):
-        manual = clean(row.SMILES_Manual)
-        yeast9 = clean(row.SMILES_Yeast9)
-        smiles_by_name[clean(row.MetaboliteName)] = manual or yeast9
+        smiles_by_name[clean(row.MetaboliteName)] = get_smiles(row)
 
     prepared = []
     for row in reactions.itertuples(index=False):

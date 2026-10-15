@@ -225,7 +225,7 @@ def main():
         events.mkdir()
         settings = {
             name: {
-                "module": "tests.test_consensus_mapping",
+                "module": "scripts.test_consensus_mapping",
                 "python": sys.executable,
                 "options": {
                     "mapping": correct,
@@ -264,16 +264,24 @@ def main():
         assert len(list(events.glob("*.started"))) == 6, (
             "Incorrect worker isolation or prediction reuse"
         )
-        iupd_output = root / "out" / "IUPD_integrated_carbon_tracing.xlsx"
+        iupd_output = root / "out" / "IUPD_2_atom_mapping.xlsx"
         with pd.ExcelFile(iupd_output, engine="openpyxl") as excel:
             assert len(pd.read_excel(excel, sheet_name="Final_Mapping")) == 2
-            assert len(pd.read_excel(excel, sheet_name="Carbon_Flow_R1")) == 2
-        output = root / "out" / "WT_integrated_carbon_tracing.xlsx"
+            assert (
+                len(
+                    pd.read_excel(
+                        root / "out/WT_3_carbon_flow.xlsx",
+                        sheet_name="Carbon_Flow_R1",
+                        engine="openpyxl",
+                    )
+                )
+                == 2
+            )
+        output = root / "out" / "WT_2_atom_mapping.xlsx"
         with pd.ExcelFile(output, engine="openpyxl") as excel:
-            assert set(
-                names
-                + ["Mapping_Selection", "Final_Mapping", "Carbon_Flow_R1", "Summary"]
-            ) <= set(excel.sheet_names)
+            assert set(names + ["Mapping_Selection", "Final_Mapping"]) <= set(
+                excel.sheet_names
+            )
             for name in names:
                 assert pd.read_excel(excel, sheet_name=name).columns.tolist() == [
                     "ReactionID",
@@ -288,7 +296,11 @@ def main():
             assert info.ReusedPredictions.all()
             choices = pd.read_excel(excel, sheet_name="Mapping_Selection")
             final = pd.read_excel(excel, sheet_name="Final_Mapping")
-            flow = pd.read_excel(excel, sheet_name="Carbon_Flow_R1")
+            flow = pd.read_excel(
+                root / "out/WT_3_carbon_flow.xlsx",
+                sheet_name="Carbon_Flow_R1",
+                engine="openpyxl",
+            )
             assert choices.SelectedMapper.tolist() == ["Identity", "EnzymeMap"]
             assert "CarbonAgreement" not in choices and not choices.ReviewRequired.any()
             assert len(final) == 2 and final.MappedReactionSMILES.eq(correct).all()

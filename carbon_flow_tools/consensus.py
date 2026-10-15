@@ -207,7 +207,6 @@ def select_mappings(predictions):
             ),
             SelectedMapper=winner,
             ReviewRequired=review,
-            AIGenerated=False,
             SelectionReason=reason,
             SelectedMappedReactionSMILES=final.mapped_smiles,
         )
@@ -220,7 +219,6 @@ def select_mappings(predictions):
         "Flux",
         "SelectedMapper",
         "ReviewRequired",
-        "AIGenerated",
         "SelectionReason",
         "Equation",
         "MappingDirection",

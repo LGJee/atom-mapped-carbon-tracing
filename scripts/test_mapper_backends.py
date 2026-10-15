@@ -49,7 +49,7 @@ def main():
     assert "Repeated" in mapping_error("[CH4:1].[CH4:1]>>[CH4:1]")
     assert mapping_error("C>C")
     settings = {
-        "module": "tests.test_mapper_backends",
+        "module": "scripts.test_mapper_backends",
         "python": sys.executable,
         "options": {"probe": 7},
     }

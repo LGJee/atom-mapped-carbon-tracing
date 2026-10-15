@@ -54,10 +54,10 @@ def main():
             sheet.column_dimensions[sheet.cell(1, column).column_letter].width = width
     for row in reactions.iter_rows(min_col=4, max_col=4):
         row[0].alignment = Alignment(wrap_text=True)
-    workbook.save(root / "example_input.xlsx")
+    workbook.save(root / "Example_1_input.xlsx")
     workbook.close()
     print(
-        "Created examples/example_input.xlsx (synthetic fluxes; not a Yeast9 pFBA solution)."
+        "Created examples/Example_1_input.xlsx (synthetic fluxes; not a Yeast9 pFBA solution)."
     )
 
 

@@ -119,7 +119,7 @@ def main():
         }
         settings = {
             "ExampleMapper": {
-                "module": "tests.test_parallel_carbon",
+                "module": "scripts.test_parallel_carbon",
                 "python": sys.executable,
                 "options": {"test": True},
             }
@@ -147,7 +147,7 @@ def main():
         assert len(list(events.glob("*.started"))) == 2
         assert all(int(path.stem) != os.getpid() for path in events.glob("*.started"))
         for strain, product in [("WT", "B[c]"), ("IUPD", "D[c]")]:
-            name = strain + "_integrated_carbon_tracing.xlsx"
+            name = strain + "_3_carbon_flow.xlsx"
             with pd.ExcelFile(
                 root / "serial" / name, engine="openpyxl"
             ) as serial, pd.ExcelFile(
@@ -167,7 +167,7 @@ def main():
 
         failed_output = root / "failed"
         failed_output.mkdir()
-        protected = failed_output / "IUPD_integrated_carbon_tracing.xlsx"
+        protected = failed_output / "IUPD_3_carbon_flow.xlsx"
         protected.write_bytes(b"previous output")
         with patch("carbon_flow_tools.pipeline.finish_analysis", new=failed_finish):
             try:

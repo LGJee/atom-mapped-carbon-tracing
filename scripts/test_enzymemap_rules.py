@@ -7,15 +7,16 @@ from carbon_flow_tools.consensus import mapping_signatures
 from carbon_flow_tools.pipeline import read_input
 from carbon_flow_tools.mappers.enzymemap_adapter import map_batch
 from carbon_flow_tools.mappers.enzymemap_rules import RuleMapper
-from run_carbon_tracing import load_config
+from carbon_flow_tools.cli import build_mapper_configs
+from step2_atom_mapping import settings
 
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    _, _, configs, _ = load_config(root / "config.json")
+    configs = build_mapper_configs(settings())
     configure(1, 800)
     reactions, _, _ = read_input(
-        root / "examples/example_input.xlsx", "Nonzero", "Metabolites"
+        root / "examples/Example_1_input.xlsx", "Nonzero", "Metabolites"
     )
     reaction = reactions[1]
     model = {"matches": {}, "predictor": RuleMapper(configs["EnzymeMap"]["options"])}

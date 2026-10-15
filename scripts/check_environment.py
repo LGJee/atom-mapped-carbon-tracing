@@ -24,6 +24,13 @@ def main():
     if args.backend == "localmapper":
         for package in ("pandas", "openpyxl"):
             importlib.import_module(package)
+        from openpyxl import LXML
+
+        if not LXML:
+            raise RuntimeError(
+                "Native Excel backend unavailable: install lxml==4.9.4 in this "
+                "environment and ensure OPENPYXL_LXML is not disabled."
+            )
         from carbon_flow_tools.mappers import localmapper_adapter as adapter
 
         result = adapter.map_batch(adapter.load_model(), ["CC=O>>CCO"])[0]
@@ -35,6 +42,7 @@ def main():
             "rdkit-pypi",
             "pandas",
             "openpyxl",
+            "lxml",
         )
     elif args.backend == "rxnmapper":
         from carbon_flow_tools.mappers import rxnmapper_adapter as adapter

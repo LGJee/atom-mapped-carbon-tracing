@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Dict, Iterable, Tuple
 
 from rdkit import Chem
@@ -7,6 +8,12 @@ from .reactions import PreparedReaction
 
 def labeled_smiles(smiles: str, assignment: Iterable[Tuple[int, int, str]]) -> str:
     """Write source-origin carbon labels into the product SMILES atom-map fields."""
+    return _labeled_smiles(smiles, tuple(assignment))
+
+
+@lru_cache(maxsize=8192)
+def _labeled_smiles(smiles, assignment):
+    # Bound reuse of exact structures and positional labels as state counts grow.
     labels = {
         (int(part), int(atom)): int(str(label)[1:]) for part, atom, label in assignment
     }
@@ -21,6 +28,7 @@ def labeled_smiles(smiles: str, assignment: Iterable[Tuple[int, int, str]]) -> s
     return ".".join(output)
 
 
+@lru_cache(maxsize=8192)
 def assignment_from_labeled_smiles(
     base_smiles: str, marked_smiles: str
 ) -> Tuple[Tuple[int, int, str], ...]:

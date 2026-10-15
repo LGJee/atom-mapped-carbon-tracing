@@ -13,7 +13,7 @@ from .atom_helpers import (
     mapped_components,
     assignment_from_labeled_smiles,
 )
-from .reactions import clean, parse_side, split_equation
+from .reactions import clean, get_smiles, parse_side, split_equation
 
 COLUMNS = [
     "Step",
@@ -239,23 +239,64 @@ def propagate_once(
     return produced, table, next_id
 
 
-def merge_states(produced, table, states, first_steps):
+def inorganic_carbon_names(smiles):
+    """Recognize CO2 and carbonate protonation forms independently of model IDs."""
+    structures = {"O=C=O", "O=C([O-])O", "O=C(O)O", "O=C([O-])[O-]"}
+    names = set()
+    for name, structure in smiles.items():
+        molecule = Chem.MolFromSmiles(structure) if structure else None
+        if molecule is not None:
+            for atom in molecule.GetAtoms():
+                atom.SetAtomMapNum(0)
+            if Chem.MolToSmiles(molecule) in structures:
+                names.add(name)
+    return names
+
+
+def merge_states(produced, table, states, first_steps, terminal_names=()):
     for name, number, assignment in produced:
-        states[name].setdefault(number, assignment)
+        # Keep terminal products in the output/catalog, not as labelled substrates.
+        if name not in terminal_names:
+            states[name].setdefault(number, assignment)
     for row in table.itertuples(index=False):
         key = (row.Production, row.ProductionID)
         first_steps[key] = min(first_steps.get(key, row.Step), row.Step)
 
 
 def propagate_rounds(
-    strain, reactions, metabolites, rounds, source_names, sources=None
+    strain,
+    reactions,
+    metabolites,
+    rounds,
+    source_names,
+    sources=None,
+    allow_inorganic_carbon_recycling=False,
 ):
     """Propagate by source and layer in round one, then by round snapshots."""
     smiles = {
-        clean(r.MetaboliteName): clean(r.SMILES_Manual) or clean(r.SMILES_Yeast9)
+        clean(r.MetaboliteName): get_smiles(r)
         for r in metabolites.itertuples(index=False)
     }
+    if type(allow_inorganic_carbon_recycling) is not bool:
+        raise ValueError("allow_inorganic_carbon_recycling must be True or False.")
+    terminal_names = (
+        set() if allow_inorganic_carbon_recycling else inorganic_carbon_names(smiles)
+    )
     sources = initialize_sources(source_names, smiles) if sources is None else sources
+    if any(name in terminal_names for name, _, _ in sources):
+        raise ValueError(
+            "For an inorganic carbon source, set ALLOW_INORGANIC_CARBON_RECYCLING = True "
+            "at the top of step3_carbon_flow.py."
+        )
+    print(
+        "Inorganic-carbon label recycling: "
+        + (
+            "enabled."
+            if allow_inorganic_carbon_recycling
+            else "disabled; CO2/bicarbonate labels terminate."
+        ),
+        flush=True,
+    )
     prepared = prepare_mappings(reactions)
     states, catalog, first_steps = defaultdict(dict), {}, {}
     next_id, phase_tables = 1, []
@@ -284,7 +325,7 @@ def propagate_rounds(
             produced, table, next_id = propagate_once(
                 ready, states, first_steps, catalog, next_id, smiles, required
             )
-            merge_states(produced, table, states, first_steps)
+            merge_states(produced, table, states, first_steps, terminal_names)
             tables.append(table)
             layer += 1
             print(
@@ -315,7 +356,7 @@ def propagate_rounds(
             unordered_sources=True,
             progress=f"{strain} R{number}",
         )
-        merge_states(produced, table, states, first_steps)
+        merge_states(produced, table, states, first_steps, terminal_names)
         converged = len(catalog) == before and first_steps == old_steps
         yield number, table, len(catalog) - before, converged
         if converged:

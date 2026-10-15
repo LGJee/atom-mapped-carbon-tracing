@@ -5,18 +5,20 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 import json
 from multiprocessing import get_context
+from pathlib import Path
 
 import pandas as pd
-from openpyxl import load_workbook
+from openpyxl import load_workbook, Workbook
 from rdkit import Chem, RDLogger
 
 from .carbon_trace import propagate_rounds, initialize_sources
 from .config import configure, parallel_capacity
-from .excel_io import clear_formatting, copy_input, write_sheet
+from .excel_io import clear_formatting, copy_input, input_sheets, write_sheet
 from .consensus import select_mappings
 from .consensus import mapping_signatures
 from .mapper_runner import run_mapper, validate_mapper_config
-from .reactions import clean, prepare_reactions
+from .reactions import clean, get_smiles, prepare_reactions
+from .smiles_completion import complete_smiles
 
 
 def carbon_metabolites(metabolites, reactions):
@@ -29,7 +31,7 @@ def carbon_metabolites(metabolites, reactions):
     }
     carbon_ids, unknown_ids = defaultdict(set), set()
     for row in metabolites.drop_duplicates("MetaboliteID").itertuples(index=False):
-        smiles = clean(row.SMILES_Manual) or clean(row.SMILES_Yeast9)
+        smiles = get_smiles(row)
         molecule = Chem.MolFromSmiles(smiles) if smiles else None
         if molecule is None:
             unknown_ids.add(clean(row.MetaboliteID))
@@ -40,18 +42,15 @@ def carbon_metabolites(metabolites, reactions):
     return carbon_ids, len(unknown_ids)
 
 
-def read_input(path, reaction_sheet, metabolite_sheet):
+def read_input(
+    path, reaction_sheet, metabolite_sheet, structure_options=None, model=""
+):
     with pd.ExcelFile(path, engine="openpyxl") as excel:
         reactions_df = pd.read_excel(excel, sheet_name=reaction_sheet)
         metabolites = pd.read_excel(excel, sheet_name=metabolite_sheet)
     required = {
         "reactions": {"ReactionID", "ReactionName", "Equation", "Flux"},
-        "metabolites": {
-            "MetaboliteID",
-            "MetaboliteName",
-            "SMILES_Yeast9",
-            "SMILES_Manual",
-        },
+        "metabolites": {"MetaboliteID", "MetaboliteName"},
     }
     for name, table in (("reactions", reactions_df), ("metabolites", metabolites)):
         missing = required[name] - set(table.columns)
@@ -70,10 +69,13 @@ def read_input(path, reaction_sheet, metabolite_sheet):
         .all()
     ):
         raise ValueError("Reaction inputs must contain finite nonzero fluxes.")
-    structures = metabolites.SMILES_Manual.fillna("").where(
-        metabolites.SMILES_Manual.fillna("").ne(""),
-        metabolites.SMILES_Yeast9.fillna(""),
-    )
+    if "SMILES_Manual" not in metabolites:
+        metabolites["SMILES_Manual"] = float("nan")
+    if not {"SMILES_Model", "SMILES_Yeast9"}.intersection(metabolites.columns):
+        metabolites["SMILES_Model"] = float("nan")
+    if structure_options is not None:
+        metabolites = complete_smiles(metabolites, model, structure_options)
+    structures = [get_smiles(row) for row in metabolites.itertuples(index=False)]
     if (
         pd.DataFrame({"name": metabolites.MetaboliteName, "smiles": structures})
         .groupby("name")
@@ -96,7 +98,9 @@ def reuse_predictions(path, backend, settings, reactions, source, metabolites, j
         with pd.ExcelFile(path, engine="openpyxl") as excel:
             old_source = pd.read_excel(excel, sheet_name=job["reaction_sheet"])
             old_metabolites = pd.read_excel(excel, sheet_name=job["metabolite_sheet"])
-            metadata = pd.read_excel(excel, sheet_name="Mapping_Info")
+            metadata = pd.read_excel(
+                excel, sheet_name="Mapping_Info", dtype={"ReactionID": str}
+            )
             info = metadata.loc[metadata.Mapper == backend]
             if info.empty:
                 return False
@@ -129,7 +133,7 @@ def reuse_predictions(path, backend, settings, reactions, source, metabolites, j
             if not old_metabolites.equals(metabolites):
                 return False
             sheet = backend if backend in excel.sheet_names else job["reaction_sheet"]
-            table = pd.read_excel(excel, sheet_name=sheet)
+            table = pd.read_excel(excel, sheet_name=sheet, dtype={"ReactionID": str})
             if "MappingStatus" not in table:
                 details = metadata.loc[
                     (metadata.Mapper == backend) & metadata.ReactionID.notna(),
@@ -217,7 +221,7 @@ def final_mapping_table(reactions, selection):
                 "SelectedMapper": choices.loc[r.reaction_id, "SelectedMapper"],
                 "MappedReactionSMILES": r.mapped_smiles,
                 "ReviewRequired": bool(choices.loc[r.reaction_id, "ReviewRequired"]),
-                "AIGenerated": bool(choices.loc[r.reaction_id, "AIGenerated"]),
+                "AIGenerated": False,
             }
             for r in reactions
             if r.status == "mapped"
@@ -265,6 +269,100 @@ def write_flow(workbook, number, table):
         )
 
 
+def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None):
+    """Read step 2 independently; protect its workbooks and limit model concurrency."""
+    if type(rounds) is not int or rounds < 1:
+        raise ValueError("Propagation rounds must be a positive integer.")
+    if not jobs:
+        raise ValueError("Configure at least one model for propagation.")
+    output_dir = Path(output_dir).resolve()
+    tasks = []
+    inputs = set()
+    for name, job in jobs.items():
+        if not name or any(c in name for c in '/\\:*?"<>|') or name in (".", ".."):
+            raise ValueError(f"Invalid analysis name for a file: {name}")
+        sources = job.get("carbon_sources")
+        if not sources or len(set(sources)) != len(sources):
+            raise ValueError(f"{name} carbon sources must be nonempty and unique.")
+        mapping_file = Path(
+            job.get("mapping_file", output_dir / f"{name}_2_atom_mapping.xlsx")
+        ).resolve()
+        if not mapping_file.is_file():
+            raise FileNotFoundError(f"Run step2_atom_mapping.py first: {mapping_file}")
+        inputs.add(mapping_file)
+        if "input_file" in job:
+            inputs.add(Path(job["input_file"]).resolve())
+        suffix = "_AIGenerated" if mapping_file.stem.endswith("_AIGenerated") else ""
+        tasks.append(
+            (
+                name,
+                job,
+                rounds,
+                mapping_file,
+                output_dir / f"{name}_3_carbon_flow{suffix}.xlsx",
+            )
+        )
+    if any(task[-1] in inputs for task in tasks):
+        raise ValueError("Output cannot overwrite an input or mapping workbook.")
+    print(f"Propagation rounds: {rounds}", flush=True)
+    workers, _ = parallel_capacity(
+        len(tasks), max_processes, memory_gb, task_kind="carbon propagation"
+    )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if workers == 1:
+        for task in tasks:
+            trace_mapping_file(*task)
+    else:
+        with get_context("spawn").Pool(processes=workers) as pool:
+            pool.starmap(trace_mapping_file, tasks)
+
+
+def trace_mapping_file(strain, job, rounds, mapping_file, output):
+    """Validate final correspondences against the structures saved in step 2."""
+    RDLogger.DisableLog("rdApp.warning")
+    with pd.ExcelFile(mapping_file, engine="openpyxl") as excel:
+        reaction_sheet, metabolite_sheet = input_sheets(excel)
+        final = pd.read_excel(
+            excel, sheet_name="Final_Mapping", dtype={"ReactionID": str}
+        ).fillna("")
+    reactions, source, metabolites = read_input(
+        mapping_file, reaction_sheet, metabolite_sheet
+    )
+    # Preserve the original-input check for callers that explicitly supply step 1.
+    if "input_file" in job:
+        _, original_source, original_metabolites = read_input(
+            job["input_file"], job["reaction_sheet"], job["metabolite_sheet"]
+        )
+        pd.testing.assert_frame_equal(source, original_source, rtol=1e-12, atol=1e-15)
+        pd.testing.assert_frame_equal(metabolites, original_metabolites)
+    required = {"ReactionID", "MappingDirection", "Equation", "MappedReactionSMILES"}
+    if not required <= set(final.columns):
+        raise ValueError("Final_Mapping is missing required columns.")
+    if not final.ReactionID.is_unique or not set(final.ReactionID) <= {
+        r.reaction_id for r in reactions
+    }:
+        raise ValueError(
+            "Final_Mapping contains duplicated or unknown ReactionID values."
+        )
+    lookup = final.set_index("ReactionID")
+    for reaction in reactions:
+        reaction.status = "Not selected"
+        if reaction.reaction_id not in lookup.index:
+            continue
+        row = lookup.loc[reaction.reaction_id]
+        if (
+            row.MappingDirection != ("forward" if reaction.flux >= 0 else "reverse")
+            or row.Equation != reaction.equation
+        ):
+            raise ValueError(
+                "Final_Mapping input or direction changed; rerun the mapping stage."
+            )
+        reaction.mapped_smiles = row.MappedReactionSMILES
+        mapping_signatures(reaction)
+        reaction.status = "mapped"
+    trace_analysis(strain, job, reactions, metabolites, rounds, Workbook(), output)
+
+
 def run_analyses(
     jobs,
     rounds,
@@ -279,8 +377,13 @@ def run_analyses(
     max_carbon_processes=None,
     carbon_memory_gb=None,
     stage="all",
+    structure_options=None,
 ):
     """Predict independently, select one mapping per reaction and propagate."""
+    if stage == "trace":
+        return run_carbon_flow(
+            jobs, rounds, output_dir, max_carbon_processes, carbon_memory_gb
+        )
     if not backends or len(set(backends)) != len(backends):
         raise ValueError("Mapper list must be nonempty and unique.")
     if stage not in ("all", "map", "trace"):
@@ -305,15 +408,16 @@ def run_analyses(
         if stage != "trace":
             validate_mapper_config(backend, mapper_configs[backend])
     configure(batch_size, max_reaction_atoms)
-    if type(rounds) is not int or rounds < 1:
+    if stage != "map" and (type(rounds) is not int or rounds < 1):
         raise ValueError("Propagation rounds must be a positive integer.")
     for name, job in jobs.items():
         if not name or any(c in name for c in '/\\:*?"<>|') or name in (".", ".."):
             raise ValueError(f"Invalid analysis name for a file: {name}")
         if not job["input_file"].is_file():
             raise FileNotFoundError(job["input_file"])
-        if not job["carbon_sources"] or len(set(job["carbon_sources"])) != len(
-            job["carbon_sources"]
+        if stage != "map" and (
+            not job["carbon_sources"]
+            or len(set(job["carbon_sources"])) != len(job["carbon_sources"])
         ):
             raise ValueError(f"{name} carbon sources must be nonempty and unique.")
         if any(
@@ -323,64 +427,24 @@ def run_analyses(
             raise ValueError("Mapper names cannot match input sheet names.")
     input_paths = {job["input_file"].resolve() for job in jobs.values()}
     if any(
-        (output_dir / f"{name}_integrated_carbon_tracing.xlsx").resolve() in input_paths
+        (output_dir / filename).resolve() in input_paths
         for name in jobs
+        for filename in (f"{name}_2_atom_mapping.xlsx", f"{name}_3_carbon_flow.xlsx")
     ):
         raise ValueError("Output cannot overwrite any MATLAB input.")
-    print(f"Propagation rounds: {rounds}", flush=True)
+    if stage != "map":
+        print(f"Propagation rounds: {rounds}", flush=True)
     output_dir.mkdir(parents=True, exist_ok=True)
     RDLogger.DisableLog("rdApp.warning")
-    if stage == "trace":
-        for strain, job in jobs.items():
-            output = output_dir / f"{strain}_integrated_carbon_tracing.xlsx"
-            reactions, source, metabolites = read_input(
-                job["input_file"], job["reaction_sheet"], job["metabolite_sheet"]
-            )
-            with pd.ExcelFile(output, engine="openpyxl") as excel:
-                pd.testing.assert_frame_equal(
-                    source,
-                    pd.read_excel(excel, sheet_name=job["reaction_sheet"]),
-                    rtol=1e-12,
-                    atol=1e-15,
-                )
-                pd.testing.assert_frame_equal(
-                    metabolites,
-                    pd.read_excel(excel, sheet_name=job["metabolite_sheet"]),
-                )
-                final = pd.read_excel(excel, sheet_name="Final_Mapping").fillna("")
-            if not final.ReactionID.is_unique or not set(final.ReactionID) <= {
-                r.reaction_id for r in reactions
-            }:
-                raise ValueError(
-                    "Final_Mapping contains duplicated or unknown ReactionID values."
-                )
-            lookup = final.set_index("ReactionID")
-            for reaction in reactions:
-                reaction.status = "Not selected"
-                if reaction.reaction_id not in lookup.index:
-                    continue
-                row = lookup.loc[reaction.reaction_id]
-                if (
-                    row.MappingDirection
-                    != ("forward" if reaction.flux >= 0 else "reverse")
-                    or row.Equation != reaction.equation
-                ):
-                    raise ValueError(
-                        "Final_Mapping input or direction changed; rerun the mapping stage."
-                    )
-                reaction.mapped_smiles = row.MappedReactionSMILES
-                mapping_signatures(reaction)
-                reaction.status = "mapped"
-            workbook = load_workbook(output)
-            trace_analysis(
-                strain, job, reactions, metabolites, rounds, workbook, output
-            )
-        return
     prepared, pending = {}, []
     for strain, job in jobs.items():
-        output = output_dir / f"{strain}_integrated_carbon_tracing.xlsx"
+        output = output_dir / f"{strain}_2_atom_mapping.xlsx"
         reactions, source, metabolites = read_input(
-            job["input_file"], job["reaction_sheet"], job["metabolite_sheet"]
+            job["input_file"],
+            job["reaction_sheet"],
+            job["metabolite_sheet"],
+            structure_options,
+            strain,
         )
         predictions, metadata = {}, []
         for backend in backends:
@@ -413,6 +477,7 @@ def run_analyses(
                 SelectionPolicy="Select carbon agreement supported by at least two tools; otherwise require review; do not compare scores across tools.",
             )
             info.update(settings.get("options", {}))
+            info["SourceInputSHA256"] = job.get("input_sha256", "")
             metadata.append(info)
         prepared[strain] = metabolites, predictions, metadata
     workers, cpu_threads = parallel_capacity(
@@ -460,14 +525,31 @@ def finish_analysis(
 ):
     """Write one strain workbook without sharing its state catalog."""
     RDLogger.DisableLog("rdApp.warning")
-    print(f"{strain}: starting independent carbon propagation.", flush=True)
-    output = output_dir / f"{strain}_integrated_carbon_tracing.xlsx"
+    print(f"{strain}: writing selected atom mappings.", flush=True)
+    output = output_dir / f"{strain}_2_atom_mapping.xlsx"
     reactions, selection = select_mappings(predictions)
+    if "StructureReviewRequired" in metabolites:
+        review_names = set(
+            metabolites.loc[
+                metabolites.StructureReviewRequired.fillna(False).eq(True),
+                "MetaboliteName",
+            ]
+        )
+        for index, reaction in enumerate(reactions):
+            if any(
+                component.metabolite in review_names
+                for component in reaction.left + reaction.right
+            ):
+                selection.at[index, "ReviewRequired"] = True
+                selection.at[index, "SelectionReason"] += (
+                    "; Automatically selected structure requires review"
+                )
 
     temporary = output.with_suffix(".tmp.xlsx")
     copy_input(job["input_file"], temporary)
     workbook = load_workbook(temporary)
     clear_formatting(workbook)
+    write_sheet(workbook, job["metabolite_sheet"], metabolites)
     for backend in backends:
         write_sheet(workbook, backend, prediction_table(predictions[backend]))
     write_sheet(workbook, "Mapping_Selection", selection)
@@ -500,11 +582,25 @@ def finish_analysis(
     if stage == "map":
         workbook.close()
         return
-    trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output)
+    trace_analysis(
+        strain,
+        job,
+        reactions,
+        metabolites,
+        rounds,
+        workbook,
+        output_dir / f"{strain}_3_carbon_flow.xlsx",
+    )
 
 
 def save_output(workbook, output):
     """Keep the previous completed workbook until its replacement is saved."""
+    # Use an explicit font rather than the locale-dependent theme font.
+    for font in workbook._fonts:
+        font.name = "Calibri"
+        font.scheme = None
+        font.charset = None
+    workbook._fonts._dict = {font: i for i, font in enumerate(workbook._fonts)}
     temporary = output.with_suffix(".tmp.xlsx")
     workbook.save(temporary)
     try:
@@ -517,9 +613,9 @@ def save_output(workbook, output):
 
 def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output):
     """Reuse final atom correspondences; never invoke a prediction tool here."""
-    for name in list(workbook.sheetnames):
-        if name.startswith("Carbon_Flow_") or name == "Summary":
-            del workbook[name]
+    workbook.close()
+    workbook = Workbook()
+    del workbook[workbook.active.title]
     summary = []
     previous_counts = {}
     carbon_ids, unknown_count = carbon_metabolites(metabolites, reactions)
@@ -529,12 +625,20 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
         flush=True,
     )
     smiles = {
-        clean(row.MetaboliteName): clean(row.SMILES_Manual) or clean(row.SMILES_Yeast9)
+        clean(row.MetaboliteName): get_smiles(row)
         for row in metabolites.itertuples(index=False)
     }
     sources = initialize_sources(job["carbon_sources"], smiles)
     for number, table, added, converged in propagate_rounds(
-        strain, reactions, metabolites, rounds, job["carbon_sources"], sources
+        strain,
+        reactions,
+        metabolites,
+        rounds,
+        job["carbon_sources"],
+        sources,
+        allow_inorganic_carbon_recycling=job.get(
+            "allow_inorganic_carbon_recycling", False
+        ),
     ):
         write_flow(workbook, number, table)
         source_summary = summarize_sources(
