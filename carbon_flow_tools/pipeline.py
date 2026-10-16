@@ -23,7 +23,6 @@ from .excel_io import (
     write_sheet,
     save_output,
     workbook_limit,
-    copy_summary_sheets,
     WorkbookSizeLimitError,
 )
 from .consensus import select_mappings
@@ -309,7 +308,7 @@ def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None
             suffix = "_AIGenerated" if mapping_file.stem.endswith("_AIGenerated") else ""
             tasks.append((
                 name, job, rounds, mapping_file,
-                output_dir / f"{name}_3_carbon_flow{suffix}.xlsx",
+                output_dir / f"{name}_3_carbon_flow_Enumeration{suffix}.xlsx",
             ))
     if len({task[-1] for task in tasks}) != len(tasks):
         raise ValueError("Mapping workbooks would overwrite the same carbon-flow output.")
@@ -345,18 +344,16 @@ def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None
                     status["stop_reason"] = "batch_interrupted"
             saved.append(status)
         write_carbon_run_report(output_dir, tasks, saved, str(error))
-        if changed:
-            copy_summary_sheets(output_dir)
         raise
     write_carbon_run_report(output_dir, tasks, saved)
-    if any(status["completed_rounds"] for status in saved):
-        copy_summary_sheets(output_dir)
     return saved
 
 
 def trace_with_status(strain, job, rounds, mapping_file, output):
     """Return a small status record from each independent propagation worker."""
-    status = dict(model=strain, requested_rounds=rounds, completed_rounds=0,
+    status = dict(model=strain, method="Enumeration",
+                  allow_inorganic_carbon_recycling=job.get("allow_inorganic_carbon_recycling", False),
+                  requested_rounds=rounds, completed_rounds=0,
                   stop_reason="round_limit", output_file=None,
                   mapping_file=str(mapping_file), carbon_sources=job["carbon_sources"])
     try:
@@ -377,7 +374,7 @@ def trace_with_status(strain, job, rounds, mapping_file, output):
 def write_carbon_run_report(output_dir, tasks, statuses, error=None):
     """Keep safety stops distinguishable from convergence for automated callers."""
     output = output_dir / "carbon_flow_run.json"
-    report = dict(version=1, finished_at_utc=datetime.utcnow().isoformat() + "Z",
+    report = dict(version=1, method="Enumeration", finished_at_utc=datetime.utcnow().isoformat() + "Z",
                   status="error" if error else "finished", models=statuses)
     if error:
         report["error"] = error
@@ -395,6 +392,12 @@ def trace_mapping_file(strain, job, rounds, mapping_file, output):
     """Validate final correspondences against the structures saved in step 2."""
     RDLogger.DisableLog("rdApp.warning")
     MemoryGuard(job.get("min_available_memory_gb", 2)).check("loading " + strain, force=True)
+    reactions, source, metabolites = load_final_mappings(mapping_file, job)
+    return trace_analysis(strain, job, reactions, metabolites, rounds, Workbook(), output)
+
+
+def load_final_mappings(mapping_file, job):
+    """Load selected mappings through the same checks for both tracing analyses."""
     with pd.ExcelFile(mapping_file, engine="openpyxl") as excel:
         reaction_sheet, metabolite_sheet = input_sheets(excel)
         final = pd.read_excel(
@@ -435,7 +438,7 @@ def trace_mapping_file(strain, job, rounds, mapping_file, output):
         reaction.mapped_smiles = row.MappedReactionSMILES
         mapping_signatures(reaction)
         reaction.status = "mapped"
-    return trace_analysis(strain, job, reactions, metabolites, rounds, Workbook(), output)
+    return reactions, source, metabolites
 
 
 def run_analyses(
@@ -504,7 +507,7 @@ def run_analyses(
     if any(
         (output_dir / filename).resolve() in input_paths
         for name in jobs
-        for filename in (f"{name}_2_atom_mapping.xlsx", f"{name}_3_carbon_flow.xlsx")
+        for filename in (f"{name}_2_atom_mapping.xlsx", f"{name}_3_carbon_flow_Enumeration.xlsx")
     ):
         raise ValueError("Output cannot overwrite any input workbook.")
     if stage != "map":
@@ -664,7 +667,7 @@ def finish_analysis(
         metabolites,
         rounds,
         workbook,
-        output_dir / f"{strain}_3_carbon_flow.xlsx",
+        output_dir / f"{strain}_3_carbon_flow_Enumeration.xlsx",
     )
 
 
@@ -698,8 +701,9 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
     )
     try:
         for number, _, added, converged in iterator:
-            summary.append(summarize_sources(
-                store.source_records(), sources, carbon_ids, number, previous_counts))
+            row = summarize_sources(store.source_records(), sources, carbon_ids, number, previous_counts)
+            row.update(Method="Enumeration", InorganicCarbonRecycling=job.get("allow_inorganic_carbon_recycling", False))
+            summary.append(row)
             store.complete_round()
             completed_round = number
             status["stop_reason"] = "converged" if converged else "round_limit"

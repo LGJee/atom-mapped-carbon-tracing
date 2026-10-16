@@ -66,7 +66,7 @@ def main():
             **options,
         )
         mapping_output = root / "split/Example_2_atom_mapping.xlsx"
-        output = root / "split/Example_3_carbon_flow.xlsx"
+        output = root / "split/Example_3_carbon_flow_Enumeration.xlsx"
         mapping_before = mapping_output.read_bytes()
         with pd.ExcelFile(mapping_output, engine="openpyxl") as excel:
             assert not output.exists()
@@ -94,7 +94,7 @@ def main():
             )
         assert mapping_output.read_bytes() == mapping_before
         with pd.ExcelFile(output, engine="openpyxl") as split, pd.ExcelFile(
-            root / "combined/Example_3_carbon_flow.xlsx", engine="openpyxl"
+            root / "combined/Example_3_carbon_flow_Enumeration.xlsx", engine="openpyxl"
         ) as combined:
             assert set(split.sheet_names) == {
                 "Carbon_Flow_R1",
@@ -126,7 +126,7 @@ def main():
                     independent_jobs, 2, root / "independent", max_processes=1
                 )
             with pd.ExcelFile(
-                root / "independent/Example_3_carbon_flow.xlsx", engine="openpyxl"
+                root / "independent/Example_3_carbon_flow_Enumeration.xlsx", engine="openpyxl"
             ) as independent:
                 assert set(independent.sheet_names) == {
                     "Carbon_Flow_R1",
@@ -150,7 +150,7 @@ def main():
             )
             for name in parallel_jobs:
                 with pd.ExcelFile(
-                    root / "parallel_trace" / (name + "_3_carbon_flow.xlsx"),
+                    root / "parallel_trace" / (name + "_3_carbon_flow_Enumeration.xlsx"),
                     engine="openpyxl",
                 ) as parallel:
                     for sheet in parallel.sheet_names:
@@ -210,7 +210,7 @@ def main():
             max_processes=1,
         )
         numeric_flow = pd.read_excel(
-            root / "numeric/Numeric_3_carbon_flow.xlsx",
+            root / "numeric/Numeric_3_carbon_flow_Enumeration.xlsx",
             sheet_name="Carbon_Flow_R1",
             engine="openpyxl",
         )
@@ -302,7 +302,7 @@ def check_mapping_variants():
             ),
             encoding="utf-8",
         )
-        options = tracing.settings()
+        options = dict(tracing.settings(), analysis_methods=["Enumeration"])
         options.update(
             analysis_plan=str(plan),
             tracing_python=sys.executable,
@@ -310,11 +310,10 @@ def check_mapping_variants():
             max_carbon_processes=1,
         )
         assert main("trace", options, [names[0]]) == 0
-        original_flow = folder / (names[0] + "_3_carbon_flow.xlsx")
+        original_flow = folder / (names[0] + "_3_carbon_flow_Enumeration.xlsx")
         originals = {
             path: hashlib.sha256(path.read_bytes()).hexdigest()
             for path in folder.glob("*.xlsx")
-            if path.name != "carbon_flow_summary.xlsx"
         }
         reviewed = folder / (names[0] + "_2_atom_mapping_AIGenerated.xlsx")
         shutil.copyfile(folder / (names[0] + "_2_atom_mapping.xlsx"), reviewed)
@@ -344,7 +343,7 @@ def check_mapping_variants():
         assert len({item["output_file"] for item in report["models"]}) == 3
         assert all(item["mapping_sha256"] == hashlib.sha256(
             Path(item["mapping_file"]).read_bytes()).hexdigest() for item in report["models"])
-        updated_flow = folder / (names[0] + "_3_carbon_flow_AIGenerated.xlsx")
+        updated_flow = folder / (names[0] + "_3_carbon_flow_Enumeration_AIGenerated.xlsx")
         table = pd.read_excel(
             updated_flow, sheet_name="Carbon_Flow_R1", engine="openpyxl"
         )
@@ -366,7 +365,7 @@ def check_mapping_variants():
         ]
         assert hashlib.sha256(reviewed.read_bytes()).hexdigest() == reviewed_hash
         for path, digest in originals.items():
-            if "_3_carbon_flow" not in path.stem:
+            if "_3_carbon_flow_Enumeration" not in path.stem:
                 assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
         # The fallback interpreter must relaunch the unified propagation entry.
         with patch("carbon_flow_tools.cli.sys.executable", "/unrelated/python"), patch(
@@ -379,14 +378,14 @@ def check_mapping_variants():
         shutil.copyfile(reviewed, second)
         assert set(discover_inputs(folder, "trace")) == set(names)
         assert main("trace", options, []) == 0
-        assert (folder / (names[1] + "_3_carbon_flow_AIGenerated.xlsx")).exists()
+        assert (folder / (names[1] + "_3_carbon_flow_Enumeration_AIGenerated.xlsx")).exists()
         # Parallel tasks for two versions of the same model remain isolated.
         parallel = folder / "parallel"
         run_carbon_flow({names[0]: dict(
             mapping_files=[folder / (names[0] + "_2_atom_mapping.xlsx"), reviewed],
             carbon_sources=["A[e]"],
         )}, 2, parallel, max_processes=2, memory_gb=.25)
-        for filename in (names[0] + "_3_carbon_flow.xlsx", updated_flow.name):
+        for filename in (names[0] + "_3_carbon_flow_Enumeration.xlsx", updated_flow.name):
             for sheet_name in ("Summary", "Carbon_Flow_R1", "Carbon_Flow_R2"):
                 pd.testing.assert_frame_equal(
                     pd.read_excel(folder / filename, sheet_name=sheet_name, engine="openpyxl"),

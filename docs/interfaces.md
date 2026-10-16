@@ -75,18 +75,17 @@ python3 step3_carbon_flow.py --plan results/results_by_AI/my_analysis/analysis_p
 ```
 
 Step 3 discovers normal and reviewed copies for each model in the selected
-plan. Either version may be present alone, and both are processed when available.
+plan. For either method, either version may be present alone and both are processed
+when available.
 It retains provenance checks for each copy and performs no review. The suffix
 selects a file, not a quality grade.
 This revision does not create or implement the future orchestrator skill.
 
 ## Propagation status
 
-Step 3 writes `<model>_3_carbon_flow.xlsx` for normal mappings and
-`<model>_3_carbon_flow_AIGenerated.xlsx`. Workbooks contain only saved
-`Carbon_Flow_R*` and `Summary` tables. Each output folder's
-`carbon_flow_summary.xlsx` copies available result Summaries into separate sheets,
-including earlier results. It is not a record of which models finished this run.
+Step 3 writes `<model>_3_carbon_flow_Enumeration.xlsx` for normal mappings and
+`<model>_3_carbon_flow_Enumeration_AIGenerated.xlsx`. Enumeration workbooks contain only saved
+`Carbon_Flow_R*` and `Summary` tables. No aggregate Summary workbook is generated.
 
 Each batch writes `carbon_flow_run.json`. Version 1 records the finish
 timestamp, batch `status` (`finished` or `error`) and one entry per mapping
@@ -120,3 +119,36 @@ older workbook exists. Reruns start at round 1, not a checkpoint.
 These outputs describe possible carbon-origin label reachability, not measured
 isotope abundance, physical time or quantitative carbon allocation. Existing
 propagation rules, inorganic-carbon settings and Summary denominators are unchanged.
+
+## EMU mean source contributions
+
+Step 3 defaults to `ANALYSIS_METHODS = ["Enumeration", "EMU"]` and accepts
+`--method Enumeration`, `--method EMU`, or both names. `--output-dir` changes
+only the destination, not the mapping/input locations in the plan. The legacy
+`analyze_source_contributions.py` entry delegates to the same EMU runner.
+
+EMU runs first, independently of Enumeration. It requires a generated analysis
+plan and the original step-1 workbook. It verifies its hash, mapping provenance
+and the copied reaction/Flux table against that input for each original or AI
+mapping version. It reads each version's Final_Mapping independently and accepts
+AIReviewed/AIGenerated flags. An AI-only model is supported with the same step-1
+requirements. A failed method does not cancel the other selected method;
+the overall command still returns nonzero for an error.
+
+`<model>_3_carbon_flow_EMU.xlsx` and
+`<model>_3_carbon_flow_EMU_AIGenerated.xlsx` contain only MetaboliteContributions
+and BoundaryInputs. FluxResidual and Status are omitted from the exported
+metabolite table; internal balance/completeness checks remain active. It implements single-carbon origin balances inspired by size-1
+EMU, not full multi-carbon isotopomer simulation. It has no Round or ProductionID.
+Unknown is retained without renormalizing known contributions.
+
+`source_contributions_run.json` records the current successfully saved EMU
+outputs, Original/AI mapping versions, input/mapping hashes, assumptions, balance residuals, internal status
+counts, symmetry-recovery counts and error/finish status. EMU output uses the step-3
+size limit for atomic complete-workbook saves. The Enumeration batch rollback,
+row-limit and round settings do not apply to the EMU numerical solve.
+
+Enumeration Summary includes Method and InorganicCarbonRecycling (default FALSE).
+EMU records its method and internal CO2 refixation policy in
+`source_contributions_run.json`; it has no Summary sheet. Existing result files
+are not renamed or modified automatically. See [assumptions, fields and validation](source-contributions.md).

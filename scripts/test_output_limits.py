@@ -1,4 +1,4 @@
-"""Check batch-level size stops and unchanged per-model Summary copies."""
+"""Check batch-level size stops and preservation of complete per-model results."""
 
 from pathlib import Path
 import json
@@ -8,10 +8,10 @@ import unittest
 from unittest.mock import patch
 
 import pandas as pd
-from openpyxl import Workbook, load_workbook
+from openpyxl import Workbook
 
 from carbon_flow_tools.excel_io import (
-    save_output, write_sheet, workbook_limit, copy_summary_sheets, WorkbookSizeLimitError,
+    save_output, write_sheet, workbook_limit, WorkbookSizeLimitError,
 )
 from carbon_flow_tools.pipeline import trace_analysis, run_carbon_flow
 from carbon_flow_tools.flow_output import FlowOutput
@@ -81,7 +81,7 @@ class OutputLimitTests(unittest.TestCase):
         for sizes in ((49999999, 50000000), (49999999, 80000000), (60000000,)):
             for suffix in ("", "_AIGenerated"):
                 with self.subTest(sizes=sizes, suffix=suffix), tempfile.TemporaryDirectory() as directory:
-                    path = Path(directory) / ("Test_3_carbon_flow" + suffix + ".xlsx")
+                    path = Path(directory) / ("Test_3_carbon_flow_Enumeration" + suffix + ".xlsx")
                     output_workbook(path, summary([90]))
                     historical = path.read_bytes()
                     status, current_round = {}, [0]
@@ -121,7 +121,7 @@ class OutputLimitTests(unittest.TestCase):
         rxn, metabolites, _ = flow_fixture()
         expected = list(propagate_rounds("Test", [rxn], metabolites, 3, ["A[c]"]))
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "Test_3_carbon_flow.xlsx"
+            path = Path(directory) / "Test_3_carbon_flow_Enumeration.xlsx"
             status = {}
             trace_analysis("Test", {"carbon_sources": ["A[c]"], "output_batch_rows": 1,
                 "_run_status": status}, [rxn], metabolites, 3, Workbook(), path)
@@ -138,7 +138,7 @@ class OutputLimitTests(unittest.TestCase):
         original_checkpoint, original_complete = FlowOutput.checkpoint, FlowOutput.complete_round
         saved = []
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "Test_3_carbon_flow.xlsx"
+            path = Path(directory) / "Test_3_carbon_flow_Enumeration.xlsx"
             status = {}
 
             def checkpoint(store):
@@ -175,7 +175,7 @@ class OutputLimitTests(unittest.TestCase):
                 yield number, None, 1, False
             raise AssertionError("No subsequent round after overflow")
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "Test_3_carbon_flow.xlsx"
+            path = Path(directory) / "Test_3_carbon_flow_Enumeration.xlsx"
             status = {}
             with patch("carbon_flow_tools.pipeline.propagate_rounds", rounds), patch.object(FlowOutput, "MAX_DATA_ROWS", 1):
                 trace_analysis("Test", {"carbon_sources": ["A[c]"], "output_batch_rows": 1,
@@ -190,7 +190,7 @@ class OutputLimitTests(unittest.TestCase):
     def test_first_batch_overflow_produces_no_current_output(self):
         rxn, metabolites, _ = flow_fixture()
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "Test_3_carbon_flow.xlsx"
+            path = Path(directory) / "Test_3_carbon_flow_Enumeration.xlsx"
             status = {}
             result = trace_analysis("Test", {"carbon_sources": ["A[c]"], "max_excel_size_mb": .000001,
                 "output_batch_rows": 1, "_run_status": status}, [rxn], metabolites, 5, Workbook(), path)
@@ -198,33 +198,6 @@ class OutputLimitTests(unittest.TestCase):
             self.assertFalse(path.exists())
             self.assertEqual(status["completed_rounds"], 0)
             self.assertEqual(status["stop_reason"], "file_size_limit")
-
-    def test_summary_copies_are_unchanged_and_separate(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            normal = root / "Saccharomyces_cerevisiae_non_IUPD_3_carbon_flow.xlsx"
-            ai = root / "Saccharomyces_cerevisiae_non_IUPD_3_carbon_flow_AIGenerated.xlsx"
-            output_workbook(normal, summary([20, 30]))
-            output_workbook(ai, summary([30, 40]))
-            originals = {p: p.read_bytes() for p in (normal, ai)}
-            (root / "~$Ignore_3_carbon_flow.xlsx").touch()
-            (root / "Ignore_3_carbon_flow.tmp.xlsx").touch()
-            copy_summary_sheets(root)
-            aggregate = root / "carbon_flow_summary.xlsx"
-            with pd.ExcelFile(aggregate, engine="openpyxl") as excel:
-                self.assertEqual(len(excel.sheet_names), 2)
-                self.assertTrue(all(len(s) <= 31 for s in excel.sheet_names))
-                self.assertTrue(any(s.endswith("_AI") for s in excel.sheet_names))
-                for sheet in excel.sheet_names:
-                    expected = ai if sheet.endswith("_AI") else normal
-                    pd.testing.assert_frame_equal(pd.read_excel(excel, sheet_name=sheet),
-                        pd.read_excel(expected, sheet_name="Summary", engine="openpyxl"))
-            for path, contents in originals.items():
-                self.assertEqual(path.read_bytes(), contents)
-            workbook = load_workbook(aggregate, read_only=True)
-            self.assertTrue(all(c.font.name == "Calibri" for ws in workbook
-                                for row in ws for c in row if c.value is not None))
-            workbook.close()
 
     def test_error_status_distinguishes_versions_of_the_same_model(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -265,7 +238,7 @@ class OutputLimitTests(unittest.TestCase):
             with patch("carbon_flow_tools.pipeline.trace_mapping_file", stopped):
                 with self.assertRaisesRegex(MemoryPressureError, "simulated stop"):
                     run_carbon_flow(jobs, 10, root, max_processes=1)
-            result = root / "A_3_carbon_flow.xlsx"
+            result = root / "A_3_carbon_flow_Enumeration.xlsx"
             self.assertEqual(result.read_bytes(), saved_hash[0])
             self.assertEqual(pd.read_excel(result, sheet_name="Summary", engine="openpyxl")
                              .columns.tolist(), summary([20, 30]).columns.tolist())
@@ -274,12 +247,12 @@ class OutputLimitTests(unittest.TestCase):
             self.assertEqual(report["status"], "error")
             self.assertEqual(report["models"][0]["stop_reason"], "memory_limit")
             self.assertEqual(report["models"][0]["completed_rounds"], 2)
-            previous = aggregate.read_bytes()
+            self.assertFalse(aggregate.exists())
             with patch("carbon_flow_tools.pipeline.trace_mapping_file",
                        side_effect=MemoryPressureError("no new rounds")):
                 with self.assertRaises(MemoryPressureError):
                     run_carbon_flow(jobs, 10, root, max_processes=1)
-            self.assertEqual(aggregate.read_bytes(), previous)
+            self.assertFalse(aggregate.exists())
             self.assertEqual(result.read_bytes(), saved_hash[0])
 
 

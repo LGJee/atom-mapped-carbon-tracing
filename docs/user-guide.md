@@ -374,11 +374,12 @@ python3 step3_carbon_flow.py MyCulture --rounds 1
 ```
 
 Place these copies in the plan's output directory (normally results/).
-Step 3 processes both `<model>_2_atom_mapping.xlsx` and its optional
-`_AIGenerated` copy for each selected model; either version may be present alone.
-Both versions use the same source lists, rounds and resource settings and retain
+Both methods process `<model>_2_atom_mapping.xlsx` and its optional
+`_AIGenerated` copy separately. Either version may be present alone.
+EMU requires the original step-1 input/plan for both versions.
+Both Enumeration versions use the same source lists, rounds and resource settings and retain
 input-hash/direction/structure checks. They produce independent
-`<model>_3_carbon_flow.xlsx` and `<model>_3_carbon_flow_AIGenerated.xlsx` files.
+`<model>_3_carbon_flow_Enumeration.xlsx` and `<model>_3_carbon_flow_Enumeration_AIGenerated.xlsx` files.
 The mapping inputs are unchanged. Lock files, temporary files, backups and models
 outside the selected plan are not included. Step 3 runs no mappers or AI skill;
 review and workbook updates happen separately before propagation. The separate
@@ -387,7 +388,8 @@ step-4 entry has been removed.
 ## 5. Inspect Excel results
 
 Step 2 writes `<OUTPUT_DIR>/<analysis>_2_atom_mapping.xlsx`; step 3 reads it
-and writes `<OUTPUT_DIR>/<analysis>_3_carbon_flow.xlsx`. The default output
+and writes `<OUTPUT_DIR>/<analysis>_3_carbon_flow_Enumeration.xlsx` and
+`<OUTPUT_DIR>/<analysis>_3_carbon_flow_EMU.xlsx` by default. The default output
 directory is `results`. Raw step-1 inputs use `<model>_1_` filenames.
 Step-1 inputs remain unchanged. Close results in Excel before replacement;
 for step 2, a denied rename leaves the completed `.tmp.xlsx`. Step 3 retains
@@ -396,7 +398,7 @@ staging directory. No permanent intermediate result directories are created.
 
 The step 2 workbook contains copied input tables, three raw tool sheets,
 `Mapping_Selection`, `Final_Mapping` and hidden `Mapping_Info` diagnostics.
-It is unchanged by step 3. The step 3 workbook contains only `Summary` and
+It is unchanged by step 3. The Enumeration workbook contains only `Summary` and
 `Carbon_Flow_Rn` sheets, with one sheet per complete round and no pagination.
 Input structures, mapper provenance and review flags remain in step 2.
 `AIGenerated` appears only in `Final_Mapping` and defaults to FALSE.
@@ -445,7 +447,7 @@ Multi-round combinations can grow rapidly even without rerunning mappers.
 Uncertain mappings, incomplete reactions and polymer-as-monomer structures can
 limit position-specific interpretation. Coverage concerns the mapped subnetwork.
 
-## Workbook size limit and Summary collection
+## Workbook size limit
 
 Normal and AI results use `MAX_EXCEL_SIZE_MB` at the top of step 3 (default
 50 decimal MB, or 50,000,000 bytes). `OUTPUT_BATCH_ROWS` defaults to 50,000
@@ -479,17 +481,9 @@ Summary contains computed observations only. Step 3 does not fit
 curves, adds predicted rounds or changes the denominator. Use these values for
 manual plotting or fitting as needed.
 
-The configured results folder also receives `carbon_flow_summary.xlsx`.
-Each available `*_3_carbon_flow.xlsx` or
-`*_3_carbon_flow_AIGenerated.xlsx` contributes one separate Summary copy.
-No model/source columns or decorative sheets are added. Long model names are
-abbreviated to fit Excel's 31-character limit; AI sheets end in `_AI` when space
-allows, and a hash suffix resolves remaining length/case collisions. Results
-not selected in the current run keep their existing observations. Source
-workbooks are read without modification when their Summary sheets are copied.
-A memory-stop error is still reported, but rounds successfully saved in that
-run are collected before the error is returned. If no rounds were saved,
-earlier files and the aggregate remain unchanged.
+No aggregate Summary workbook is generated. Enumeration retains its own Summary
+sheet. A memory-stop error preserves the rounds successfully saved in that run;
+if no rounds were saved, any earlier output remains unchanged.
 
 ## Small example and tests
 
@@ -546,3 +540,40 @@ network format; the step-2 structure reader handles its separate annotation role
 The custom growth example is
 `examples/step1_prepare_custom_model_inputs.py`. Run it with
 `.envs/preparation/bin/python`; it produces an input workbook and the same plan.
+
+## Enumeration and size-1 EMU source balances
+
+Step 3 now runs both methods by default, selected by `ANALYSIS_METHODS` at the
+top of `step3_carbon_flow.py`. For one method use `--method Enumeration` or
+`--method EMU`. `--output-dir <folder>` writes isolated outputs while reading
+the original plan's mappings. EMU runs first and is independent of Enumeration.
+`ROUNDS` affects Enumeration only.
+
+Enumeration writes `<model>_3_carbon_flow_Enumeration.xlsx` and optional
+`<model>_3_carbon_flow_Enumeration_AIGenerated.xlsx`. EMU writes
+`<model>_3_carbon_flow_EMU.xlsx` and, when a reviewed copy exists,
+`<model>_3_carbon_flow_EMU_AIGenerated.xlsx`. Both versions require the original
+step-1 workbook and plan. For mapping-only tracing without step 1, choose Enumeration.
+
+Enumeration's CO2 label termination default is retained. EMU includes internal
+CO2 refixation in its flux-weighted source balance. Enumeration Summary and
+the EMU run manifest record the method and inorganic-carbon policy. EMU has no propagation rounds and does not estimate
+molecular joint-label states, isotope abundances, or biological time.
+
+Read [source-contribution assumptions and columns](source-contributions.md)
+before comparing these outputs. Its single-carbon and metabolite mean fractions
+are model predictions with explicit Unknown values, distinct from Enumeration
+reachability counts. EMU has no Summary sheet; no aggregate workbook is generated.
+
+Check both `carbon_flow_run.json` (Enumeration) and
+`source_contributions_run.json` (EMU). If one method fails, the other selected
+method is still attempted, and the command returns nonzero. Saved files from an
+older run do not establish current success. This stage makes no mapper/LLM calls.
+
+EMU workbooks are deliberately compact: MetaboliteContributions and
+BoundaryInputs only. FluxResidual and Status are not exported. Per-position
+calculations, flux balance and completeness checks remain internal; their
+assumptions, numerical checks, status counts and symmetry-resolution counts are
+recorded in source_contributions_run.json. Unknown is retained where input or
+mapping evidence is insufficient. Equivalent positions with an already proven
+common single source no longer cause a false loss of that source.

@@ -1,11 +1,9 @@
 import shutil
 import math
 from copy import copy
-from hashlib import sha256
 from pathlib import Path
 
 import pandas as pd
-from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 
 
@@ -106,34 +104,6 @@ def workbook_limit(megabytes):
             or megabytes * 1e6 < 1):
         raise ValueError("Maximum Excel size must be finite and at least one byte.")
     return int(megabytes * 1e6)
-
-
-def copy_summary_sheets(output_dir):
-    """Copy available Original/AI Summary tables without changing their source files."""
-    workbook = Workbook()
-    del workbook[workbook.active.title]
-    used = set()
-    try:
-        for path in sorted(Path(output_dir).glob("*_3_carbon_flow*.xlsx")):
-            if path.name.startswith("~$") or not path.name.endswith((
-                    "_3_carbon_flow.xlsx", "_3_carbon_flow_AIGenerated.xlsx")):
-                continue
-            name = path.stem.replace("_3_carbon_flow", "").replace("_AIGenerated", "_AI")
-            if len(name) > 31 and "_" in name:
-                genus, tail = name.split("_", 1)
-                name = genus[0] + "_" + tail
-            name = "".join("_" if c in '[]:*?/\\' else c for c in name).strip("'") or "Summary"
-            if len(name) > 31 or name.lower() in used:
-                name = name[:22] + "_" + sha256(path.stem.encode()).hexdigest()[:8]
-            used.add(name.lower())
-            table = pd.read_excel(path, sheet_name="Summary", engine="openpyxl")
-            write_sheet(workbook, name, table)
-        if used:
-            output = Path(output_dir) / "carbon_flow_summary.xlsx"
-            save_output(workbook, output)
-            print("Summary copies: {}".format(output), flush=True)
-    finally:
-        workbook.close()
 
 
 def save_output(workbook, output, max_bytes=None):

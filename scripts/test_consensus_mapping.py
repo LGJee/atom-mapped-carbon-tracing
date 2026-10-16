@@ -270,7 +270,7 @@ def main():
             assert (
                 len(
                     pd.read_excel(
-                        root / "out/non_IUPD_3_carbon_flow.xlsx",
+                        root / "out/non_IUPD_3_carbon_flow_Enumeration.xlsx",
                         sheet_name="Carbon_Flow_R1",
                         engine="openpyxl",
                     )
@@ -297,7 +297,7 @@ def main():
             choices = pd.read_excel(excel, sheet_name="Mapping_Selection")
             final = pd.read_excel(excel, sheet_name="Final_Mapping")
             flow = pd.read_excel(
-                root / "out/non_IUPD_3_carbon_flow.xlsx",
+                root / "out/non_IUPD_3_carbon_flow_Enumeration.xlsx",
                 sheet_name="Carbon_Flow_R1",
                 engine="openpyxl",
             )

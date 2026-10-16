@@ -169,6 +169,7 @@ def load_analysis_plan(path, stage, defaults):
             mapping = project_path(output_dir) / (name + "_2_atom_mapping.xlsx")
             jobs[name] = {
                 "mapping_file": mapping,
+                "source_input_file": project_path(input_file),
                 "carbon_sources": sources,
                 "input_sha256": digest,
             }
@@ -180,7 +181,7 @@ def main(stage, settings, argv=None):
     parser = argparse.ArgumentParser(
         description="Predict and select atom mappings."
         if stage == "map"
-        else "Propagate carbon labels using step 2 workbooks."
+        else "Enumerate carbon labels and solve size-1 EMU-inspired source balances."
     )
     parser.add_argument(
         "analyses",
@@ -197,8 +198,11 @@ def main(stage, settings, argv=None):
     )
     if stage == "trace":
         parser.add_argument(
-            "--rounds", type=int, help="Override the configured maximum rounds"
+            "--rounds", type=int, help="Override the maximum Enumeration rounds"
         )
+        parser.add_argument("--method", choices=("Enumeration", "EMU"), nargs="+",
+                            help="Override the analysis methods selected in step 3")
+        parser.add_argument("--output-dir", help="Optional result directory; inputs stay unchanged")
     else:
         parser.add_argument(
             "--mapper", choices=BACKENDS, nargs="+", help="Override this script's tools"
@@ -209,6 +213,13 @@ def main(stage, settings, argv=None):
             help="Do not reuse step 2 predictions",
         )
     args = parser.parse_args(argv)
+    methods = None
+    if stage == "trace":
+        methods = args.method or settings.get("analysis_methods", ["Enumeration", "EMU"])
+        if (not isinstance(methods, (list, tuple)) or not methods
+                or len(set(methods)) != len(methods)
+                or any(m not in ("Enumeration", "EMU") for m in methods)):
+            parser.error("Select unique analysis methods: Enumeration, EMU")
     if args.example and args.plan:
         parser.error("Use either --plan or --example, not both.")
     if os.name == "nt":
@@ -237,10 +248,10 @@ def main(stage, settings, argv=None):
             if stage == "map"
             else "step3_carbon_flow.py"
         )
-        return subprocess.run(
-            [str(tracing_python), str(script)]
-            + (sys.argv[1:] if argv is None else list(argv))
-        ).returncode
+        arguments = sys.argv[1:] if argv is None else list(argv)
+        if stage == "trace" and args.method is None:
+            arguments = ["--method"] + list(methods) + arguments
+        return subprocess.run([str(tracing_python), str(script)] + arguments).returncode
     output = project_path(settings["output_dir"])
     if args.example:
         output = ROOT / "scripts/results/example"
@@ -273,6 +284,8 @@ def main(stage, settings, argv=None):
         or any(name not in models for name in names)
     ):
         parser.error("Select unique available model names: " + ", ".join(models))
+    if stage == "trace" and args.output_dir:
+        output = project_path(args.output_dir)
     jobs = {name: dict(models[name]) for name in names}
     if stage == "map":
         import pandas as pd
@@ -286,6 +299,7 @@ def main(stage, settings, argv=None):
                 != job["input_sha256"]
             ):
                 raise ValueError("Input changed after step 1; rerun step 1: " + name)
+            job.setdefault("input_sha256", hashlib.sha256(job["input_file"].read_bytes()).hexdigest())
             with pd.ExcelFile(job["input_file"], engine="openpyxl") as excel:
                 job["reaction_sheet"], job["metabolite_sheet"] = input_sheets(excel)
             print(
@@ -341,6 +355,12 @@ def main(stage, settings, argv=None):
             job["min_available_memory_gb"] = settings.get("min_available_memory_gb", 2)
             job["max_excel_size_mb"] = settings.get("max_excel_size_mb", 50)
             job["output_batch_rows"] = settings.get("output_batch_rows", 50000)
+            if "EMU" in methods:
+                if args.example:
+                    job["source_input_file"] = ROOT / "examples/Example_1_input.xlsx"
+                    job["input_sha256"] = hashlib.sha256(job["source_input_file"].read_bytes()).hexdigest()
+                if "source_input_file" not in job:
+                    parser.error("EMU requires a generated step-1 analysis plan; use --plan or select Enumeration only.")
             directory = project_path(job["mapping_file"]).parent
             job["mapping_files"] = [
                 path for path in (
@@ -379,13 +399,25 @@ def main(stage, settings, argv=None):
             if args.rounds is not None
             else (1 if args.example else settings["rounds"])
         )
-        from .pipeline import run_carbon_flow
-
-        run_carbon_flow(
-            jobs,
-            rounds,
-            output,
-            max_processes=1 if args.example else settings["max_carbon_processes"],
-            memory_gb=settings["carbon_memory_gb"],
-        )
+        # Independent methods share inputs, not intermediate results or assumptions.
+        error = None
+        for method in ("EMU", "Enumeration"):
+            if method not in methods:
+                continue
+            try:
+                if method == "EMU":
+                    from .source_contributions import run_source_contributions
+                    run_source_contributions(jobs, output,
+                        analysis_plan=None if args.example else settings.get("analysis_plan"))
+                else:
+                    from .pipeline import run_carbon_flow
+                    run_carbon_flow(jobs, rounds, output,
+                        max_processes=1 if args.example else settings["max_carbon_processes"],
+                        memory_gb=settings["carbon_memory_gb"])
+            except Exception as failure:
+                print("{} failed: {}".format(method, failure), flush=True)
+                if error is None:
+                    error = failure
+        if error is not None:
+            raise error
     return 0

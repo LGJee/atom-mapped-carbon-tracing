@@ -44,7 +44,7 @@ def run():
         workbook.close()
         for name in (
             "non_IUPD_2_atom_mapping.xlsx",
-            "non_IUPD_3_carbon_flow.xlsx",
+            "non_IUPD_3_carbon_flow_Enumeration.xlsx",
             "~$non_IUPD_1_input.xlsx",
             "non_IUPD_1_input.tmp.xlsx",
         ):
@@ -90,14 +90,14 @@ def run():
             assert list(predict.call_args[0][0]) == ["Example"]
     assert tracing.INPUT_DIR == mapping.OUTPUT_DIR
     assert tracing.TRACING_PYTHON == ".envs/localmapper/bin/python"
-    assert tracing.settings()["allow_inorganic_carbon_recycling"] is False
+    assert dict(tracing.settings(), analysis_methods=["Enumeration"])["allow_inorganic_carbon_recycling"] is False
 
     with patch.object(tracing, "ALLOW_INORGANIC_CARBON_RECYCLING", True):
-        assert tracing.settings()["allow_inorganic_carbon_recycling"] is True
+        assert dict(tracing.settings(), analysis_methods=["Enumeration"])["allow_inorganic_carbon_recycling"] is True
     with patch.object(tracing, "ROUNDS", 6), patch.object(
         tracing, "MAX_CARBON_PROCESSES", 2
     ):
-        settings = tracing.settings()
+        settings = dict(tracing.settings(), analysis_methods=["Enumeration"])
     settings.pop("analysis_plan")
     settings["tracing_python"] = sys.executable
     settings["carbon_sources"] = {
@@ -123,7 +123,7 @@ def run():
             "~$non_IUPD_2_atom_mapping.xlsx",
             "non_IUPD_2_atom_mapping.tmp.xlsx",
             "non_IUPD_1_input.xlsx",
-            "non_IUPD_3_carbon_flow.xlsx",
+            "non_IUPD_3_carbon_flow_Enumeration.xlsx",
         ):
             (folder / name).touch()
         assert set(discover_inputs(folder, "trace")) == {"non_IUPD", "IUPD"}

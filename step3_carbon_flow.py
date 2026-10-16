@@ -1,4 +1,4 @@
-"""Step 3: propagate normal and AI-reviewed step-2 mappings separately."""
+"""Step 3: enumerate label states and solve size-1 EMU-inspired origin balances."""
 
 import sys
 from carbon_flow_tools.cli import main
@@ -14,7 +14,11 @@ OUTPUT_DIR = INPUT_DIR
 # Fallback values for callers that do not use an analysis plan.
 CARBON_SOURCES = {}  # Loaded from step 1 for every configured model.
 
-# Propagation
+# Analyses: select either method or both; each reads original and optional AI copies.
+ANALYSIS_METHODS = ["Enumeration", "EMU"]
+# EMU is solved first and does not depend on enumeration or propagation rounds.
+
+# Enumeration
 ROUNDS = 10  # Maximum rounds; stop earlier when propagation converges.
 MAX_EXCEL_SIZE_MB = 50  # Decimal MB; discard a candidate round reaching this size.
 OUTPUT_BATCH_ROWS = 50000  # Check actual candidate XLSX size after each batch/layer.
@@ -22,10 +26,10 @@ OUTPUT_BATCH_ROWS = 50000  # Check actual candidate XLSX size after each batch/l
 # Set True to trace inorganic-carbon sources or include carbon refixation.
 ALLOW_INORGANIC_CARBON_RECYCLING = False
 
-# Resources: None selects a CPU/memory-limited capacity.
+# Enumeration concurrency; EMU solves models sequentially before Enumeration.
 MAX_CARBON_PROCESSES = None
 CARBON_MEMORY_GB = None
-# Stop safely below this free-memory reserve or 10% of Linux/WSL memory.
+# Both methods check this free-memory reserve or 10% of Linux/WSL memory.
 MIN_AVAILABLE_MEMORY_GB = 2.0
 
 # Compatible tracing environment; no mapper is called here.
@@ -40,6 +44,7 @@ def settings():
         carbon_sources=CARBON_SOURCES,
         output_dir=OUTPUT_DIR,
         rounds=ROUNDS,
+        analysis_methods=ANALYSIS_METHODS,
         max_excel_size_mb=MAX_EXCEL_SIZE_MB,
         output_batch_rows=OUTPUT_BATCH_ROWS,
         allow_inorganic_carbon_recycling=ALLOW_INORGANIC_CARBON_RECYCLING,

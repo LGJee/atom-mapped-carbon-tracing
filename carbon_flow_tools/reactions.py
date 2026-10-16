@@ -66,7 +66,7 @@ def parse_side(text: str) -> List[Tuple[float, str]]:
         return []
     terms = []
     for raw in text.split(" + "):
-        match = re.match(r"^\s*(?:(\d+(?:\.\d+)?)\s+)?(.+?)\s*$", raw)
+        match = re.match(r"^\s*(?:((?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s+)?(.+?)\s*$", raw)
         if not match:
             raise ValueError(f"Cannot parse: {raw}")
         terms.append((float(match.group(1) or 1), match.group(2)))

@@ -75,7 +75,7 @@ def run():
         config.write_text(json.dumps(plan), encoding="utf-8")
         ms = mapping.settings()
         ms["analysis_plan"] = str(config)
-        ts = tracing.settings()
+        ts = dict(tracing.settings(), analysis_methods=["Enumeration"])
         ts["analysis_plan"] = str(config)
         # Execution settings are supplied by the Python entry points, not step 1.
         ms.update(
@@ -113,7 +113,7 @@ def run():
         resolved_trace, trace_jobs = load_analysis_plan(config, "trace", ts)
         assert resolved_trace["rounds"] == 2
         with patch.object(tracing, "ROUNDS", 6):
-            round_settings, _ = load_analysis_plan(config, "trace", tracing.settings())
+            round_settings, _ = load_analysis_plan(config, "trace", dict(tracing.settings(), analysis_methods=["Enumeration"]))
         assert round_settings["rounds"] == 6
         assert resolved_trace["max_carbon_processes"] == 1
         assert resolved_trace["tracing_python"] == sys.executable
@@ -153,7 +153,7 @@ def run():
         ):
             assert main("trace", ts, []) == 0
         for name in names:
-            file = folder / (name + "_3_carbon_flow.xlsx")
+            file = folder / (name + "_3_carbon_flow_Enumeration.xlsx")
             with pd.ExcelFile(file, engine="openpyxl") as excel:
                 assert set(excel.sheet_names) == set(
                     [
@@ -256,7 +256,7 @@ def check_independent_cases():
             structure_options=dict(lookup=False, manual_file=str(manual),
                                    cache_file=str(root / "cache.json"), timeout=1, min_interval=0),
         )
-        trace_settings = tracing.settings()
+        trace_settings = dict(tracing.settings(), analysis_methods=["Enumeration"])
         trace_settings.update(analysis_plan=str(default_plan), tracing_python=sys.executable,
                               rounds=2, max_carbon_processes=1)
         configs = {"LocalMapper": dict(python=sys.executable,
@@ -280,7 +280,7 @@ def check_independent_cases():
                     "carbon_flow_tools.cli.build_mapper_configs", return_value=configs):
                 assert main("map", mapping_settings, ["--plan", str(plan)]) == 0
                 assert main("trace", trace_settings, ["--plan", str(plan)]) == 0
-            result = output / (name + "_3_carbon_flow.xlsx")
+            result = output / (name + "_3_carbon_flow_Enumeration.xlsx")
             summary = pd.read_excel(result, sheet_name="Summary", engine="openpyxl")
             assert summary["X[e]_LabeledCarbonMetabolites"].eq(0).all()
             assert summary.TotalCarbonMetabolites.eq(3).all()
