@@ -15,12 +15,7 @@ step2_atom_mapping.py
     -> <model>_2_atom_mapping.xlsx
 step3_carbon_flow.py
     -> <model>_3_carbon_flow_Enumeration.xlsx
-    -> <model>_3_carbon_flow_EMU.xlsx
 ```
-
-Step 3 includes experimental [flux-weighted single-carbon source contributions](docs/source-contributions.md)
-alongside Enumeration. Both reuse the same mappings and preserve prior results;
-their assumptions and statistics differ.
 
 ## 1. Install Python environments
 
@@ -155,37 +150,8 @@ The three-tool mapping stage does not perform AI review.
 python3 step3_carbon_flow.py
 ```
 
-`ANALYSIS_METHODS = ["Enumeration", "EMU"]` at the top of step 3 runs both
-analyses by default. They read step 2 independently and never invoke mappers or
-an LLM. EMU runs first, so it does not depend on Enumeration completing.
-
-| Method | Output | Meaning |
-|---|---|---|
-| Enumeration | `<model>_3_carbon_flow_Enumeration.xlsx` | Possible molecular label states, by propagation round |
-| EMU | `<model>_3_carbon_flow_EMU.xlsx` | Flux-weighted single-carbon and mean source contributions at steady state |
-
-AI-reviewed mappings add `_AIGenerated` before `.xlsx` for either method.
-
-EMU here means **size-1 EMU-inspired origin balances**, not full multi-carbon
-isotopomer simulation or fitted experimental isotope abundances. It reads original
-and optional AI-reviewed mappings separately, requiring the original step-1
-input/plan for either version. Missing/ambiguous mappings remain Unknown. The Excel
-has only MetaboliteContributions and BoundaryInputs; calculation checks
-and provenance remain in `source_contributions_run.json`. Symmetry-related
-positions retain their source when all possible precursor positions are fully
-known to share it; unresolved mixed-origin ambiguity remains Unknown.
-See [method, assumptions and result columns](docs/source-contributions.md).
-
-Enumeration retains its default CO2/bicarbonate label termination. EMU includes
-internal CO2 refixation in the fixed-flux source balance. Both outputs record their
-method and inorganic-carbon policy; their outputs describe different quantities. Do not interpret them as the same calculation under identical
-assumptions. `ROUNDS` and `ALLOW_INORGANIC_CARBON_RECYCLING` control Enumeration
-only. To select one method for a run:
-
-```bash
-python3 step3_carbon_flow.py --method Enumeration
-python3 step3_carbon_flow.py --method EMU
-```
+Step 3 enumerates possible carbon-source label states from the selected mappings.
+It does not estimate quantitative source fractions or experimental isotope abundances.
 
 Enumeration reads both normal and optional AI-reviewed step-2 mappings for models
 in the selected plan, using the same ordered carbon sources for both versions.
@@ -193,8 +159,7 @@ It never calls mappers or changes input/mapping workbooks. Each
 `<model>_3_carbon_flow_Enumeration.xlsx` contains only `Carbon_Flow_R1` onward and `Summary`.
 The default maximum is 10 rounds, with earlier stopping on convergence.
 
-`MAX_EXCEL_SIZE_MB = 50` applies separately to each output. EMU saves a complete
-workbook atomically and rejects an oversized replacement. For Enumeration: Generated rows are staged in temporary disk storage rather than retained
+`MAX_EXCEL_SIZE_MB = 50` applies separately to each output. Generated rows are staged in temporary disk storage rather than retained
 as a whole-round DataFrame or an in-memory Excel workbook. `OUTPUT_BATCH_ROWS =
 50000` controls size-check batches; checks also occur at layer and round boundaries.
 At a checkpoint, the program streams a real candidate XLSX and measures its
@@ -213,10 +178,8 @@ space and I/O. Label states and their indexes are still needed in memory; this i
 not full external-memory propagation, and independent memory safety checks remain.
 
 No aggregate Summary workbook is generated. Enumeration retains its per-file
-Summary for manual plotting or fitting. The Enumeration manifest is
-`carbon_flow_run.json`; the EMU manifest is
-`source_contributions_run.json`. A failed method does not cancel the other method,
-but the process returns an error. Inspect both manifests rather than trusting old files.
+Summary for manual plotting or fitting. The run manifest is `carbon_flow_run.json`.
+Inspect its current status and saved rounds rather than trusting an older output file.
 
 Propagation checks available Linux/WSL memory during enumeration, state merging
 and streaming Excel writing. MIN_AVAILABLE_MEMORY_GB = 2.0 at the top of step 3 reserves
@@ -256,11 +219,11 @@ with `AIGenerated=TRUE`; leave `Mapping_Selection` unchanged as the original too
 python3 step3_carbon_flow.py
 ```
 
-Both methods automatically process both `<model>_2_atom_mapping.xlsx` and any
+Step 3 automatically processes both `<model>_2_atom_mapping.xlsx` and any
 `<model>_2_atom_mapping_AIGenerated.xlsx` in the selected plan's output folder.
-Each version produces independent Enumeration and EMU outputs, retaining the
+Each version produces independent Enumeration outputs, retaining the
 `_AIGenerated` suffix for reviewed copies. Either mapping version can be present
-alone. EMU still requires the original step-1 input/plan. Excel lock
+alone. Excel lock
 files, temporary files and unrelated names are ignored. Only models in the plan
 are included; model selection applies to both available versions of that model.
 Both versions must pass input-hash, direction and structure checks. The suffix

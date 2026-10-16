@@ -1,101 +1,34 @@
-## Original and AI-reviewed EMU mapping versions (2026-10-16)
+## Simplified step-3 analysis (2026-10-16)
 
-Step 3 now solves original and available AI-reviewed mappings independently,
-including AI-only cases. Each EMU output contains MetaboliteContributions and
-BoundaryInputs. The manifest identifies each mapping version, file and hash.
-Step-1 hash, copied Flux and mapping checks remain active; neither computation
-calls a mapper or LLM. 45 focused tests passed, including distinct Final_Mapping
-results, AI-only inputs, input preservation and rejection of changed hashes/Flux.
-Installed and maintained workflow/AI-review skill metadata validation passed.
-Historical ordinary-only policies below are superseded.
+Step 3 now runs label-state Enumeration only. The experimental source-contribution
+solver, compatibility entry, method selector, dedicated documentation and tests
+were removed. The pre-removal code snapshot is commit `fefa1f9`; it records the
+unfinished symmetry experiment and its unresolved regression failure.
+Historical result files are preserved, but are not current validated outputs.
+The original/AI mapping inputs, propagation rules, size/memory guards and
+per-workbook Summary remain in use. No aggregate Summary workbook is generated.
 
-## Summary output removal (2026-10-16)
 
-EMU exports now contain only MetaboliteContributions and BoundaryInputs.
-The aggregate Summary writer has been removed for both analysis methods.
-Enumeration retains its per-file Summary; source-balance validation and status
-counts in source_contributions_run.json remain unchanged. Historical validation
-notes below describe the output layout tested at that time.
+Removal checks passed in the existing tracing environment:
 
-42 focused tests passed across source balances, method dispatch, output limits,
-batched writing and memory guards. They verify the exact two-sheet EMU layout
-and that neither method creates an aggregate workbook, including error paths.
+- 20 focused output-limit, batched-output and memory-guard tests.
+- Seven regression scripts: carbon tracing, stage handoff, analysis plans, script
+  settings, parallel propagation, consensus mapping and structure completion.
+- 19 AI-review helper integration tests; an existing NumPy binary-size warning
+  remains in that environment.
+- Metadata validation for installed and maintained workflow, model-setup and
+  AI-review skills (six folders).
+- All 14 pipeline function bodies match the pre-removal snapshot when docstrings
+  are ignored.
 
-## Common-origin symmetry recovery and compact EMU export (2026-10-16)
-
-A real E. coli IUPD review traced DMAPP Unknown=2/5, GPP=2/10, FPP=2/15 and
-C40 octaprenyl diphosphate=2/40 to two graph-equivalent methyl carbons. The old
-blanket ambiguity rule erased their shared, already known isoprenol origin.
-
-The solver now restores ambiguous transfers only when all candidate precursor
-positions have the same fully known single source. It resolves the balances
-again to propagate such origins downstream. Different/incomplete sources and
-mixed-source ambiguity remain Unknown. This does not impose scrambling or use
-pathway/metabolite-specific exceptions. A symmetric recycling test prevents a
-source-free/unknown cycle from bootstrapping a known origin.
-
-The two common-origin regression cases failed before the fix and passed after.
-43 affected unit/integration tests passed. Six real EMU workbooks were regenerated
-from unchanged mappings; each was reopened to check fractions, carbon counts,
-inflow/outflow, Calibri and exact Summary copies. The listed E. coli IPP, DMAPP,
-GPP, FPP and C40 products now have isoprenol fraction 1 and Unknown 0.
-The aromatic 2-octaprenylphenol and 3-octaprenyl-4-hydroxybenzoate retain their
-other carbons: their isoprenol fractions are 40/46 and 40/47, not 1.
-
-Excel exports now contain only MetaboliteContributions, Summary and BoundaryInputs.
-FluxResidual/Status are excluded from the exported table. Per-position calculations,
-balance validation and completeness remain internal; assumptions, hashes, residuals,
-status counts and symmetry counts remain in source_contributions_run.json.
-Installed and maintained workflow skill metadata validation passed.
-
-Before/after comparison and preserved previous EMU files are in
-`results/results_by_AI/emu_symmetry_correction_20261016/`. All 20 protected input,
-mapping, Enumeration and plan files remained byte-identical. No mapper, AI review
-or full Enumeration was rerun, and nothing was pushed to GitHub. Remaining mixed-
-origin symmetry and missing mappings still limit the completeness of the results.
-
-## Step 3 Enumeration and size-1 EMU integration (2026-10-16)
-
-Step 3 defaults to both methods, solves EMU first and writes distinct
-`_3_carbon_flow_Enumeration{_AIGenerated}.xlsx` and `_3_carbon_flow_EMU.xlsx`
-outputs. The EMU runner reuses existing source equations and retains ordinary-only
-provenance, original-input hashes, embedded Flux equality and mapping validation.
-It does not invoke mappers/LLMs. Round and CO2 termination settings apply only to
-Enumeration; EMU retains internal CO2 refixation.
-
-Actual checks in the existing LocalMapper tracing environment:
-
-- 39 unit/integration tests passed across source contributions, method dispatch,
-  output limits, batched output and memory safety.
-- Existing executable regressions passed: carbon tracing, stages, analysis plans,
-  script settings, parallel carbon tasks, consensus mapping and SMILES completion.
-- 19 AI-review helper tests passed, including the current step-3 Enumeration route.
-- Installed and maintained workflow/model-setup/AI-review skill validation passed.
-- All six publication models produced EMU workbooks from their existing mappings.
-  Saved fractions were bounded and summed to one; metabolite means agreed with
-  per-position averages. Maximum scaled source-balance residual was 2.23e-16.
-- Yarrowia lipolytica IUPD completed one Enumeration round with 178 records, equal
-  in content, order and ProductionIDs to the existing in-memory algorithm.
-- Seven result Summaries were copied unchanged into separate aggregate sheets.
-  All 46 files in the pre-test result/plan snapshot remained byte-identical.
-
-A separate existing solver bug was demonstrated on Yarrowia reaction 3739g:
-positions excluded by structure/formula carbon-count checks were still visited
-by mapped-transfer handling. The first real run failed rather than exporting a
-misleading success. A focused regression reproduced both the missing-precursor
-KeyError and unavailable-product stoichiometry error. The fix leaves unavailable
-product positions blank and records Unknown for usable positions fed by an
-unavailable precursor. It does not alter model structures, atom maps or Flux.
-Full carbon/mapping validation remains active.
-
-Validation outputs and an English report are under
-`results/results_by_AI/step3_emu_integration_20261016/`. No original input,
-mapping or earlier result was renamed or replaced. No mapper was rerun and no
-GitHub push was performed. Full-model multi-round Enumeration was not rerun.
-This remains size-1 mean source analysis, not complete multi-carbon EMU; mapping
-ambiguity and unavailable structures still leave substantial Unknown fractions.
-The existing environment emitted a NumPy extension-size warning during review
-helper tests; those tests passed, and dependencies were not changed in this task.
+A read-only check used the comparison project's saved Saccharomyces cerevisiae
+WT original and AI-reviewed mappings. Both produced 247 first-round records,
+identical to the historical ordinary first-round baseline. Shared Summary values
+also matched for the ordinary output. There is no independent historical AI
+propagation baseline for this check. Input mapping hashes remained unchanged;
+new outputs were written under /tmp. The development results directory currently
+has no step-2 mapping workbooks, so a full six-model rerun was not performed.
+No mapper predictions were rerun and no historical result files were deleted.
 
 ## Batched carbon-flow output checks (2026-10-16)
 

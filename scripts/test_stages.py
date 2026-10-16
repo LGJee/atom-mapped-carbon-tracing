@@ -302,7 +302,7 @@ def check_mapping_variants():
             ),
             encoding="utf-8",
         )
-        options = dict(tracing.settings(), analysis_methods=["Enumeration"])
+        options = tracing.settings()
         options.update(
             analysis_plan=str(plan),
             tracing_python=sys.executable,
@@ -341,6 +341,11 @@ def check_mapping_variants():
         assert len(report["models"]) == 3
         assert sum(item["model"] == names[0] for item in report["models"]) == 2
         assert len({item["output_file"] for item in report["models"]}) == 3
+        assert {p.name for p in folder.glob("*_3_carbon_flow*.xlsx")} == {
+            names[0] + "_3_carbon_flow_Enumeration.xlsx",
+            names[0] + "_3_carbon_flow_Enumeration_AIGenerated.xlsx",
+            names[1] + "_3_carbon_flow_Enumeration.xlsx",
+        }
         assert all(item["mapping_sha256"] == hashlib.sha256(
             Path(item["mapping_file"]).read_bytes()).hexdigest() for item in report["models"])
         updated_flow = folder / (names[0] + "_3_carbon_flow_Enumeration_AIGenerated.xlsx")

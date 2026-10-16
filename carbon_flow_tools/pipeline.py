@@ -397,7 +397,7 @@ def trace_mapping_file(strain, job, rounds, mapping_file, output):
 
 
 def load_final_mappings(mapping_file, job):
-    """Load selected mappings through the same checks for both tracing analyses."""
+    """Load selected mappings through the carbon-propagation input checks."""
     with pd.ExcelFile(mapping_file, engine="openpyxl") as excel:
         reaction_sheet, metabolite_sheet = input_sheets(excel)
         final = pd.read_excel(

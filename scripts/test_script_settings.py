@@ -90,14 +90,14 @@ def run():
             assert list(predict.call_args[0][0]) == ["Example"]
     assert tracing.INPUT_DIR == mapping.OUTPUT_DIR
     assert tracing.TRACING_PYTHON == ".envs/localmapper/bin/python"
-    assert dict(tracing.settings(), analysis_methods=["Enumeration"])["allow_inorganic_carbon_recycling"] is False
+    assert tracing.settings()["allow_inorganic_carbon_recycling"] is False
 
     with patch.object(tracing, "ALLOW_INORGANIC_CARBON_RECYCLING", True):
-        assert dict(tracing.settings(), analysis_methods=["Enumeration"])["allow_inorganic_carbon_recycling"] is True
+        assert tracing.settings()["allow_inorganic_carbon_recycling"] is True
     with patch.object(tracing, "ROUNDS", 6), patch.object(
         tracing, "MAX_CARBON_PROCESSES", 2
     ):
-        settings = dict(tracing.settings(), analysis_methods=["Enumeration"])
+        settings = tracing.settings()
     settings.pop("analysis_plan")
     settings["tracing_python"] = sys.executable
     settings["carbon_sources"] = {
@@ -105,6 +105,7 @@ def run():
         "IUPD": ["D-glucose[e]", "isoprenol[e]"],
     }
     assert "mappers" not in settings and "batch_size" not in settings
+    assert "analysis_methods" not in settings
     assert "models" not in settings
     with tempfile.TemporaryDirectory() as temporary:
         folder = Path(temporary)
