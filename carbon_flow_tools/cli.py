@@ -50,15 +50,13 @@ def build_mapper_configs(settings):
     return configs
 
 
-def discover_inputs(directory, stage="map", ai_generated=False):
+def discover_inputs(directory, stage="map"):
     """Discover numbered input workbooks for either Python stage."""
     number, field, pattern, previous = (
-        ("1", "input_file", "*_1_*.xlsx", "step1_prepare_carbon_tracing_inputs.m")
+        ("1", "input_file", "*_1_*.xlsx", "step1_prepare_carbon_tracing_inputs.py")
         if stage == "map"
-        else ("2", "mapping_file", "*_2_atom_mapping.xlsx", "step2_atom_mapping.py")
+        else ("2", "mapping_file", "*_2_atom_mapping*.xlsx", "step2_atom_mapping.py")
     )
-    if stage == "trace" and ai_generated:
-        pattern = "*_2_atom_mapping_AIGenerated.xlsx"
     models = {}
     for path in sorted(directory.glob(pattern)):
         if (
@@ -67,7 +65,15 @@ def discover_inputs(directory, stage="map", ai_generated=False):
             or path.name.endswith(".tmp.xlsx")
         ):
             continue
-        name = re.fullmatch(r"(.+)_" + number + r"_.+\.xlsx", path.name).group(1)
+        match = re.fullmatch(
+            r"(.+)_2_atom_mapping(?:_AIGenerated)?\.xlsx"
+            if stage == "trace" else r"(.+)_1_.+\.xlsx", path.name
+        )
+        if match is None:
+            continue
+        name = match.group(1)
+        if stage == "trace" and name in models:
+            continue
         if name in models:
             raise ValueError(
                 "Multiple step {} inputs for model {} in {}".format(
@@ -85,21 +91,21 @@ def discover_inputs(directory, stage="map", ai_generated=False):
 
 
 def load_analysis_plan(path, stage, defaults):
-    """Read MATLAB's generated plan; never parse or execute MATLAB source."""
+    """Read the generated input plan; never execute configuration as code."""
     path = project_path(path)
     if not path.is_file():
         raise FileNotFoundError(
-            "Run step1_prepare_carbon_tracing_inputs.m first: " + str(path)
+            "Run step1_prepare_carbon_tracing_inputs.py first: " + str(path)
         )
     with path.open(encoding="utf-8") as handle:
         plan = json.load(handle)
     if not isinstance(plan, dict) or plan.get("version") != 3:
         raise ValueError(
-            "Unsupported analysis plan version; rerun step1_prepare_carbon_tracing_inputs.m"
+            "Unsupported analysis plan version; rerun step1_prepare_carbon_tracing_inputs.py"
         )
     if set(plan) != {"version", "models", "output_dir"}:
         raise ValueError(
-            "Unexpected analysis plan fields; rerun step1_prepare_carbon_tracing_inputs.m"
+            "Unexpected analysis plan fields; rerun step1_prepare_carbon_tracing_inputs.py"
         )
     models = plan.get("models")
     if not isinstance(models, dict) or not models:
@@ -140,11 +146,27 @@ def load_analysis_plan(path, stage, defaults):
                 "input_file": project_path(input_file),
                 "input_sha256": digest,
             }
+            source = entry.get("source_model")
+            if source is not None:
+                if (
+                    not isinstance(source, dict)
+                    or not isinstance(source.get("path"), str)
+                    or not source["path"]
+                    or not isinstance(source.get("sha256"), str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", source["sha256"])
+                    or (
+                        source.get("variable_name") is not None
+                        and not isinstance(source["variable_name"], str)
+                    )
+                ):
+                    raise ValueError(
+                        "Invalid source model provenance; rerun step 1: " + name
+                    )
+                jobs[name]["source_model"] = dict(
+                    source, path=str(project_path(source["path"]))
+                )
         else:
-            suffix = "_AIGenerated" if settings.get("ai_generated") else ""
-            mapping = project_path(output_dir) / (
-                name + "_2_atom_mapping" + suffix + ".xlsx"
-            )
+            mapping = project_path(output_dir) / (name + "_2_atom_mapping.xlsx")
             jobs[name] = {
                 "mapping_file": mapping,
                 "carbon_sources": sources,
@@ -155,7 +177,6 @@ def load_analysis_plan(path, stage, defaults):
 
 
 def main(stage, settings, argv=None):
-    ai_generated = settings.get("ai_generated", False)
     parser = argparse.ArgumentParser(
         description="Predict and select atom mappings."
         if stage == "map"
@@ -165,6 +186,9 @@ def main(stage, settings, argv=None):
         "analyses",
         nargs="*",
         help="Model names detected from the previous step's output filenames",
+    )
+    parser.add_argument(
+        "--plan", help="Generated analysis plan for an independent case (project-relative or absolute)",
     )
     parser.add_argument(
         "--example",
@@ -185,9 +209,13 @@ def main(stage, settings, argv=None):
             help="Do not reuse step 2 predictions",
         )
     args = parser.parse_args(argv)
+    if args.example and args.plan:
+        parser.error("Use either --plan or --example, not both.")
     if os.name == "nt":
         parser.error("Run inside a Linux or WSL terminal; see the README.")
     planned_models = None
+    if args.plan:
+        settings = dict(settings, analysis_plan=args.plan)
     if not args.example and settings.get("analysis_plan"):
         settings, planned_models = load_analysis_plan(
             settings["analysis_plan"], stage, settings
@@ -207,8 +235,6 @@ def main(stage, settings, argv=None):
         script = ROOT / (
             "step2_atom_mapping.py"
             if stage == "map"
-            else "step4_carbon_flow_ai.py"
-            if ai_generated
             else "step3_carbon_flow.py"
         )
         return subprocess.run(
@@ -227,9 +253,7 @@ def main(stage, settings, argv=None):
             if stage == "map"
             else {
                 "Example": {
-                    "mapping_file": "scripts/results/example/Example_2_atom_mapping"
-                    + ("_AIGenerated" if ai_generated else "")
-                    + ".xlsx",
+                    "mapping_file": "scripts/results/example/Example_2_atom_mapping.xlsx",
                     "carbon_sources": ["acetaldehyde[e]"],
                 }
             }
@@ -239,20 +263,9 @@ def main(stage, settings, argv=None):
             planned_models
             if planned_models is not None
             else discover_inputs(
-                project_path(settings["input_dir"]), stage, ai_generated
+                project_path(settings["input_dir"]), stage
             )
         )
-    if ai_generated:
-        models = {
-            name: job
-            for name, job in models.items()
-            if project_path(job["mapping_file"]).is_file()
-        }
-        if not models:
-            raise FileNotFoundError(
-                "No *_2_atom_mapping_AIGenerated.xlsx files found. Place AI-reviewed "
-                "mapping copies in the configured results folder before running step 4."
-            )
     names = args.analyses or list(models)
     if (
         not names
@@ -292,9 +305,10 @@ def main(stage, settings, argv=None):
         structure_options = dict(settings["structure_options"])
         for field in ("manual_file", "cache_file"):
             structure_options[field] = project_path(structure_options[field])
-        structure_options["model_yaml_files"] = {
-            name: project_path(path)
-            for name, path in structure_options.get("model_yaml_files", {}).items()
+        structure_options["source_models"] = {
+            name: job["source_model"]
+            for name, job in jobs.items()
+            if "source_model" in job
         }
         if args.example:
             structure_options["lookup"] = False
@@ -324,7 +338,22 @@ def main(stage, settings, argv=None):
                         )
                     )
                 job["carbon_sources"] = settings["carbon_sources"][name]
-            job["mapping_file"] = project_path(job["mapping_file"])
+            job["min_available_memory_gb"] = settings.get("min_available_memory_gb", 2)
+            job["max_excel_size_mb"] = settings.get("max_excel_size_mb", 50)
+            job["output_batch_rows"] = settings.get("output_batch_rows", 50000)
+            directory = project_path(job["mapping_file"]).parent
+            job["mapping_files"] = [
+                path for path in (
+                    directory / (name + "_2_atom_mapping.xlsx"),
+                    directory / (name + "_2_atom_mapping_AIGenerated.xlsx"),
+                ) if path.is_file()
+            ]
+            if not job["mapping_files"]:
+                raise FileNotFoundError(
+                    "No step-2 mappings for {}; run step2_atom_mapping.py first in {}"
+                    .format(name, directory)
+                )
+            job["mapping_file"] = job["mapping_files"][0]
             job["allow_inorganic_carbon_recycling"] = settings.get(
                 "allow_inorganic_carbon_recycling", False
             )
@@ -332,22 +361,19 @@ def main(stage, settings, argv=None):
             import pandas as pd
 
             for name, job in jobs.items():
-                if not job["mapping_file"].is_file():
-                    raise FileNotFoundError(
-                        "Run step2_atom_mapping.py first: " + str(job["mapping_file"])
+                for mapping_file in job["mapping_files"]:
+                    with pd.ExcelFile(mapping_file, engine="openpyxl") as excel:
+                        info = pd.read_excel(excel, sheet_name="Mapping_Info")
+                    hashes = (
+                        set(info["SourceInputSHA256"].dropna())
+                        if "SourceInputSHA256" in info
+                        else set()
                     )
-                with pd.ExcelFile(job["mapping_file"], engine="openpyxl") as excel:
-                    info = pd.read_excel(excel, sheet_name="Mapping_Info")
-                hashes = (
-                    set(info["SourceInputSHA256"].dropna())
-                    if "SourceInputSHA256" in info
-                    else set()
-                )
-                if hashes != {job["input_sha256"]}:
-                    raise ValueError(
-                        "Mapping does not match this step-1 input; rerun step2_atom_mapping.py: "
-                        + name
-                    )
+                    if hashes != {job["input_sha256"]}:
+                        raise ValueError(
+                            "Mapping does not match this step-1 input; rerun step2_atom_mapping.py: "
+                            + str(mapping_file)
+                        )
         rounds = (
             args.rounds
             if args.rounds is not None

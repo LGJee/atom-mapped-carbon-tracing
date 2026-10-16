@@ -1,134 +1,127 @@
 # Atom-Mapped Carbon Tracing
 
-Prepare pFBA-active metabolic networks, compare three atom-mapping tools and
-trace possible carbon-source label propagation. Configure the analysis at the
-start of **step1_prepare_carbon_tracing_inputs.m**. Steps 2 and 3 read its
-automatically generated plan. Normal analyses need no Python edits or handwritten
-JSON; advanced execution settings are at the top of the corresponding Python step.
+Prepare pFBA-active metabolic networks with **COBRApy**, compare three atom-mapping
+tools and trace possible carbon-source label propagation. In
+`step1_prepare_carbon_tracing_inputs.py`, each of the six named strain blocks follows
+the same sequence: load model, list carbon sources, set medium and modifications,
+fix growth, run production pFBA, and register output. Shared solver/output settings
+remain at the top. Steps 2 and 3 read the generated analysis plan. All computation
+runs in Python on Linux/WSL.
 
 ```text
-step1_prepare_carbon_tracing_inputs.m
-    → <model>_1_pFBA_nonzero_reactions.xlsx + data/analysis_plan.json
+step1_prepare_carbon_tracing_inputs.py
+    -> <model>_1_pFBA_nonzero_reactions.xlsx + data/analysis_plan.json
 step2_atom_mapping.py
-    → <model>_2_atom_mapping.xlsx
+    -> <model>_2_atom_mapping.xlsx
 step3_carbon_flow.py
-    → <model>_3_carbon_flow.xlsx
+    -> <model>_3_carbon_flow.xlsx
 ```
 
-## 1. Install MATLAB/COBRA and obtain the models
+## 1. Install Python environments
 
-Install MATLAB and [COBRA Toolbox](https://github.com/opencobra/cobratoolbox).
-Follow the [official installation and solver instructions](https://opencobra.github.io/cobratoolbox/stable/installation.html),
-initialize COBRA and configure a compatible solver. GLPK is the reference solver.
-COBRA is not copied into this project.
-
-Clone this project in Linux/WSL:
+In Linux/WSL x86_64, install [Miniforge](https://github.com/conda-forge/miniforge)
+and Git, then run:
 
 ```bash
 git clone https://github.com/LGJee/atom-mapped-carbon-tracing.git
 cd atom-mapped-carbon-tracing
+bash scripts/setup_environments.sh
+python3 scripts/download_enzymemap.py
 ```
 
-Download models into `data/`:
+Setup creates four isolated environments: `preparation` for COBRApy/GLPK,
+`localmapper` for LocalMapper and tracing, `rxnmapper`, and `enzymemap`.
+Compatible existing environments are checked and reused; none are deleted.
+The preparation check solves a real small pFBA problem; mapper checks call their
+actual interfaces. No commercial solver or additional numerical application is
+required. See the [installation details](docs/user-guide.md#1-install-python-environments-and-enzymemap-data).
+
+## 2. Obtain the reference models
+
+Download these external files into `data/`, preserving their upstream licenses:
 
 | Species | Source | Local files |
 |---|---|---|
 | S. cerevisiae | [Yeast9 v9.1.1](https://github.com/SysBioChalmers/yeast-GEM/tree/v9.1.1/model) | `data/yeast9/yeast-GEM.mat`, `yeast-GEM.yml` |
 | E. coli | [BiGG iML1515](https://bigg.ucsd.edu/models/iML1515) | `data/ecoli/iML1515.mat`, `iML1515.json` |
-| Y. lipolytica | [iYali5 and companion structures](https://github.com/bioengtaltech/eciYali5-GEM/tree/3b97d38d92327a099f3b0f6f9cd92e8aeab78c10/model) | `data/yarrowia/iYali5.mat`, `eciYali5-GEM.yml` |
+| Y. lipolytica | [Pinned iYali5 source](https://github.com/bioengtaltech/eciYali5-GEM/tree/3b97d38d92327a099f3b0f6f9cd92e8aeab78c10/model) | `data/yarrowia/iYali5.mat`, `eciYali5-GEM.yml` |
 
-The default test setup includes all three species. The six named model blocks
-run sequentially as written; there are no model run switches. Each WT/IUPD pair fixes both models to 50% of its WT maximum growth rate,
-maximizes squalene formation and then minimizes total absolute flux. S. cerevisiae and E. coli
-use native glucose bounds for growth optimization. The published iYali5 medium
-has glucose closed; `cfg.yarrowiaGlucoseUptake = 1` explicitly selects glucose
-and other carbon uptake is closed. WT uptake limits then double after fixing
-growth: S. cerevisiae 1 -> 2, E. coli 10 -> 20 and Y. lipolytica 1 -> 2 mmol/gDW/h.
-Other medium settings remain
-species-specific. Native oxygen bounds and the source biomass objective are
-inherited without repeated settings; the WT growth objective is checked before
-optimization. IUPD retains the growth-phase glucose bounds and permits isoprenol
-uptake up to 2.09 times the configured glucose limit: 2.09, 20.9 and 2.09 mmol/gDW/h,
-respectively. Each IUPD block requires its matching WT block to run first. E. coli WT/IUPD both receive a heterologous SQS reaction and
-a squalene output, since these are absent from iML1515.
-Do not present those simulations as experimental strains or paper reproduction.
+Keep each source model in its own subfolder under `data/`, with its companion
+JSON/YAML files in the same folder. Configure the computational model path only
+once in step 1. The generated plan records its source path and SHA256; step 2
+automatically reads supported native structures and scans that folder for matching
+annotations. Companion filenames need not match the computational model.
 
-Keep MATLAB and Python working on the same project folder. Windows MATLAB may
-open the project through its `\\wsl.localhost` directory. If using separate
-computers, copy the input workbooks **and `data/analysis_plan.json`**, preserving
-the project-relative paths. Windows usernames and WSL distribution names are
-not written into the plan.
+MAT is an upstream model **data format**, read directly by COBRApy and SciPy.
+Model files, large datasets and environments are not bundled. Ordinary iYali5
+supplies the Yarrowia pFBA network; its paired eciYali5 YAML supplies chemical
+structures only. Do not substitute the enzyme-constrained network.
 
-## 2. Configure and run step 1 in MATLAB
+## 3. Configure and run step 1
 
-Edit paths and analysis settings at the top of
-[step1_prepare_carbon_tracing_inputs.m](step1_prepare_carbon_tracing_inputs.m):
-model/output paths, the Yarrowia glucose-medium limit and ordered carbon sources. Culture conditions, knockouts, introduced
-reactions and objectives are written as direct COBRA calls in six clearly named
-model blocks. Each block loads its original model independently, so IUPD never
-inherits an already-fixed WT growth bound.
-
-Each model block uses the short working variables `modelWT` or `modelIUPD`:
-
-```matlab
-modelIUPD = deleteModelGenes(modelIUPD,{'YML126C'});
-modelIUPD = addMetabolite(modelIUPD,'isoprenol[c]', ...
-    'metName','isoprenol','metFormula','C5H10O');
-modelIUPD = addReaction(modelIUPD,'Ex_isopentenol_e_t','reactionFormula', ...
-    'isoprenol[e] -> isoprenol[c]','lowerBound',0,'upperBound',1000);
-```
-
-The reaction and gene IDs above belong to the S. cerevisiae reference block.
-Edit the direct COBRA calls in the appropriate block to change its conditions.
-Each block saves its model and solution under species-specific names before
-the next block reuses the working variables. Workbook export follows all six
-blocks; input checks and shared export details are local functions below them.
-
-```matlab
-run('step1_prepare_carbon_tracing_inputs.m')
-```
-
-Default pairs are `Saccharomyces_cerevisiae_WT`/`Saccharomyces_cerevisiae_IUPD`, `Escherichia_coli_WT`/`Escherichia_coli_IUPD` and
-`Yarrowia_lipolytica_WT`/`Yarrowia_lipolytica_IUPD`. Each pair uses species-specific genes and metabolite
-IDs, with the same introduced two-step isoprenol-to-IPP utilization chemistry.
-Details and limitations are in [model notes](docs/yeast9-example.md).
-
-Each input workbook contains `Nonzero` and `Metabolites` sheets.
-The reaction sheet has a short fixed name to respect Excel's 31-character limit.
-Step 1 exports identities, formulas, charges and available database identifiers.
-Step 2 reads model structures for analyses listed in `MODEL_YAML_FILES` at its top:
-Yeast9 annotations for S. cerevisiae and the paired eciYali5 YAML for Yarrowia.
-The supported COBRA/RAVEN YAML layouts supply scalar or first-list SMILES.
-IDs, names, compartments and available formulas are checked before companion
-structures are used. Manual overrides and existing input structures take priority;
-PubChem supplies remaining missing structures. Yarrowia pFBA uses ordinary iYali5,
-without enzyme constraints. The manual table supplies the introduced isoprenol
-structures and explicit `[H+]` for iYali5 metabolites named `H+_p+1`.
-Unconfigured analyses never receive another model's
-annotations merely because IDs overlap. The generated plan lists exactly the models
-from this export, so unrelated old files in `results/` are not analyzed.
-It is written only after all inputs succeed; rerun step 1 after changing its settings.
-The generated plan contains only model/input records, input hashes and the output
-folder. Mapper selection, batch/atom limits, structure
-completion and mapper environments are configured in step2_atom_mapping.py.
-Propagation rounds, concurrency, memory and interpreter are configured in
-step3_carbon_flow.py. Their defaults support normal execution without changes.
-After updating an older checkout, rerun step 1 to regenerate the plan.
-The plan and mapping diagnostics record each input SHA256. Step 3 rejects a
-same-name mapping from a different step-1 export; rerun step 2 before tracing.
-
-## 3. Install the Python environments (once)
-
-In Linux/WSL x86_64 with Conda and Git:
+Edit the user settings and relevant named model blocks in
+[step1_prepare_carbon_tracing_inputs.py](step1_prepare_carbon_tracing_inputs.py):
 
 ```bash
-bash scripts/setup_environments.sh
-python3 scripts/download_enzymemap.py
+python3 step1_prepare_carbon_tracing_inputs.py
 ```
 
-Three isolated environments are checked and reused when compatible. Model files,
-environment directories and large EnzymeMap data are not bundled. See the
-[installation guide](docs/user-guide.md#3-install-python-environments-and-enzymemap-data).
+Step 1 uses the configured `.envs/preparation/bin/python` when it is installed,
+even if the launching interpreter also has COBRApy. You can invoke it explicitly.
+Paths are resolved from the project directory, independently of the working folder.
+
+The six numbered blocks use standard COBRApy operations directly:
+`gene.knock_out()`, `Metabolite`, `Reaction.add_metabolites()`, explicit
+`lower_bound` / `upper_bound` assignments, `model.optimize()` and `pfba()`.
+Each strain's modifications stay together, even where operations repeat between
+strains. Model versions are not enforced; source paths and hashes are recorded.
+The non-IUPD growth objective
+is set explicitly. Maximum-growth solutions are checked before use; production
+solutions are validated by the shared exporter before writing any result.
+See the [COBRApy model-building tutorial](https://cobrapy.readthedocs.io/en/latest/building_model.html)
+for these operations.
+
+The default blocks prepare non-IUPD/IUPD pairs for Saccharomyces_cerevisiae,
+Escherichia_coli and Yarrowia_lipolytica. Each IUPD block independently reloads
+its original model and uses 50% of its paired non-IUPD maximum growth rate. Both
+comparators maximize squalene, then minimize the sum of absolute reaction fluxes
+using `cobra.flux_analysis.pfba`. Its `objective_value` is the minimized flux sum;
+the biological production value is read from the squalene reaction flux.
+
+Here, **non-IUPD** denotes the comparison model without IU-specific engineering;
+it does not imply an unmodified wild type. Shared production modifications can
+still be present, such as introduced squalene synthase in both E. coli models.
+Code identifiers and filenames use `non_IUPD`; descriptions use `non-IUPD`.
+
+| Species | Growth-phase glucose limit | non-IUPD production limit | IUPD isoprenol limit |
+|---|---:|---:|---:|
+| S. cerevisiae | 1 | 2 | 2.09 |
+| E. coli | 10 | 20 | 20.9 |
+| Y. lipolytica | 1 | 2 | 2.09 |
+
+Limits are mmol/gDW/h. S. cerevisiae and E. coli inherit native glucose bounds;
+iYali5 has glucose closed, so each Yarrowia block explicitly selects glucose
+medium with `glucose_uptake = 1.0`. IUPD retains the growth-phase glucose bounds. Native oxygen
+settings are inherited. Other carbon uptake is closed in the E. coli and
+Yarrowia comparisons. E. coli non-IUPD/IUPD both receive functional SQS activity and
+a squalene output. These are model-specific conditions, not universal media
+or experimentally validated strains. See [model notes](docs/yeast9-example.md).
+
+Each workbook contains `Nonzero` and `Metabolites`. Step 1 exports reaction IDs,
+names, signed fluxes and equations, plus metabolite IDs, compartment-qualified
+names, formulas, charges and available identifiers. It does not retrieve SMILES.
+Step 2 handles structures from the source model directory, manual overrides and PubChem.
+No analysis-name-to-YAML table needs editing in step 2.
+
+Step 1 writes `data/analysis_plan.json` only after every export succeeds. The
+plan records exact input hashes, model provenance, relative paths, ordered carbon
+sources and output folder. Do not edit it manually. Rerunning step 1 replaces its input exports;
+rerun step 2 before tracing those inputs. Step 2 controls mapping execution;
+step 3 controls propagation rounds and resources. Their defaults need no edits.
+
+pFBA selects one optimal representative, not all possible pathways. Equivalent
+optima can differ between solver versions. Record versions and compare nonzero
+reaction sets as well as objective values when validating a new environment.
 
 ## 4. Predict and select atom mappings
 
@@ -141,9 +134,12 @@ CPU/memory-limited concurrency, then selects final correspondences. Each model
 has one `<model>_2_atom_mapping.xlsx` containing the three original predictions,
 `Mapping_Selection`, `Final_Mapping` and the enriched metabolite table.
 
-Step 2 applies model-scoped overrides from `data/manual_smiles.csv` before online
-structure completion. Name-selected structures mark affected reactions for
-review. Inputs remain unchanged. Inspect `ReviewRequired=TRUE` and, if necessary,
+Step 2 applies model-scoped overrides from `data/manual_smiles.csv`, preserves
+existing input structures, then uses compatible source/companion annotations before
+online structure completion. It checks metabolite identity rather than choosing
+a file by species name. Conflicting structures and name-selected database results
+mark affected reactions for review. Structure sources and candidates are recorded
+in the enriched metabolite table. Inputs remain unchanged. Inspect `ReviewRequired=TRUE` and, if necessary,
 correct `Final_Mapping` before step 3. Rerunning step 2 can replace those edits.
 `AIGenerated` is stored only in `Final_Mapping` and defaults to FALSE.
 The three-tool mapping stage does not perform AI review.
@@ -154,10 +150,49 @@ The three-tool mapping stage does not perform AI review.
 python3 step3_carbon_flow.py
 ```
 
-The script reads the selected mappings and ordered carbon sources from the plan.
+The script reads both normal and optional AI-reviewed step-2 mappings for models
+in the selected plan, using the same ordered carbon sources for both versions.
 It never calls mappers or changes input/mapping workbooks. Each
 `<model>_3_carbon_flow.xlsx` contains only `Carbon_Flow_R1` onward and `Summary`.
 The default maximum is 10 rounds, with earlier stopping on convergence.
+
+`MAX_EXCEL_SIZE_MB = 50` in step 3 applies separately to each normal or AI
+output. Generated rows are staged in temporary disk storage rather than retained
+as a whole-round DataFrame or an in-memory Excel workbook. `OUTPUT_BATCH_ROWS =
+50000` controls size-check batches; checks also occur at layer and round boundaries.
+At a checkpoint, the program streams a real candidate XLSX and measures its
+compressed size. If it reaches 50,000,000 bytes, enumeration stops and the
+unfinished round is discarded. Only complete rounds below the limit atomically
+replace the output; the preceding complete result is retained unchanged.
+
+There is no worksheet pagination. A round exceeding 1,048,575 data rows cannot fit
+in one sheet and is discarded with `row_limit`. Size stops use `file_size_limit`,
+never convergence. If round one cannot be saved, the report records zero completed
+rounds and no current output; an existing file is from an earlier run.
+
+Checks occur at batch boundaries, not at every byte: temporary candidates may
+exceed the limit before rejection. Rebuilding sorted candidate files costs disk
+space and I/O. Label states and their indexes are still needed in memory; this is
+not full external-memory propagation, and independent memory safety checks remain.
+
+`results/carbon_flow_summary.xlsx` copies each available normal or AI result's
+Summary into a separate sheet, without merging rows or adding columns. Sheet
+names abbreviate long model names and use `_AI` for AI results. Previously
+generated results remain included. The script does not fit curves or add
+predicted observations; use the Summary values for manual plotting or fitting.
+This summary-only workbook is regenerated after each successful batch.
+
+Propagation checks available Linux/WSL memory during enumeration, state merging
+and streaming Excel writing. MIN_AVAILABLE_MEMORY_GB = 2.0 at the top of step 3 reserves
+at least 2 GiB or 10% of detected memory, whichever is larger. Tighter cgroup-v2
+limits are respected. Normal and AI tasks use the same protection.
+If the reserve is crossed, the task exits with an error; completed rounds already
+saved remain available, and the incomplete round does not replace them. This is
+a safety stop, not convergence or a resumable checkpoint. Rerunning starts from
+round 1. Free memory, select fewer models, or set MAX_CARBON_PROCESSES = 1.
+No states or combinations are silently discarded.
+Before returning a memory-stop error, the parent also collects the available
+Summary sheets if this run saved any complete rounds.
 
 By default, labels reaching CO2 or bicarbonate are recorded as endpoints but
 are not reused in downstream reactions. Carbonic acid and carbonate are treated
@@ -166,14 +201,14 @@ from their other substrates. This excludes inorganic-carbon recycling from the
 reachability analysis; it does not assume that all CO2 escapes or that refixation
 is biologically negligible. To include recycling or trace an inorganic-carbon
 source, set `ALLOW_INORGANIC_CARBON_RECYCLING = True` at the top of
-`step3_carbon_flow.py`. Step 4 inherits this setting. Summary still counts labelled
+`step3_carbon_flow.py`. Both mapping versions use this setting. Summary still counts labelled
 inorganic-carbon endpoints, and its mapped-network denominator is unchanged.
 
 For an optional subset or one-run override:
 
 ```bash
-python3 step2_atom_mapping.py Escherichia_coli_WT Escherichia_coli_IUPD
-python3 step3_carbon_flow.py Escherichia_coli_WT Escherichia_coli_IUPD --rounds 1
+python3 step2_atom_mapping.py Escherichia_coli_non_IUPD Escherichia_coli_IUPD
+python3 step3_carbon_flow.py Escherichia_coli_non_IUPD Escherichia_coli_IUPD --rounds 1
 ```
 
 ### Optional: propagate using AI-reviewed mapping copies
@@ -181,19 +216,21 @@ python3 step3_carbon_flow.py Escherichia_coli_WT Escherichia_coli_IUPD --rounds 
 After external review, place `<model>_2_atom_mapping_AIGenerated.xlsx` copies
 in the configured results directory, keeping the original model names and input
 hashes. Successful replacements belong in `Final_Mapping.MappedReactionSMILES`,
-with `AIGenerated=TRUE`; keep `Mapping_Selection.SelectedMappedReactionSMILES`
-consistent. Preserve raw tool predictions and all unchanged reactions.
+with `AIGenerated=TRUE`; leave `Mapping_Selection` unchanged as the original tool-selection record. Preserve raw tool predictions and all unchanged reactions.
 
 ```bash
-python3 step4_carbon_flow_ai.py
+python3 step3_carbon_flow.py
 ```
 
-Step 4 uses available reviewed copies from the current plan and the same
-propagation settings/implementation as step 3. It writes separate
-`<model>_3_carbon_flow_AIGenerated.xlsx` files. It performs no AI review or mapper
-prediction itself. A filename suffix selects a copy; it does not certify the
-mapping's correctness. Missing reviewed copies never fall back to ordinary ones.
-Model selection and `--rounds` work as in step 3.
+Step 3 automatically processes both `<model>_2_atom_mapping.xlsx` and any
+`<model>_2_atom_mapping_AIGenerated.xlsx` in the selected plan's output folder.
+Both versions produce independent outputs, retaining the `_AIGenerated` suffix
+for reviewed copies. A model with only one version is also supported. Excel lock
+files, temporary files and unrelated names are ignored. Only models in the plan
+are included; model selection applies to both available versions of that model.
+Both versions must pass input-hash, direction and structure checks. The suffix
+selects a file; it does not certify correctness. Step 3 performs no AI review or
+mapper prediction. The separate step-4 entry has been removed.
 
 ## 6. Read the results
 
@@ -207,21 +244,42 @@ reactions as the denominator, not the whole genome-scale model.
 Results describe **possible carbon-source label propagation and reachability**,
 not experimental isotope abundance or quantitative carbon allocation.
 Mapping agreement and confidence scores do not establish biochemical correctness.
-Compare WT/IUPD within each species under explicitly stated conditions; differences
+Compare non-IUPD/IUPD within each species under explicitly stated conditions; differences
 in model coverage and medium prevent interpreting cross-species percentages as
 direct biological rankings.
 
 ## Custom inputs and installation check
 
-For a different model, adapt a named COBRA block and its source list in step 1.
+The default commands reproduce the six-model study. A different analysis can
+keep its own preparation script, generated plan and results under
+`results/results_by_AI/<analysis-name>/`, sharing this project's environments and model data.
+The case folder directly contains its script, plan, reports and Excel workbooks;
+there is no nested results folder. The name identifies an AI-organized analysis,
+not AI-generated mappings; `_AIGenerated` still identifies reviewed mapping copies.
+This leaves the study script and its outputs unchanged. A future orchestration
+skill can manage these locations; users do not need to write JSON.
+
+The [glucose/xylose example](examples/step1_prepare_custom_model_inputs.py)
+contains two explicit COBRApy model blocks for single-source and simultaneous
+mixed-source growth pFBA. See the [custom analysis guide](docs/user-guide.md#3-configure-a-custom-network-and-carbon-sources)
+for commands and the [calling contract](docs/interfaces.md) for automation.
+
+Steps 1-3 run fixed code and do not call an LLM or a skill. The intended future
+AI-orchestrated workflow includes mapping review after step 2 by default:
+`carbon-tracing-ai-review-skill` delegates flagged reactions to
+`enzymatic-atom-mapping`, saves reviewed copies, then step 3 propagates both normal
+and reviewed copies for comparison. This repository provides the
+handoff files; automatic skill orchestration is not implemented here.
+
+For a different model, adapt a named COBRApy block and its source list in step 1.
 For Excel inputs prepared elsewhere, use
 [examples/step1_use_existing_inputs.py](examples/step1_use_existing_inputs.py)
-instead of the MATLAB exporter. Set propagation rounds with `ROUNDS` at the top
+instead of the model exporter. Set propagation rounds with `ROUNDS` at the top
 of step3_carbon_flow.py; the default is 10. See the
-[detailed guide](docs/user-guide.md#4-configure-a-custom-network-and-carbon-sources)
+[detailed guide](docs/user-guide.md#3-configure-a-custom-network-and-carbon-sources)
 for the input schema and mixed-source configuration.
 
-The small installation example does not require MATLAB or an analysis plan:
+The small installation example does not require source models or an analysis plan:
 
 ```bash
 python3 step2_atom_mapping.py --example

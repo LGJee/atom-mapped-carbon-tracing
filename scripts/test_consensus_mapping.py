@@ -194,7 +194,7 @@ def main():
         root = Path(folder)
         source = root / "input.xlsx"
         wb = Workbook()
-        wb.active.title = "WT_nonzero"
+        wb.active.title = "non_IUPD_nonzero"
         wb.active.append(["ReactionID", "ReactionName", "Equation", "Flux"])
         wb.active.append(["r1", "transport", "A[e] -> A[c]", 1])
         wb.active.append(["r2", "reaction", "A[c] -> B[c]", 1])
@@ -237,7 +237,7 @@ def main():
         }
         job = {
             "input_file": source,
-            "reaction_sheet": "WT_nonzero",
+            "reaction_sheet": "non_IUPD_nonzero",
             "metabolite_sheet": "Metabolites",
             "carbon_sources": ["A[e]"],
         }
@@ -253,7 +253,7 @@ def main():
         ), patch("carbon_flow_tools.pipeline.parallel_capacity", return_value=(6, 1)):
             for _ in range(2):
                 run_analyses(
-                    {"WT": job, "IUPD": dict(job)},
+                    {"non_IUPD": job, "IUPD": dict(job)},
                     2,
                     1,
                     800,
@@ -270,14 +270,14 @@ def main():
             assert (
                 len(
                     pd.read_excel(
-                        root / "out/WT_3_carbon_flow.xlsx",
+                        root / "out/non_IUPD_3_carbon_flow.xlsx",
                         sheet_name="Carbon_Flow_R1",
                         engine="openpyxl",
                     )
                 )
                 == 2
             )
-        output = root / "out" / "WT_2_atom_mapping.xlsx"
+        output = root / "out" / "non_IUPD_2_atom_mapping.xlsx"
         with pd.ExcelFile(output, engine="openpyxl") as excel:
             assert set(names + ["Mapping_Selection", "Final_Mapping"]) <= set(
                 excel.sheet_names
@@ -297,7 +297,7 @@ def main():
             choices = pd.read_excel(excel, sheet_name="Mapping_Selection")
             final = pd.read_excel(excel, sheet_name="Final_Mapping")
             flow = pd.read_excel(
-                root / "out/WT_3_carbon_flow.xlsx",
+                root / "out/non_IUPD_3_carbon_flow.xlsx",
                 sheet_name="Carbon_Flow_R1",
                 engine="openpyxl",
             )
@@ -321,7 +321,7 @@ def main():
         ), patch("carbon_flow_tools.pipeline.parallel_capacity", return_value=(6, 1)):
             try:
                 run_analyses(
-                    {"WT": job, "IUPD": dict(job)},
+                    {"non_IUPD": job, "IUPD": dict(job)},
                     1,
                     1,
                     800,
@@ -344,7 +344,7 @@ def main():
         cached.save(output)
         cached.close()
         transports, original_table, original_metabolites = read_input(
-            source, "WT_nonzero", "Metabolites"
+            source, "non_IUPD_nonzero", "Metabolites"
         )
         assert reuse_predictions(
             output,
@@ -356,7 +356,9 @@ def main():
             job,
         )
         assert transports[0].is_transport and transports[0].mapped_smiles == correct
-        _, source_table, metabolites = read_input(source, "WT_nonzero", "Metabolites")
+        _, source_table, metabolites = read_input(
+            source, "non_IUPD_nonzero", "Metabolites"
+        )
         source_table.loc[1, "Flux"] = -1e-16
         reverse = prepare_reactions(source_table, metabolites)
         assert not reuse_predictions(
@@ -370,7 +372,9 @@ def main():
         )
         protected = dict(job, input_file=output)
         try:
-            run_analyses({"WT": protected}, 1, 1, 800, root / "out", names, settings)
+            run_analyses(
+                {"non_IUPD": protected}, 1, 1, 800, root / "out", names, settings
+            )
         except ValueError as error:
             assert "input" in str(error)
         else:

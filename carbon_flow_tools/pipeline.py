@@ -3,6 +3,8 @@
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
+from datetime import datetime
+from hashlib import sha256
 import json
 from multiprocessing import get_context
 from pathlib import Path
@@ -12,8 +14,18 @@ from openpyxl import load_workbook, Workbook
 from rdkit import Chem, RDLogger
 
 from .carbon_trace import propagate_rounds, initialize_sources
-from .config import configure, parallel_capacity
-from .excel_io import clear_formatting, copy_input, input_sheets, write_sheet
+from .flow_output import FlowOutput, WorksheetRowLimitError
+from .config import configure, parallel_capacity, MemoryGuard, MemoryPressureError
+from .excel_io import (
+    clear_formatting,
+    copy_input,
+    input_sheets,
+    write_sheet,
+    save_output,
+    workbook_limit,
+    copy_summary_sheets,
+    WorkbookSizeLimitError,
+)
 from .consensus import select_mappings
 from .consensus import mapping_signatures
 from .mapper_runner import run_mapper, validate_mapper_config
@@ -233,13 +245,18 @@ def final_mapping_table(reactions, selection):
 def summarize_sources(table, sources, carbon_ids, number, previous_counts):
     """Return one row per round, with separate columns for each source."""
     source_ids = {name: set() for name, _, _ in sources}
-    for row in (
-        table[["Production", "CarbonLabels"]].drop_duplicates().itertuples(index=False)
-    ):
-        labels = set(row.CarbonLabels.split(","))
+    mixed_ids = set()
+    records = (table[["Production", "CarbonLabels"]].drop_duplicates().itertuples(index=False, name=None)
+               if isinstance(table, pd.DataFrame) else table)
+    for production, carbon_labels in records:
+        labels = set(carbon_labels.split(","))
+        matched_sources = 0
         for name, _, source_labels in sources:
             if labels & source_labels:
-                source_ids[name].update(carbon_ids.get(row.Production, ()))
+                source_ids[name].update(carbon_ids.get(production, ()))
+                matched_sources += 1
+        if matched_sources > 1:
+            mixed_ids.update(carbon_ids.get(production, ()))
     total = sum(map(len, carbon_ids.values()))
     counts = {}
     if len(sources) > 1:
@@ -254,19 +271,11 @@ def summarize_sources(table, sources, carbon_ids, number, previous_counts):
         summary[f"{source}_LabeledCarbonPercent"] = (
             round(100 * count / total, 2) if total else None
         )
+    if len(sources) > 1:
+        summary["MixedSources_LabeledCarbonMetabolites"] = len(mixed_ids)
     previous_counts.update(counts)
     return summary
 
-
-def write_flow(workbook, number, table):
-    # Paginate instead of truncating at Excel's row limit.
-    for page, start in enumerate(range(0, max(1, len(table)), 1048575), 1):
-        suffix = "" if page == 1 else f"_p{page}"
-        write_sheet(
-            workbook,
-            f"Carbon_Flow_R{number}" + suffix,
-            table.iloc[start : start + 1048575],
-        )
 
 
 def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None):
@@ -279,29 +288,31 @@ def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None
     tasks = []
     inputs = set()
     for name, job in jobs.items():
+        workbook_limit(job.get("max_excel_size_mb", 50))
         if not name or any(c in name for c in '/\\:*?"<>|') or name in (".", ".."):
             raise ValueError(f"Invalid analysis name for a file: {name}")
         sources = job.get("carbon_sources")
         if not sources or len(set(sources)) != len(sources):
             raise ValueError(f"{name} carbon sources must be nonempty and unique.")
-        mapping_file = Path(
+        mappings = job.get("mapping_files", [
             job.get("mapping_file", output_dir / f"{name}_2_atom_mapping.xlsx")
-        ).resolve()
-        if not mapping_file.is_file():
-            raise FileNotFoundError(f"Run step2_atom_mapping.py first: {mapping_file}")
-        inputs.add(mapping_file)
-        if "input_file" in job:
-            inputs.add(Path(job["input_file"]).resolve())
-        suffix = "_AIGenerated" if mapping_file.stem.endswith("_AIGenerated") else ""
-        tasks.append(
-            (
-                name,
-                job,
-                rounds,
-                mapping_file,
+        ])
+        if not mappings:
+            raise ValueError("Configure at least one mapping workbook for " + name)
+        for mapping_file in mappings:
+            mapping_file = Path(mapping_file).resolve()
+            if not mapping_file.is_file():
+                raise FileNotFoundError(f"Run step2_atom_mapping.py first: {mapping_file}")
+            inputs.add(mapping_file)
+            if "input_file" in job:
+                inputs.add(Path(job["input_file"]).resolve())
+            suffix = "_AIGenerated" if mapping_file.stem.endswith("_AIGenerated") else ""
+            tasks.append((
+                name, job, rounds, mapping_file,
                 output_dir / f"{name}_3_carbon_flow{suffix}.xlsx",
-            )
-        )
+            ))
+    if len({task[-1] for task in tasks}) != len(tasks):
+        raise ValueError("Mapping workbooks would overwrite the same carbon-flow output.")
     if any(task[-1] in inputs for task in tasks):
         raise ValueError("Output cannot overwrite an input or mapping workbook.")
     print(f"Propagation rounds: {rounds}", flush=True)
@@ -309,17 +320,81 @@ def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None
         len(tasks), max_processes, memory_gb, task_kind="carbon propagation"
     )
     output_dir.mkdir(parents=True, exist_ok=True)
-    if workers == 1:
+    outputs = [task[-1] for task in tasks]
+    previous_saves = {p: p.stat().st_mtime_ns if p.exists() else None for p in outputs}
+    try:
+        if workers == 1:
+            saved = [trace_with_status(*task) for task in tasks]
+        else:
+            with get_context("spawn").Pool(processes=workers) as pool:
+                saved = pool.starmap(trace_with_status, tasks)
+    except Exception as error:
+        changed = [p for p in outputs if p.is_file()
+                   and p.stat().st_mtime_ns != previous_saves[p]]
+        saved = []
         for task in tasks:
-            trace_mapping_file(*task)
-    else:
-        with get_context("spawn").Pool(processes=workers) as pool:
-            pool.starmap(trace_mapping_file, tasks)
+            status = dict(model=task[0], requested_rounds=rounds, completed_rounds=0,
+                          stop_reason="not_completed", output_file=None)
+            status["mapping_file"] = str(task[3])
+            if getattr(error, "run_status", {}).get("mapping_file") == str(task[3]):
+                status.update(error.run_status)
+            if task[-1] in changed:
+                summary = pd.read_excel(task[-1], sheet_name="Summary", engine="openpyxl")
+                status.update(completed_rounds=int(summary.Round.max()), output_file=str(task[-1]))
+                if status["stop_reason"] == "not_completed":
+                    status["stop_reason"] = "batch_interrupted"
+            saved.append(status)
+        write_carbon_run_report(output_dir, tasks, saved, str(error))
+        if changed:
+            copy_summary_sheets(output_dir)
+        raise
+    write_carbon_run_report(output_dir, tasks, saved)
+    if any(status["completed_rounds"] for status in saved):
+        copy_summary_sheets(output_dir)
+    return saved
+
+
+def trace_with_status(strain, job, rounds, mapping_file, output):
+    """Return a small status record from each independent propagation worker."""
+    status = dict(model=strain, requested_rounds=rounds, completed_rounds=0,
+                  stop_reason="round_limit", output_file=None,
+                  mapping_file=str(mapping_file), carbon_sources=job["carbon_sources"])
+    try:
+        digest = sha256()
+        with mapping_file.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        status["mapping_sha256"] = digest.hexdigest()
+        trace_mapping_file(strain, dict(job, _run_status=status), rounds, mapping_file, output)
+    except Exception as error:
+        status["stop_reason"] = ("memory_limit" if isinstance(error, (MemoryPressureError, MemoryError))
+                                 else "error")
+        error.run_status = status
+        raise
+    return status
+
+
+def write_carbon_run_report(output_dir, tasks, statuses, error=None):
+    """Keep safety stops distinguishable from convergence for automated callers."""
+    output = output_dir / "carbon_flow_run.json"
+    report = dict(version=1, finished_at_utc=datetime.utcnow().isoformat() + "Z",
+                  status="error" if error else "finished", models=statuses)
+    if error:
+        report["error"] = error
+    temporary = output.with_suffix(".tmp")
+    try:
+        temporary.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(output)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    print("Run report: {}".format(output), flush=True)
 
 
 def trace_mapping_file(strain, job, rounds, mapping_file, output):
     """Validate final correspondences against the structures saved in step 2."""
     RDLogger.DisableLog("rdApp.warning")
+    MemoryGuard(job.get("min_available_memory_gb", 2)).check("loading " + strain, force=True)
     with pd.ExcelFile(mapping_file, engine="openpyxl") as excel:
         reaction_sheet, metabolite_sheet = input_sheets(excel)
         final = pd.read_excel(
@@ -360,7 +435,7 @@ def trace_mapping_file(strain, job, rounds, mapping_file, output):
         reaction.mapped_smiles = row.MappedReactionSMILES
         mapping_signatures(reaction)
         reaction.status = "mapped"
-    trace_analysis(strain, job, reactions, metabolites, rounds, Workbook(), output)
+    return trace_analysis(strain, job, reactions, metabolites, rounds, Workbook(), output)
 
 
 def run_analyses(
@@ -431,7 +506,7 @@ def run_analyses(
         for name in jobs
         for filename in (f"{name}_2_atom_mapping.xlsx", f"{name}_3_carbon_flow.xlsx")
     ):
-        raise ValueError("Output cannot overwrite any MATLAB input.")
+        raise ValueError("Output cannot overwrite any input workbook.")
     if stage != "map":
         print(f"Propagation rounds: {rounds}", flush=True)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -593,29 +668,9 @@ def finish_analysis(
     )
 
 
-def save_output(workbook, output):
-    """Keep the previous completed workbook until its replacement is saved."""
-    # Use an explicit font rather than the locale-dependent theme font.
-    for font in workbook._fonts:
-        font.name = "Calibri"
-        font.scheme = None
-        font.charset = None
-    workbook._fonts._dict = {font: i for i, font in enumerate(workbook._fonts)}
-    temporary = output.with_suffix(".tmp.xlsx")
-    workbook.save(temporary)
-    try:
-        temporary.replace(output)
-    except PermissionError:
-        raise PermissionError(
-            f"Close {output.name} in Excel; completed output is in {temporary.name}."
-        )
-
-
 def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output):
     """Reuse final atom correspondences; never invoke a prediction tool here."""
     workbook.close()
-    workbook = Workbook()
-    del workbook[workbook.active.title]
     summary = []
     previous_counts = {}
     carbon_ids, unknown_count = carbon_metabolites(metabolites, reactions)
@@ -629,27 +684,42 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
         for row in metabolites.itertuples(index=False)
     }
     sources = initialize_sources(job["carbon_sources"], smiles)
-    for number, table, added, converged in propagate_rounds(
-        strain,
-        reactions,
-        metabolites,
-        rounds,
-        job["carbon_sources"],
-        sources,
-        allow_inorganic_carbon_recycling=job.get(
-            "allow_inorganic_carbon_recycling", False
-        ),
-    ):
-        write_flow(workbook, number, table)
-        source_summary = summarize_sources(
-            table, sources, carbon_ids, number, previous_counts
-        )
-        summary.append(source_summary)
-        write_sheet(workbook, "Summary", pd.DataFrame(summary))
-        workbook.move_sheet("Summary", offset=-workbook.sheetnames.index("Summary"))
-        save_output(workbook, output)
+    memory_guard = MemoryGuard(job.get("min_available_memory_gb", 2))
+    completed_round = 0
+    max_bytes = workbook_limit(job.get("max_excel_size_mb", 50))
+    status = job.get("_run_status", {})
+    batch_rows = job.get("output_batch_rows", 50000)
+    status.update(output_batch_rows=batch_rows, max_excel_bytes=max_bytes)
+    store = FlowOutput(output, max_bytes, batch_rows, summary, memory_guard)
+    iterator = propagate_rounds(
+        strain, reactions, metabolites, rounds, job["carbon_sources"], sources,
+        allow_inorganic_carbon_recycling=job.get("allow_inorganic_carbon_recycling", False),
+        memory_guard=memory_guard, row_store=store,
+    )
+    try:
+        for number, _, added, converged in iterator:
+            summary.append(summarize_sources(
+                store.source_records(), sources, carbon_ids, number, previous_counts))
+            store.complete_round()
+            completed_round = number
+            status["stop_reason"] = "converged" if converged else "round_limit"
+            print(f"{strain} R{number} saved: {store.row_count} rows, {added} new states -> {output}", flush=True)
+    except (WorkbookSizeLimitError, WorksheetRowLimitError) as error:
+        status["stop_reason"] = ("file_size_limit" if isinstance(error, WorkbookSizeLimitError) else "row_limit")
+        print("{}: {}; {} complete round(s) retained. This stop is not convergence."
+              .format(strain, error, completed_round), flush=True)
+    except (MemoryPressureError, MemoryError) as error:
         print(
-            f"{strain} R{number} saved: {len(table)} rows, {added} new states -> {output}",
-            flush=True,
+            "{}: memory safety stop; {} round(s) saved in this run. "
+            "The last saved workbook is unchanged by the incomplete round. "
+            "If no rounds were saved, any existing output belongs to an earlier run. "
+            "Rerunning starts from round 1; this is not a resumable checkpoint. {}"
+            .format(strain, completed_round, error), flush=True,
         )
-    workbook.close()
+        raise
+    finally:
+        status.update(completed_rounds=completed_round,
+                      output_file=str(output) if completed_round else None)
+        iterator.close()
+        store.close()
+    return output if completed_round else None

@@ -245,19 +245,19 @@ def main():
     )
 
 
-def check_ai_stage():
+def check_mapping_variants():
     import json
     import shutil
     from carbon_flow_tools.cli import main, discover_inputs
     from carbon_flow_tools.atom_helpers import assignment_from_labeled_smiles
-    import step4_carbon_flow_ai as ai_tracing
+    import step3_carbon_flow as tracing
 
     with tempfile.TemporaryDirectory() as directory:
         folder = Path(directory)
         source = folder / "input.xlsx"
         make_input(source, "B[c]")
         source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
-        names = ["Mixed_Culture_WT", "Mixed_Culture_IUPD"]
+        names = ["Mixed_Culture_non_IUPD", "Mixed_Culture_IUPD"]
         jobs = {
             name: dict(
                 input_file=source,
@@ -302,19 +302,19 @@ def check_ai_stage():
             ),
             encoding="utf-8",
         )
-        options = ai_tracing.settings()
+        options = tracing.settings()
         options.update(
             analysis_plan=str(plan),
             tracing_python=sys.executable,
             rounds=2,
             max_carbon_processes=1,
         )
-        original_options = dict(options, ai_generated=False)
-        assert main("trace", original_options, [names[0]]) == 0
+        assert main("trace", options, [names[0]]) == 0
         original_flow = folder / (names[0] + "_3_carbon_flow.xlsx")
         originals = {
             path: hashlib.sha256(path.read_bytes()).hexdigest()
             for path in folder.glob("*.xlsx")
+            if path.name != "carbon_flow_summary.xlsx"
         }
         reviewed = folder / (names[0] + "_2_atom_mapping_AIGenerated.xlsx")
         shutil.copyfile(folder / (names[0] + "_2_atom_mapping.xlsx"), reviewed)
@@ -332,12 +332,18 @@ def check_ai_stage():
         workbook.save(reviewed)
         workbook.close()
         reviewed_hash = hashlib.sha256(reviewed.read_bytes()).hexdigest()
-        assert set(discover_inputs(folder, "trace", True)) == {names[0]}
+        assert set(discover_inputs(folder, "trace")) == set(names)
         with patch(
             "carbon_flow_tools.pipeline.run_mapper",
-            side_effect=AssertionError("Stage 4 called a mapper"),
+            side_effect=AssertionError("Step 3 called a mapper"),
         ):
             assert main("trace", options, []) == 0
+        report = json.loads((folder / "carbon_flow_run.json").read_text())
+        assert len(report["models"]) == 3
+        assert sum(item["model"] == names[0] for item in report["models"]) == 2
+        assert len({item["output_file"] for item in report["models"]}) == 3
+        assert all(item["mapping_sha256"] == hashlib.sha256(
+            Path(item["mapping_file"]).read_bytes()).hexdigest() for item in report["models"])
         updated_flow = folder / (names[0] + "_3_carbon_flow_AIGenerated.xlsx")
         table = pd.read_excel(
             updated_flow, sheet_name="Carbon_Flow_R1", engine="openpyxl"
@@ -360,20 +366,41 @@ def check_ai_stage():
         ]
         assert hashlib.sha256(reviewed.read_bytes()).hexdigest() == reviewed_hash
         for path, digest in originals.items():
-            assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
-        # The fallback interpreter must relaunch step 4, not the ordinary entry.
+            if "_3_carbon_flow" not in path.stem:
+                assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
+        # The fallback interpreter must relaunch the unified propagation entry.
         with patch("carbon_flow_tools.cli.sys.executable", "/unrelated/python"), patch(
             "carbon_flow_tools.cli.subprocess.run"
         ) as relaunch:
             relaunch.return_value.returncode = 0
             assert main("trace", options, [names[0], "--rounds", "1"]) == 0
-            assert Path(relaunch.call_args[0][0][1]).name == "step4_carbon_flow_ai.py"
+            assert Path(relaunch.call_args[0][0][1]).name == "step3_carbon_flow.py"
         second = folder / (names[1] + "_2_atom_mapping_AIGenerated.xlsx")
         shutil.copyfile(reviewed, second)
-        assert set(discover_inputs(folder, "trace", True)) == set(names)
+        assert set(discover_inputs(folder, "trace")) == set(names)
         assert main("trace", options, []) == 0
         assert (folder / (names[1] + "_3_carbon_flow_AIGenerated.xlsx")).exists()
-        # A stale AI copy must fail before replacing the previous good result.
+        # Parallel tasks for two versions of the same model remain isolated.
+        parallel = folder / "parallel"
+        run_carbon_flow({names[0]: dict(
+            mapping_files=[folder / (names[0] + "_2_atom_mapping.xlsx"), reviewed],
+            carbon_sources=["A[e]"],
+        )}, 2, parallel, max_processes=2, memory_gb=.25)
+        for filename in (names[0] + "_3_carbon_flow.xlsx", updated_flow.name):
+            for sheet_name in ("Summary", "Carbon_Flow_R1", "Carbon_Flow_R2"):
+                pd.testing.assert_frame_equal(
+                    pd.read_excel(folder / filename, sheet_name=sheet_name, engine="openpyxl"),
+                    pd.read_excel(parallel / filename, sheet_name=sheet_name, engine="openpyxl"),
+                )
+        # A model can have only an AI workbook; normal output is not overwritten.
+        normal = folder / (names[1] + "_2_atom_mapping.xlsx")
+        saved_input = normal.read_bytes()
+        normal.unlink()
+        with patch("carbon_flow_tools.pipeline.run_carbon_flow") as propagate:
+            assert main("trace", options, [names[1]]) == 0
+            assert propagate.call_args[0][0][names[1]]["mapping_files"] == [second]
+        normal.write_bytes(saved_input)
+        # A stale AI copy must fail before replacing any previous good result.
         output_hash = hashlib.sha256(updated_flow.read_bytes()).hexdigest()
         workbook = load_workbook(reviewed)
         sheet = workbook["Mapping_Info"]
@@ -392,12 +419,9 @@ def check_ai_stage():
         assert hashlib.sha256(updated_flow.read_bytes()).hexdigest() == output_hash
         reviewed.unlink()
         second.unlink()
-        try:
-            main("trace", options, [])
-        except FileNotFoundError as error:
-            assert "AIGenerated" in str(error)
-        else:
-            raise AssertionError("Stage 4 fell back to ordinary mappings")
+        # Normal-only inputs work; previous AI results remain available.
+        assert main("trace", options, []) == 0
+        assert hashlib.sha256(updated_flow.read_bytes()).hexdigest() == output_hash
     print(
         "PASS: AI copies, changed label transfer, separate outputs, hashes and relaunch"
     )
@@ -438,5 +462,5 @@ def check_calibri_export():
 
 if __name__ == "__main__":
     main()
-    check_ai_stage()
+    check_mapping_variants()
     check_calibri_export()

@@ -1,5 +1,6 @@
 import math
 import os
+import time
 from pathlib import Path
 
 
@@ -78,3 +79,76 @@ def parallel_capacity(
         flush=True,
     )
     return workers, threads
+
+
+class MemoryPressureError(RuntimeError):
+    """Stop incomplete propagation before the system runs out of memory."""
+
+
+def available_memory():
+    """Read Linux/WSL memory and any tighter cgroup-v2 ancestor limits, in GiB."""
+    values = {}
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        name, _, value = line.partition(":")
+        if name in ("MemTotal", "MemAvailable"):
+            values[name] = int(value.split()[0]) / (1024 ** 2)
+    available, total = values["MemAvailable"], values["MemTotal"]
+    cgroup_root = Path("/sys/fs/cgroup")
+    try:
+        for line in Path("/proc/self/cgroup").read_text().splitlines():
+            if line.startswith("0::"):
+                group = cgroup_root / line.split("::", 1)[1].lstrip("/")
+                for directory in (group,) + tuple(group.parents):
+                    if directory != cgroup_root and cgroup_root not in directory.parents:
+                        break
+                    try:
+                        limit = (directory / "memory.max").read_text().strip()
+                        if limit != "max":
+                            limit = int(limit) / (1024 ** 3)
+                            used = int(
+                                (directory / "memory.current").read_text()
+                            ) / (1024 ** 3)
+                            total = min(total, limit)
+                            available = min(available, max(0, limit - used))
+                    except (OSError, ValueError):
+                        continue
+                break
+    except OSError:
+        pass
+    return available, total
+
+
+class MemoryGuard:
+    """Check a shared memory reserve without truncating states or combinations."""
+
+    def __init__(self, minimum_gb=2):
+        if (
+            type(minimum_gb) not in (int, float)
+            or not math.isfinite(minimum_gb)
+            or minimum_gb <= 0
+        ):
+            raise ValueError("Minimum available memory must be a finite positive GiB value.")
+        self.minimum_gb = minimum_gb
+        self.last_check = None
+
+    def check(self, context="", force=False, extra_bytes=0):
+        now = time.monotonic()
+        if not force and self.last_check is not None and now - self.last_check < 0.5:
+            return
+        self.last_check = now
+        try:
+            available, total = available_memory()
+        except (OSError, ValueError, KeyError) as error:
+            raise MemoryPressureError(
+                "Cannot read available memory; stopping propagation safely: " + str(error)
+            )
+        reserve = max(self.minimum_gb, total * 0.10)
+        required = reserve + extra_bytes / (1024 ** 3)
+        if available < required:
+            raise MemoryPressureError(
+                "Low memory during {}: {:.2f} GiB available; {:.2f} GiB required "
+                "(safety reserve plus estimated temporary allocation). "
+                "Propagation stopped, not converged. No states were truncated. "
+                "Free memory or reduce MAX_CARBON_PROCESSES before rerunning."
+                .format(context or "carbon propagation", available, required)
+            )

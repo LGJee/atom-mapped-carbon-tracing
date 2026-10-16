@@ -54,7 +54,11 @@ def map_one_reaction(
     first_steps=None,
     required_labels=None,
     unordered_sources=False,
+    memory_guard=None,
+    record_sink=None,
 ):
+    if memory_guard:
+        memory_guard.check(reaction.reaction_id)
     left, right = components
     left_groups = group_components(parse_side(reaction.source_text), left)
     sides = split_equation(reaction.equation)
@@ -65,7 +69,9 @@ def map_one_reaction(
         sorted(states.get(name, {}).items()) or [None] for _, name, _ in left_groups
     ]
     rows, produced = [], []
-    for selected in product(*choices):
+    for index, selected in enumerate(product(*choices)):
+        if memory_guard and index % 256 == 0:
+            memory_guard.check(reaction.reaction_id)
         if not any(choice is not None for choice in selected):
             continue
         if required_labels is not None and not any(
@@ -116,29 +122,18 @@ def map_one_reaction(
                 next_id += 1
             production_id = catalog[key]
 
-            restored = assignment_from_labeled_smiles(smiles_by_name[name], marked)
-            produced.append((name, production_id, restored))
-            rows.append(
-                dict(
-                    zip(
-                        COLUMNS,
-                        [
-                            actual_step,
-                            reaction.reaction_id,
-                            reaction.source_text,
-                            source_ids,
-                            name,
-                            production_id,
-                            ",".join(
-                                sorted(
-                                    (a[2] for a in assignment), key=lambda x: int(x[1:])
-                                )
-                            ),
-                            marked,
-                        ],
-                    )
-                )
-            )
+            row = dict(zip(COLUMNS, [
+                actual_step, reaction.reaction_id, reaction.source_text, source_ids,
+                name, production_id,
+                ",".join(sorted((a[2] for a in assignment), key=lambda x: int(x[1:]))),
+                marked,
+            ]))
+            if record_sink is None:
+                restored = assignment_from_labeled_smiles(smiles_by_name[name], marked)
+                produced.append((name, production_id, restored))
+                rows.append(row)
+            else:
+                record_sink(row)
     return produced, rows, next_id
 
 
@@ -209,6 +204,8 @@ def propagate_once(
     required_labels=None,
     unordered_sources=False,
     progress=None,
+    memory_guard=None,
+    record_sink=None,
 ):
     """Read one state snapshot; return products for the caller to merge."""
     produced, rows = [], []
@@ -224,15 +221,32 @@ def propagate_once(
             first_steps,
             required_labels,
             unordered_sources,
+            memory_guard,
+            record_sink=record_sink,
         )
         produced.extend(new_states)
         rows.extend(new_rows)
+        del new_states, new_rows
         if progress and index % 25 == 0:
             print(
-                f"{progress}: {index}/{len(prepared)} reactions,{len(rows)} records",
+                f"{progress}: {index}/{len(prepared)} reactions; "
+                + ("records staged on disk" if record_sink is not None else f"{len(rows)} records"),
                 flush=True,
             )
-    table = pd.DataFrame(rows, columns=COLUMNS).drop_duplicates(ignore_index=True)
+    if record_sink is not None:
+        return None, None, next_id
+    if memory_guard:
+        memory_guard.check("building propagation table", force=True,
+                           extra_bytes=len(rows) * (len(COLUMNS) * 8 + 64) * 3)
+    table = pd.DataFrame(rows, columns=COLUMNS)
+    del rows
+    if memory_guard:
+        memory_guard.check("deduplicating propagation table", force=True,
+                           extra_bytes=int(table.memory_usage(index=True).sum()) * 3)
+    table = table.drop_duplicates(ignore_index=True)
+    if memory_guard:
+        memory_guard.check("sorting propagation table", force=True,
+                           extra_bytes=int(table.memory_usage(index=True).sum()) * 3)
     table = table.sort_values(
         ["Step", "ReactionID", "SourceIDs", "ProductionID"], ignore_index=True
     )
@@ -253,12 +267,18 @@ def inorganic_carbon_names(smiles):
     return names
 
 
-def merge_states(produced, table, states, first_steps, terminal_names=()):
-    for name, number, assignment in produced:
+def merge_states(
+    produced, table, states, first_steps, terminal_names=(), memory_guard=None
+):
+    for index, (name, number, assignment) in enumerate(produced):
+        if memory_guard and index % 1024 == 0:
+            memory_guard.check("merging propagation states")
         # Keep terminal products in the output/catalog, not as labelled substrates.
         if name not in terminal_names:
             states[name].setdefault(number, assignment)
-    for row in table.itertuples(index=False):
+    for index, row in enumerate(table.itertuples(index=False)):
+        if memory_guard and index % 1024 == 0:
+            memory_guard.check("merging propagation steps")
         key = (row.Production, row.ProductionID)
         first_steps[key] = min(first_steps.get(key, row.Step), row.Step)
 
@@ -271,8 +291,12 @@ def propagate_rounds(
     source_names,
     sources=None,
     allow_inorganic_carbon_recycling=False,
+    memory_guard=None,
+    row_store=None,
 ):
     """Propagate by source and layer in round one, then by round snapshots."""
+    if memory_guard:
+        memory_guard.check("starting propagation", force=True)
     smiles = {
         clean(r.MetaboliteName): get_smiles(r)
         for r in metabolites.itertuples(index=False)
@@ -300,12 +324,16 @@ def propagate_rounds(
     prepared = prepare_mappings(reactions)
     states, catalog, first_steps = defaultdict(dict), {}, {}
     next_id, phase_tables = 1, []
+    if row_store is not None:
+        row_store.start_round(1)
     for phase, (seed, assignment, labels) in enumerate(sources):
         states[seed][0] = assignment
         first_steps[(seed, 0)] = 0
         pending, tables, layer = list(prepared), [], 0
         required = None if phase == 0 else labels
         while pending:
+            if memory_guard:
+                memory_guard.check("preparing first-round layer", force=True)
             ready = []
             for item in pending:
                 available = [
@@ -322,29 +350,51 @@ def propagate_rounds(
                 break
             ready_ids = {r.reaction_id for r, _ in ready}
             pending = [item for item in pending if item[0].reaction_id not in ready_ids]
+            if row_store is not None:
+                row_store.start_layer(phase)
             produced, table, next_id = propagate_once(
-                ready, states, first_steps, catalog, next_id, smiles, required
+                ready, states, first_steps, catalog, next_id, smiles, required,
+                memory_guard=memory_guard,
+                record_sink=row_store.append if row_store is not None else None,
             )
-            merge_states(produced, table, states, first_steps, terminal_names)
-            tables.append(table)
+            if row_store is None:
+                merge_states(produced, table, states, first_steps, terminal_names, memory_guard)
+                tables.append(table)
+                layer_records = len(table)
+            else:
+                row_store.merge_states(states, first_steps, terminal_names, smiles)
+                layer_records = row_store.db.execute(
+                    "SELECT COUNT(*) FROM records WHERE round_no=1 AND layer=?",
+                    (row_store.layer,),
+                ).fetchone()[0]
+            del produced
             layer += 1
             print(
-                f"{strain} {seed} layer {layer}: {len(ready)} reactions,{len(table)} records",
+                f"{strain} {seed} layer {layer}: {len(ready)} reactions,{layer_records} records",
                 flush=True,
             )
-        phase_table = (
-            pd.concat(tables, ignore_index=True)
-            if tables
-            else pd.DataFrame(columns=COLUMNS)
-        )
-        phase_tables.append(
-            phase_table.drop_duplicates(ignore_index=True).sort_values(
-                ["Step", "ReactionID", "SourceIDs", "ProductionID"], ignore_index=True
-            )
-        )
-    first = pd.concat(phase_tables, ignore_index=True)
+        if row_store is None:
+            if memory_guard:
+                memory_guard.check("combining first-round layers", force=True)
+            phase_table = pd.concat(tables, ignore_index=True) if tables else pd.DataFrame(columns=COLUMNS)
+            phase_tables.append(phase_table.drop_duplicates(ignore_index=True).sort_values(
+                ["Step", "ReactionID", "SourceIDs", "ProductionID"], ignore_index=True))
+    if row_store is None:
+        if memory_guard:
+            memory_guard.check("combining first-round sources", force=True)
+        first = pd.concat(phase_tables, ignore_index=True)
+        del phase_tables, tables, phase_table
+    else:
+        first = None
     yield 1, first, len(catalog), False
+    del first
+    table = None
     for number in range(2, rounds + 1):
+        if memory_guard:
+            memory_guard.check("starting round {}".format(number), force=True)
+        if row_store is not None:
+            row_store.start_round(number)
+            row_store.start_layer()
         before, old_steps = len(catalog), dict(first_steps)
         produced, table, next_id = propagate_once(
             prepared,
@@ -355,10 +405,17 @@ def propagate_rounds(
             smiles,
             unordered_sources=True,
             progress=f"{strain} R{number}",
+            memory_guard=memory_guard,
+            record_sink=row_store.append if row_store is not None else None,
         )
-        merge_states(produced, table, states, first_steps, terminal_names)
+        if row_store is None:
+            merge_states(produced, table, states, first_steps, terminal_names, memory_guard)
+        else:
+            row_store.merge_states(states, first_steps, terminal_names, smiles)
         converged = len(catalog) == before and first_steps == old_steps
+        del produced, old_steps
         yield number, table, len(catalog) - before, converged
+        del table
         if converged:
             print(
                 f"{strain} R{number}: no new states or earlier steps; propagation converged.",

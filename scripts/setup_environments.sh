@@ -13,7 +13,7 @@ if [[ "$(uname -s)" != Linux || "$(uname -m)" != x86_64 ]]; then
 fi
 command -v git >/dev/null
 mkdir -p -- "$prefix"
-for name in localmapper rxnmapper enzymemap; do
+for name in preparation localmapper rxnmapper enzymemap; do
     env="$prefix/$name"
     if [[ -x "$env/bin/python" ]]; then
         echo "Checking existing environment: $env"
@@ -22,5 +22,5 @@ for name in localmapper rxnmapper enzymemap; do
     fi
     "$env/bin/python" "$root/scripts/check_environment.py" "$name"
 done
-echo 'Environment setup and real mapper smoke tests completed.'
-echo 'If a custom prefix was used, set environment_dir in your JSON configuration.'
+echo 'Environment setup, COBRApy pFBA check and real mapper smoke tests completed.'
+echo 'For a custom prefix, update PREPARATION_PYTHON in step 1, ENVIRONMENT_DIR in step 2 and TRACING_PYTHON in step 3.'

@@ -1,4 +1,4 @@
-"""Prepare structures from manual overrides, scoped model YAML and PubChem."""
+"""Prepare structures from manual overrides, source models and PubChem."""
 
 import csv
 import json
@@ -13,6 +13,7 @@ import pandas as pd
 from rdkit import Chem
 
 from .reactions import clean, get_smiles
+from .model_structures import compatible, discover_annotations, read_model_smiles
 
 API = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound"
 PROPERTIES = "SMILES,MolecularFormula,Charge,InChIKey"
@@ -41,37 +42,6 @@ def load_manual(path):
         ):
             raise ValueError("Invalid or unspecified manual structure: " + str(row))
     return rows
-
-
-def read_model_smiles(path):
-    """Read scalar/first-list SMILES from supported COBRA and RAVEN YAML exports."""
-    lines = Path(path).read_text(encoding="utf-8-sig").splitlines()
-    try:
-        start = lines.index("- metabolites:") + 1
-        end = lines.index("- reactions:", start)
-    except ValueError:
-        raise ValueError("Expected model metabolite/reaction YAML sections: " + str(path))
-    structures, current = {}, None
-    for position in range(start, end):
-        match = re.match(r"^\s+- (id|name|compartment|formula|smiles):\s*(.*)$", lines[position])
-        if not match:
-            continue
-        field, value = match.groups()
-        if field == "smiles" and not value and position + 1 < end:
-            first = re.match(r"^\s+- (.+)$", lines[position + 1])
-            value = first.group(1) if first else ""
-        if value.startswith('"'):
-            value = json.loads(value)
-        if field == "id":
-            if not value or value in structures:
-                raise ValueError("Empty or duplicate model metabolite ID: " + value)
-            current = value
-            structures[current] = {}
-        elif current:
-            structures[current][field] = value
-    if not structures:
-        raise ValueError("No metabolite IDs in the configured model YAML: " + str(path))
-    return structures
 
 
 def query_key(row):
@@ -148,8 +118,16 @@ def complete_smiles(metabolites, model, options):
         raise ValueError("Structure cache must be a JSON object: " + str(cache_file))
     yaml_file = options.get("model_yaml_files", {}).get(model)
     annotations = read_model_smiles(yaml_file) if yaml_file else {}
+    source = options.get("source_models", {}).get(model)
+    discovered, identifiers = (
+        discover_annotations(source, metabolites) if source else ({}, {})
+    )
     table = metabolites.copy()
-    if annotations:
+    if identifiers and "InChIKey" not in table:
+        table["InChIKey"] = ""
+    if identifiers:
+        table["InChIKey"] = table.InChIKey.astype(object)
+    if annotations or discovered:
         if "SMILES_Model" not in table:
             table["SMILES_Model"] = float("nan")
         table["SMILES_Model"] = table.SMILES_Model.astype(object)
@@ -207,27 +185,38 @@ def complete_smiles(metabolites, model, options):
             continue
         existing = get_smiles(row)
         annotation = annotations.get(clean(row.MetaboliteID), {})
-        # Scoped IDs alone do not establish identity for companion annotations.
-        expected_name = annotation.get("name", "")
-        if annotation.get("compartment"):
-            expected_name += "[" + annotation["compartment"] + "]"
-        compatible = (
-            (not expected_name or expected_name == clean(row.MetaboliteName))
-            and (
-                not annotation.get("formula")
-                or not clean(getattr(row, "MolecularFormula", ""))
-                or annotation["formula"] == clean(row.MolecularFormula)
-            )
-        )
-        if not existing and compatible and annotation.get("smiles"):
+        if not existing and compatible(annotation, row) and annotation.get("smiles"):
             existing = annotation["smiles"]
             table.at[index, "SMILES_Model"] = existing
             table.at[index, "StructureSource"] = "Model YAML"
             table.at[index, "StructureReference"] = Path(yaml_file).name
+        found = discovered.get(clean(row.MetaboliteID))
+        structure_conflict = bool(found and found["conflict"])
+        if found:
+            table.at[index, "StructureCandidates"] = found["candidates"]
+            if not existing:
+                existing = found["smiles"]
+                table.at[index, "SMILES_Model"] = existing
+                table.at[index, "StructureSource"] = "Source model directory"
+                table.at[index, "StructureReference"] = found["reference"]
+            else:
+                molecule = Chem.MolFromSmiles(existing)
+                structure_conflict = structure_conflict or bool(
+                    molecule and Chem.MolToSmiles(molecule) != found["canonical"]
+                )
+            if structure_conflict:
+                table.at[index, "StructureReviewRequired"] = True
+        inchi_key = identifiers.get(clean(row.MetaboliteID))
+        if inchi_key and not clean(getattr(row, "InChIKey", "")):
+            table.at[index, "InChIKey"] = inchi_key
         if existing:
             molecule = Chem.MolFromSmiles(existing)
             table.at[index, "StructureStatus"] = (
-                "Existing structure" if molecule else "Invalid existing structure"
+                "Conflicting model structures; review required"
+                if structure_conflict
+                else "Existing structure"
+                if molecule
+                else "Invalid existing structure"
             )
             if not clean(table.at[index, "StructureSource"]):
                 table.at[index, "StructureSource"] = "input workbook"
@@ -236,6 +225,8 @@ def complete_smiles(metabolites, model, options):
         if not options["lookup"]:
             continue
         try:
+            # Include identifiers supplied by the source model directory.
+            row = table.loc[index]
             namespace, identifier = query_key(row)
             key = namespace + ":" + identifier
             if key in cache:

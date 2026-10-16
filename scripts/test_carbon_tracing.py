@@ -247,13 +247,46 @@ def main():
     assert summary["All sources_LabeledCarbonMetabolites"] == 3
     assert summary["glucose_LabeledCarbonMetabolites"] == 2
     assert summary["isoprenol_LabeledCarbonMetabolites"] == 2
+    assert summary["MixedSources_LabeledCarbonMetabolites"] == 1
     summary = summarize_sources(flow.iloc[:3], sources, ids, 2, previous)
+    assert summary["MixedSources_LabeledCarbonMetabolites"] == 0
     assert summary["glucose_LabeledCarbonMetabolitesIncrement"] == -1
     assert summary["isoprenol_LabeledCarbonMetabolitesIncrement"] == -1
     single = summarize_sources(flow, sources[:1], ids, 1, {})
     assert single["glucose_LabeledCarbonMetabolites"] == 2
     assert not any(key.startswith("All sources_") for key in single)
     assert len(pd.DataFrame([single, single])) == 2
+    assert "MixedSources_LabeledCarbonMetabolites" not in single
+    assert single == {
+        "Round": 1, "TotalCarbonMetabolites": 3,
+        "glucose_LabeledCarbonMetabolites": 2,
+        "glucose_LabeledCarbonMetabolitesIncrement": 2,
+        "glucose_LabeledCarbonPercent": 66.67,
+    }
+    mixed_flow = pd.DataFrame(
+        [
+            ["A[c]", "C1"], ["A[c]", "C7"],
+            ["B[c]", "C1,C1"], ["B[c]", "C1,C99"],
+            ["C[c]", "C1,C7"], ["C[c]", "C1,C7"],
+            ["C[c]", "C1,C8"], ["C[m]", "C7,C12"],
+            ["unmapped[c]", "C1,C7"],
+        ], columns=["Production", "CarbonLabels"],
+    )
+    mixed_sources = [
+        ("glucose", (), {"C1"}), ("xylose", (), {"C7", "C8"}),
+        ("acetate", (), {"C12"}),
+    ]
+    mixed_carbon_ids = {"A[c]": {"a"}, "B[c]": {"b"}, "C[c]": {"c"}, "C[m]": {"cm"}}
+    summary = summarize_sources(mixed_flow, mixed_sources, mixed_carbon_ids, 1, {})
+    assert summary["TotalCarbonMetabolites"] == 4
+    assert summary["All sources_LabeledCarbonMetabolites"] == 4
+    assert summary["MixedSources_LabeledCarbonMetabolites"] == 2
+    assert summarize_sources(
+        mixed_flow.iloc[:4], mixed_sources, mixed_carbon_ids, 2, {}
+    )["MixedSources_LabeledCarbonMetabolites"] == 0
+    assert summarize_sources(
+        mixed_flow.iloc[:0], mixed_sources, mixed_carbon_ids, 3, {}
+    )["MixedSources_LabeledCarbonMetabolites"] == 0
 
     structures = {
         name: "C" for name in ("A[c]", "A[m]", "B[c]", "D[c]", "Z[c]", "E[e]", "U[c]")

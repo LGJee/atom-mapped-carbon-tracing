@@ -103,7 +103,7 @@ def main():
         events = root / "events"
         events.mkdir()
         jobs = {}
-        for strain, product in [("WT", "B[c]"), ("IUPD", "D[c]")]:
+        for strain, product in [("non_IUPD", "B[c]"), ("IUPD", "D[c]")]:
             source = root / (strain + ".xlsx")
             make_input(source, product)
             jobs[strain] = dict(
@@ -146,7 +146,7 @@ def main():
             )
         assert len(list(events.glob("*.started"))) == 2
         assert all(int(path.stem) != os.getpid() for path in events.glob("*.started"))
-        for strain, product in [("WT", "B[c]"), ("IUPD", "D[c]")]:
+        for strain, product in [("non_IUPD", "B[c]"), ("IUPD", "D[c]")]:
             name = strain + "_3_carbon_flow.xlsx"
             with pd.ExcelFile(
                 root / "serial" / name, engine="openpyxl"

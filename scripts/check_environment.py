@@ -1,4 +1,4 @@
-"""Check installed versions and run one real atom-mapping call."""
+"""Check installed versions and run a real pFBA or mapping smoke test."""
 
 import argparse
 import importlib
@@ -10,9 +10,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("backend", choices=("localmapper", "rxnmapper", "enzymemap"))
+    parser.add_argument(
+        "backend", choices=("preparation", "localmapper", "rxnmapper", "enzymemap")
+    )
     args = parser.parse_args()
-    from rdkit import Chem
 
     try:
         from importlib.metadata import version
@@ -20,6 +21,28 @@ def main():
         from pkg_resources import get_distribution
 
         version = lambda package: get_distribution(package).version
+
+    if args.backend == "preparation":
+        from cobra import Model, Metabolite, Reaction
+        from cobra.flux_analysis import pfba
+
+        model = Model("preparation_check")
+        model.solver = "glpk"
+        substrate = Metabolite("A_c", compartment="c")
+        supply = Reaction("supply", lower_bound=0, upper_bound=10)
+        supply.add_metabolites({substrate: 1})
+        growth = Reaction("growth", lower_bound=0, upper_bound=1000)
+        growth.add_metabolites({substrate: -1})
+        model.add_reactions([supply, growth])
+        model.objective = growth
+        result = pfba(model)
+        if result.status != "optimal" or abs(result.fluxes["growth"] - 10) > 1e-8:
+            raise RuntimeError("COBRApy/GLPK pFBA smoke test failed.")
+        for package in ("cobra", "swiglpk", "numpy", "scipy", "pandas", "openpyxl"):
+            print("{}={}".format(package, version(package)))
+        print("preparation: real COBRApy/GLPK pFBA test passed")
+        return
+    from rdkit import Chem
 
     if args.backend == "localmapper":
         for package in ("pandas", "openpyxl"):

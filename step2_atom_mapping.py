@@ -20,14 +20,7 @@ MANUAL_SMILES_FILE = "data/manual_smiles.csv"
 STRUCTURE_CACHE_FILE = "data/structure_cache.json"
 STRUCTURE_TIMEOUT = 20  # Seconds per PubChem request.
 STRUCTURE_MIN_INTERVAL = 0.25  # At most four sequential requests per second.
-# Model YAML annotations are optional and scoped by analysis name.
-# Yarrowia uses ordinary iYali5 for pFBA and its paired eciYali5 for structures.
-MODEL_YAML_FILES = {
-    "Saccharomyces_cerevisiae_WT": "data/yeast9/yeast-GEM.yml",
-    "Saccharomyces_cerevisiae_IUPD": "data/yeast9/yeast-GEM.yml",
-    "Yarrowia_lipolytica_WT": "data/yarrowia/eciYali5-GEM.yml",
-    "Yarrowia_lipolytica_IUPD": "data/yarrowia/eciYali5-GEM.yml",
-}
+# Model structures are discovered from step 1 provenance and the source directory.
 
 # Resources
 MAX_MAPPER_PROCESSES = None  # None selects a CPU/memory-limited capacity.
@@ -51,7 +44,6 @@ def settings():
         analysis_plan="data/analysis_plan.json",
         input_dir=INPUT_DIR,
         structure_options=dict(
-            model_yaml_files=MODEL_YAML_FILES,
             lookup=COMPLETE_MISSING_SMILES,
             manual_file=MANUAL_SMILES_FILE,
             cache_file=STRUCTURE_CACHE_FILE,
