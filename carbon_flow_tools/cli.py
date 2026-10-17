@@ -343,6 +343,7 @@ def main(stage, settings, argv=None):
             job["min_available_memory_gb"] = settings.get("min_available_memory_gb", 2)
             job["max_excel_size_mb"] = settings.get("max_excel_size_mb", 50)
             job["output_batch_rows"] = settings.get("output_batch_rows", 50000)
+            job["export_exclusive_source_metabolites"] = settings.get("export_exclusive_source_metabolites", False)
             directory = project_path(job["mapping_file"]).parent
             job["mapping_files"] = [
                 path for path in (

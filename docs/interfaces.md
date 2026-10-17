@@ -83,9 +83,19 @@ This revision does not create or implement the future orchestrator skill.
 
 ## Propagation status
 
-Step 3 writes `<model>_3_carbon_flow_Enumeration.xlsx` for normal mappings and
-`<model>_3_carbon_flow_Enumeration_AIGenerated.xlsx`. Enumeration workbooks contain only saved
-`Carbon_Flow_R*` and `Summary` tables. No aggregate Summary workbook is generated.
+Step 3 writes `<model>_3_carbon_flow.xlsx` for normal mappings and
+`<model>_3_carbon_flow_AIGenerated.xlsx`. Enumeration workbooks contain only saved
+`Carbon_Flow_R*` and `Summary` tables by default. Only the last saved Summary row
+contains `<source>_ExclusiveSourceMetabolites`: distinct mapped metabolite IDs whose
+recorded states all carry labels from that one source. Separate pure-source states
+from different sources disqualify a metabolite. The optional step-3 setting
+`EXPORT_EXCLUSIVE_SOURCE_METABOLITES` (default `False`) adds an
+`Exclusive_Source_Metabolites` sheet for that round; it does not change propagation.
+`carbon_flow_summary.xlsx` copies each saved
+Enumeration workbook's Summary to its own sheet in the same output directory,
+including AI-reviewed versions. Existing files from earlier runs are included;
+use the manifest below to determine which outputs belong to the current run.
+Sheet names retain `_AI`, shorten long model names and resolve collisions numerically.
 
 Each batch writes `carbon_flow_run.json`. Version 1 records the finish
 timestamp, batch `status` (`finished` or `error`) and one entry per mapping

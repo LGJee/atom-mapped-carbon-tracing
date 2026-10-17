@@ -262,6 +262,7 @@ def main():
         "glucose_LabeledCarbonMetabolites": 2,
         "glucose_LabeledCarbonMetabolitesIncrement": 2,
         "glucose_LabeledCarbonPercent": 66.67,
+        "glucose_ExclusiveSourceMetabolites": 1,
     }
     mixed_flow = pd.DataFrame(
         [

@@ -378,7 +378,7 @@ Step 3 processes `<model>_2_atom_mapping.xlsx` and its optional
 `_AIGenerated` copy separately. Either version may be present alone.
 Both Enumeration versions use the same source lists, rounds and resource settings and retain
 input-hash/direction/structure checks. They produce independent
-`<model>_3_carbon_flow_Enumeration.xlsx` and `<model>_3_carbon_flow_Enumeration_AIGenerated.xlsx` files.
+`<model>_3_carbon_flow.xlsx` and `<model>_3_carbon_flow_AIGenerated.xlsx` files.
 The mapping inputs are unchanged. Lock files, temporary files, backups and models
 outside the selected plan are not included. Step 3 runs no mappers or AI skill;
 review and workbook updates happen separately before propagation. The separate
@@ -387,8 +387,8 @@ step-4 entry has been removed.
 ## 5. Inspect Excel results
 
 Step 2 writes `<OUTPUT_DIR>/<analysis>_2_atom_mapping.xlsx`; step 3 reads it
-and writes `<OUTPUT_DIR>/<analysis>_3_carbon_flow_Enumeration.xlsx`
-(or `_Enumeration_AIGenerated.xlsx` for a reviewed copy). The default output
+and writes `<OUTPUT_DIR>/<analysis>_3_carbon_flow.xlsx`
+(or `_AIGenerated.xlsx` for a reviewed copy). The default output
 directory is `results`. Raw step-1 inputs use `<model>_1_` filenames.
 Step-1 inputs remain unchanged. Close results in Excel before replacement;
 for step 2, a denied rename leaves the completed `.tmp.xlsx`. Step 3 retains
@@ -398,7 +398,7 @@ staging directory. No permanent intermediate result directories are created.
 The step 2 workbook contains copied input tables, three raw tool sheets,
 `Mapping_Selection`, `Final_Mapping` and hidden `Mapping_Info` diagnostics.
 It is unchanged by step 3. The Enumeration workbook contains only `Summary` and
-`Carbon_Flow_Rn` sheets, with one sheet per complete round and no pagination.
+`Carbon_Flow_Rn` sheets by default, with one sheet per complete round and no pagination.
 Input structures, mapper provenance and review flags remain in step 2.
 `AIGenerated` appears only in `Final_Mapping` and defaults to FALSE.
 
@@ -438,6 +438,24 @@ of the same metabolite do not qualify. Repeated states count once, compartments
 remain distinct, and the mapped-network denominator is unchanged. This count
 indicates possible mixed-origin label states, not measured co-assimilation or
 carbon-exchange efficiency. It is omitted for single-source analyses.
+
+The last saved round's Summary row also reports
+`<source>_ExclusiveSourceMetabolites` for each configured source; earlier rows
+leave these columns blank. A metabolite qualifies only if the union of labels
+across **all its recorded states in that round** is nonempty and belongs to that
+one source. A subset of that source's labels qualifies. A metabolite with separate
+pure-source states from different sources does not qualify, even if no single
+state mixes them. Counts use distinct mapped MetaboliteIDs, with compartments
+kept separate, and do not change the denominator. This describes observed labels,
+not proof that every carbon in the molecule comes from that source; unlabeled
+positions and uncomputed states are not evidence of exclusivity.
+
+Set `EXPORT_EXCLUSIVE_SOURCE_METABOLITES = True` at the top of
+`step3_carbon_flow.py` to include an `Exclusive_Source_Metabolites` sheet with
+`Round`, `CarbonSource`, `MetaboliteID` and `MetaboliteName` for the last complete
+saved round. The default is `False`; counts are always included. The optional
+sheet is subject to the same workbook size limit. Normal and AI-reviewed mapping
+versions follow the same rules, and the Summary collector copies these columns.
 
 Results describe **qualitative carbon-origin reachability under the chosen pFBA
 network and mapping assumptions**, not measured 13C abundance, quantitative
@@ -480,8 +498,13 @@ Summary contains computed observations only. Step 3 does not fit
 curves, adds predicted rounds or changes the denominator. Use these values for
 manual plotting or fitting as needed.
 
-No aggregate Summary workbook is generated. Enumeration retains its own Summary
-sheet. A memory-stop error preserves the rounds successfully saved in that run;
+Step 3 rebuilds `carbon_flow_summary.xlsx` in the selected output directory.
+Each saved Enumeration workbook contributes one unchanged Summary table, including
+AI-reviewed versions; no carbon-flow records are copied. Long sheet names are
+shortened, reviewed versions retain `_AI`, and collisions receive numeric suffixes.
+The collection includes earlier saved files in that directory, without searching
+nested case folders. Use `carbon_flow_run.json` to distinguish current outputs
+from older files. A memory-stop error preserves the rounds successfully saved in that run;
 if no rounds were saved, any earlier output remains unchanged.
 
 ## Small example and tests

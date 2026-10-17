@@ -286,7 +286,7 @@ def main():
         assert hashlib.sha256(mapping.read_bytes()).hexdigest() == mapping_digest
         assert (
             pd.read_excel(
-                root / "Test_3_carbon_flow_Enumeration.xlsx",
+                root / "Test_3_carbon_flow.xlsx",
                 sheet_name="Carbon_Flow_R1",
                 engine="openpyxl",
             ).shape[0]

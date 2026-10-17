@@ -44,7 +44,7 @@ def run():
         workbook.close()
         for name in (
             "non_IUPD_2_atom_mapping.xlsx",
-            "non_IUPD_3_carbon_flow_Enumeration.xlsx",
+            "non_IUPD_3_carbon_flow.xlsx",
             "~$non_IUPD_1_input.xlsx",
             "non_IUPD_1_input.tmp.xlsx",
         ):
@@ -91,6 +91,9 @@ def run():
     assert tracing.INPUT_DIR == mapping.OUTPUT_DIR
     assert tracing.TRACING_PYTHON == ".envs/localmapper/bin/python"
     assert tracing.settings()["allow_inorganic_carbon_recycling"] is False
+    assert tracing.settings()["export_exclusive_source_metabolites"] is False
+    with patch.object(tracing, "EXPORT_EXCLUSIVE_SOURCE_METABOLITES", True):
+        assert tracing.settings()["export_exclusive_source_metabolites"] is True
 
     with patch.object(tracing, "ALLOW_INORGANIC_CARBON_RECYCLING", True):
         assert tracing.settings()["allow_inorganic_carbon_recycling"] is True
@@ -124,7 +127,7 @@ def run():
             "~$non_IUPD_2_atom_mapping.xlsx",
             "non_IUPD_2_atom_mapping.tmp.xlsx",
             "non_IUPD_1_input.xlsx",
-            "non_IUPD_3_carbon_flow_Enumeration.xlsx",
+            "non_IUPD_3_carbon_flow.xlsx",
         ):
             (folder / name).touch()
         assert set(discover_inputs(folder, "trace")) == {"non_IUPD", "IUPD"}
@@ -142,9 +145,12 @@ def run():
             ]
             assert job["carbon_sources"] == ["D-glucose[e]"]
             assert job["allow_inorganic_carbon_recycling"] is False
+            assert job["export_exclusive_source_metabolites"] is False
+            settings["export_exclusive_source_metabolites"] = True
             assert "input_file" not in job
             assert main("trace", settings, []) == 0
             assert propagate.call_args[0][1] == 6
+            assert propagate.call_args[0][0]["IUPD"]["export_exclusive_source_metabolites"] is True
             assert propagate.call_args[1]["max_processes"] == 2
             assert propagate.call_args[0][0]["IUPD"]["carbon_sources"] == [
                 "D-glucose[e]",

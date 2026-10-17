@@ -39,6 +39,7 @@ class FlowOutput:
         self.max_bytes, self.batch_rows = max_bytes, batch_rows
         self.summaries, self.memory_guard = summaries, memory_guard
         self.buffer = []
+        self.exclusive_metabolites = None
         self.number, self.phase, self.layer, self.row_count = 0, 0, 0, 0
 
     def start_round(self, number):
@@ -107,6 +108,13 @@ class FlowOutput:
                 for index, row in enumerate(rows):
                     if self.memory_guard and index % 1024 == 0:
                         self.memory_guard.check("streaming staged Excel rows")
+                    sheet.append(row)
+            if self.exclusive_metabolites is not None:
+                columns = ["Round", "CarbonSource", "MetaboliteID", "MetaboliteName"]
+                sheet = workbook.create_sheet("Exclusive_Source_Metabolites")
+                format_columns(sheet, columns)
+                sheet.append(columns)
+                for row in self.exclusive_metabolites:
                     sheet.append(row)
             workbook.save(self.candidate)
         finally:

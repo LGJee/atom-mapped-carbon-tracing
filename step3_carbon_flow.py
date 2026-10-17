@@ -16,6 +16,8 @@ CARBON_SOURCES = {}  # Loaded from step 1 for every configured model.
 
 # Enumeration
 ROUNDS = 10  # Maximum rounds; stop earlier when propagation converges.
+# Optional list for the last saved round; Summary always includes the counts.
+EXPORT_EXCLUSIVE_SOURCE_METABOLITES = False
 MAX_EXCEL_SIZE_MB = 50  # Decimal MB; discard a candidate round reaching this size.
 OUTPUT_BATCH_ROWS = 50000  # Check actual candidate XLSX size after each batch/layer.
 # Record CO2/bicarbonate endpoints, but exclude their label recycling by default.
@@ -40,6 +42,7 @@ def settings():
         carbon_sources=CARBON_SOURCES,
         output_dir=OUTPUT_DIR,
         rounds=ROUNDS,
+        export_exclusive_source_metabolites=EXPORT_EXCLUSIVE_SOURCE_METABOLITES,
         max_excel_size_mb=MAX_EXCEL_SIZE_MB,
         output_batch_rows=OUTPUT_BATCH_ROWS,
         allow_inorganic_carbon_recycling=ALLOW_INORGANIC_CARBON_RECYCLING,

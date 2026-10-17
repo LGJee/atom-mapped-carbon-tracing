@@ -153,7 +153,7 @@ def run():
         ):
             assert main("trace", ts, []) == 0
         for name in names:
-            file = folder / (name + "_3_carbon_flow_Enumeration.xlsx")
+            file = folder / (name + "_3_carbon_flow.xlsx")
             with pd.ExcelFile(file, engine="openpyxl") as excel:
                 assert set(excel.sheet_names) == set(
                     [
@@ -280,7 +280,7 @@ def check_independent_cases():
                     "carbon_flow_tools.cli.build_mapper_configs", return_value=configs):
                 assert main("map", mapping_settings, ["--plan", str(plan)]) == 0
                 assert main("trace", trace_settings, ["--plan", str(plan)]) == 0
-            result = output / (name + "_3_carbon_flow_Enumeration.xlsx")
+            result = output / (name + "_3_carbon_flow.xlsx")
             summary = pd.read_excel(result, sheet_name="Summary", engine="openpyxl")
             assert summary["X[e]_LabeledCarbonMetabolites"].eq(0).all()
             assert summary.TotalCarbonMetabolites.eq(3).all()

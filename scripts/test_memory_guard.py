@@ -110,7 +110,7 @@ class MemoryGuardTests(unittest.TestCase):
             yield next(original(*args, **kwargs))
             raise MemoryPressureError("simulated pressure in round 2")
         with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory) / "Test_3_carbon_flow_Enumeration.xlsx"
+            output = Path(directory) / "Test_3_carbon_flow.xlsx"
             with patch("carbon_flow_tools.config.available_memory", return_value=(12, 16)):
                 with patch("carbon_flow_tools.pipeline.propagate_rounds", stop_after_first):
                     with self.assertRaises(MemoryPressureError):

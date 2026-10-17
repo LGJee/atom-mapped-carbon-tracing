@@ -14,7 +14,7 @@ step1_prepare_carbon_tracing_inputs.py
 step2_atom_mapping.py
     -> <model>_2_atom_mapping.xlsx
 step3_carbon_flow.py
-    -> <model>_3_carbon_flow_Enumeration.xlsx
+    -> <model>_3_carbon_flow.xlsx
 ```
 
 ## 1. Install Python environments
@@ -156,7 +156,7 @@ It does not estimate quantitative source fractions or experimental isotope abund
 Enumeration reads both normal and optional AI-reviewed step-2 mappings for models
 in the selected plan, using the same ordered carbon sources for both versions.
 It never calls mappers or changes input/mapping workbooks. Each
-`<model>_3_carbon_flow_Enumeration.xlsx` contains only `Carbon_Flow_R1` onward and `Summary`.
+`<model>_3_carbon_flow.xlsx` contains only `Carbon_Flow_R1` onward and `Summary`.
 The default maximum is 10 rounds, with earlier stopping on convergence.
 
 `MAX_EXCEL_SIZE_MB = 50` applies separately to each output. Generated rows are staged in temporary disk storage rather than retained
@@ -177,8 +177,12 @@ exceed the limit before rejection. Rebuilding sorted candidate files costs disk
 space and I/O. Label states and their indexes are still needed in memory; this is
 not full external-memory propagation, and independent memory safety checks remain.
 
-No aggregate Summary workbook is generated. Enumeration retains its per-file
-Summary for manual plotting or fitting. The run manifest is `carbon_flow_run.json`.
+Step 3 also writes `carbon_flow_summary.xlsx` in its output directory, copying
+one Summary sheet per saved Enumeration workbook, including AI-reviewed versions.
+It collects existing files in that directory, not nested cases; older saved results
+may be included. Sheet names use the model name, `_AI` for reviewed mappings,
+and are shortened with numeric suffixes when needed for Excel's 31-character limit.
+No fitting or recalculation is performed. The run manifest is `carbon_flow_run.json`.
 Inspect its current status and saved rounds rather than trusting an older output file.
 
 Propagation checks available Linux/WSL memory during enumeration, state merging

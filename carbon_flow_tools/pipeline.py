@@ -241,14 +241,16 @@ def final_mapping_table(reactions, selection):
     )
 
 
-def summarize_sources(table, sources, carbon_ids, number, previous_counts):
-    """Return one row per round, with separate columns for each source."""
+def summarize_sources(table, sources, carbon_ids, number, previous_counts, exclusive_metabolites=None):
+    """Summarize sources and exclusivity across all recorded states of each product."""
     source_ids = {name: set() for name, _, _ in sources}
     mixed_ids = set()
+    production_labels = {}
     records = (table[["Production", "CarbonLabels"]].drop_duplicates().itertuples(index=False, name=None)
                if isinstance(table, pd.DataFrame) else table)
     for production, carbon_labels in records:
         labels = set(carbon_labels.split(","))
+        production_labels.setdefault(production, set()).update(labels)
         matched_sources = 0
         for name, _, source_labels in sources:
             if labels & source_labels:
@@ -272,6 +274,16 @@ def summarize_sources(table, sources, carbon_ids, number, previous_counts):
         )
     if len(sources) > 1:
         summary["MixedSources_LabeledCarbonMetabolites"] = len(mixed_ids)
+    for name, _, source_labels in sources:
+        exclusive_ids = set()
+        for production, labels in sorted(production_labels.items()):
+            if labels and labels <= source_labels:
+                ids = carbon_ids.get(production, ())
+                exclusive_ids.update(ids)
+                if exclusive_metabolites is not None:
+                    exclusive_metabolites.extend(
+                        (number, name, identifier, production) for identifier in sorted(ids))
+        summary[f"{name}_ExclusiveSourceMetabolites"] = len(exclusive_ids)
     previous_counts.update(counts)
     return summary
 
@@ -308,7 +320,7 @@ def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None
             suffix = "_AIGenerated" if mapping_file.stem.endswith("_AIGenerated") else ""
             tasks.append((
                 name, job, rounds, mapping_file,
-                output_dir / f"{name}_3_carbon_flow_Enumeration{suffix}.xlsx",
+                output_dir / f"{name}_3_carbon_flow{suffix}.xlsx",
             ))
     if len({task[-1] for task in tasks}) != len(tasks):
         raise ValueError("Mapping workbooks would overwrite the same carbon-flow output.")
@@ -344,9 +356,55 @@ def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None
                     status["stop_reason"] = "batch_interrupted"
             saved.append(status)
         write_carbon_run_report(output_dir, tasks, saved, str(error))
+        try:
+            collect_carbon_summaries(output_dir)
+        except Exception as summary_error:
+            print("Summary collection failed: {}".format(summary_error), flush=True)
         raise
     write_carbon_run_report(output_dir, tasks, saved)
+    collect_carbon_summaries(output_dir)
     return saved
+
+
+
+def collect_carbon_summaries(output_dir):
+    """Copy existing Enumeration summaries without loading carbon-flow records."""
+    output_dir = Path(output_dir)
+    sources = sorted(output_dir.glob("*_3_carbon_flow*.xlsx"))
+    sources = [path for path in sources if path.name.endswith((
+        "_3_carbon_flow.xlsx",
+        "_3_carbon_flow_AIGenerated.xlsx",
+    )) and not path.name.startswith("~$")]
+    if not sources:
+        return
+    output = output_dir / "carbon_flow_summary.xlsx"
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+    used_names = set()
+    try:
+        for source in sources:
+            model, version = source.stem.rsplit("_3_carbon_flow", 1)
+            model = model.replace("[", "_").replace("]", "_")
+            suffix = "_AI" if version else ""
+            name = model[:31 - len(suffix)] + suffix
+            number = 1
+            while name.lower() in used_names:
+                number += 1
+                tail = suffix + "_" + str(number)
+                name = model[:31 - len(tail)] + tail
+            used_names.add(name.lower())
+            original = load_workbook(source, read_only=True)
+            try:
+                sheet = workbook.create_sheet(name)
+                for row in original["Summary"].iter_rows(values_only=True):
+                    sheet.append(row)
+            finally:
+                original.close()
+        clear_formatting(workbook)
+        save_output(workbook, output)
+    finally:
+        workbook.close()
+    print("Summary workbook: {}".format(output), flush=True)
 
 
 def trace_with_status(strain, job, rounds, mapping_file, output):
@@ -507,7 +565,7 @@ def run_analyses(
     if any(
         (output_dir / filename).resolve() in input_paths
         for name in jobs
-        for filename in (f"{name}_2_atom_mapping.xlsx", f"{name}_3_carbon_flow_Enumeration.xlsx")
+        for filename in (f"{name}_2_atom_mapping.xlsx", f"{name}_3_carbon_flow.xlsx")
     ):
         raise ValueError("Output cannot overwrite any input workbook.")
     if stage != "map":
@@ -667,7 +725,7 @@ def finish_analysis(
         metabolites,
         rounds,
         workbook,
-        output_dir / f"{strain}_3_carbon_flow_Enumeration.xlsx",
+        output_dir / f"{strain}_3_carbon_flow.xlsx",
     )
 
 
@@ -701,7 +759,15 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
     )
     try:
         for number, _, added, converged in iterator:
-            row = summarize_sources(store.source_records(), sources, carbon_ids, number, previous_counts)
+            exclusive_metabolites = [] if job.get("export_exclusive_source_metabolites", False) else None
+            row = summarize_sources(store.source_records(), sources, carbon_ids, number,
+                                    previous_counts, exclusive_metabolites)
+            # Each published round is provisional final; a rejected round leaves the old file intact.
+            if summary:
+                for key in list(summary[-1]):
+                    if key.endswith("_ExclusiveSourceMetabolites"):
+                        del summary[-1][key]
+            store.exclusive_metabolites = exclusive_metabolites
             row.update(Method="Enumeration", InorganicCarbonRecycling=job.get("allow_inorganic_carbon_recycling", False))
             summary.append(row)
             store.complete_round()

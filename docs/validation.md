@@ -1,3 +1,65 @@
+## Exclusive-source counts in the final saved round (2026-10-17)
+
+Step 3 adds `<source>_ExclusiveSourceMetabolites` only to the last saved Summary
+row. It tests the union of all labels recorded for each product in that round,
+not individual ProductionIDs. A product with separate pure-source states from
+different sources is excluded. Counts retain the existing mapped MetaboliteID
+and compartment conventions. Optional `Exclusive_Source_Metabolites` output is
+disabled by default and participates in the same candidate-workbook size checks.
+No atom mapping or propagation rule was changed.
+
+Validation passed: four focused exclusivity tests, including alternative sources
+appearing in later rounds, normal/AI copies, the default-off list, and preservation
+of the previous round's counts/list after rejection; batched-output, output-limit
+and Summary-collection unit tests; script-settings, stage-handoff and scientific
+carbon-tracing regression programs. Existing Summary values remain unchanged.
+
+A read-only check of two existing ordinary-mapping workbooks at round 10 gave:
+
+| Model | Glucose-exclusive metabolites | Isoprenol-exclusive metabolites |
+|---|---:|---:|
+| Yarrowia_lipolytica_IUPD | 161 | 19 |
+| Escherichia_coli_IUPD | 216 | 10 |
+
+All previous comparable Summary fields matched. These counts concern observed
+labels in the saved round; they are not quantitative source contributions or
+proof of complete carbon origin. The check did not rewrite these workbooks or
+rerun mappers/propagation. Local validation inputs/results are recorded under
+`data/validation/exclusive_sources/`. Other full model outputs were not rechecked.
+
+## Carbon-flow filenames without a method suffix (2026-10-17)
+
+Step 3 now writes `<model>_3_carbon_flow.xlsx` and
+`<model>_3_carbon_flow_AIGenerated.xlsx`. Summary collection reads these exact
+suffixes and continues to keep ordinary/AI versions separate. The run report
+records the resulting paths; its method metadata and the propagation algorithm
+remain unchanged. An old method-suffixed file is not collected as a duplicate.
+
+Validation passed: 22 Summary/output/memory unit tests; stage-handoff,
+analysis-plan, script-setting, consensus and parallel-propagation regressions;
+19 AI-review helper tests; and installed/maintained skill metadata validation.
+No real model or mapper computation was rerun for this naming-only change.
+
+## Restored Summary collection (2026-10-17)
+
+Step 3 again rebuilds `carbon_flow_summary.xlsx` in its output directory, with
+one copied Summary table per existing Enumeration workbook, including AI-reviewed
+versions. It reads no flow records, preserves source files, handles long/colliding
+sheet names and uses plain Calibri formatting. Earlier saved files are included;
+`carbon_flow_run.json` alone establishes current-run completion status. A failed
+collection preserves the preceding aggregate, and propagation errors are not
+masked by a collection error. No fitting or aggregate statistics were added.
+
+Validation passed in the existing tracing environment:
+
+- 22 unit tests covering Summary collection, output limits, batched writes and
+  memory protection, including incomplete-round rejection and saved-round copies.
+- Stage-handoff, analysis-plan, parallel-propagation and script-setting regressions.
+  The stage check compares each ordinary/AI Summary copy with its source table.
+- No real mapper or full model propagation was rerun. The current development
+  results directory has step-1 inputs only; a production aggregate will be created
+  when saved step-3 workbooks are available.
+
 ## Simplified step-3 analysis (2026-10-16)
 
 Step 3 now runs label-state Enumeration only. The experimental source-contribution
@@ -6,7 +68,8 @@ were removed. The pre-removal code snapshot is commit `fefa1f9`; it records the
 unfinished symmetry experiment and its unresolved regression failure.
 Historical result files are preserved, but are not current validated outputs.
 The original/AI mapping inputs, propagation rules, size/memory guards and
-per-workbook Summary remain in use. No aggregate Summary workbook is generated.
+per-workbook Summary remain in use. Summary collection was subsequently restored
+as described below.
 
 
 Removal checks passed in the existing tracing environment:
