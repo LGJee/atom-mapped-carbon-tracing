@@ -61,7 +61,7 @@ class DiscoveryTests(unittest.TestCase):
         )
         self.manual = self.root / "manual.csv"
         self.manual.write_text(
-            "Model,MetaboliteID,MetaboliteName,SMILES\n", encoding="utf-8"
+            "Species,MetaboliteName,SMILES\n", encoding="utf-8"
         )
 
     def tearDown(self):
@@ -128,7 +128,7 @@ class DiscoveryTests(unittest.TestCase):
         self.assertIn("Conflicting", loaded.iloc[0].StructureStatus)
         self.assertEqual(len(json.loads(loaded.iloc[0].StructureCandidates)), 2)
         self.manual.write_text(
-            "Model,MetaboliteID,MetaboliteName,SMILES\nExample,m1,,OCC\n"
+            "Species,MetaboliteName,SMILES\nExample,ethanol,OCC\n"
         )
         loaded = complete_smiles(self.table, "Example", self.options())
         self.assertEqual(loaded.iloc[0].SMILES_Manual, "OCC")

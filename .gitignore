@@ -6,6 +6,7 @@ __pycache__/
 .venv/
 data/*
 !data/manual_smiles.csv
+!data/manual_atom_mappings.csv
 results/
 analyses/**/analysis_plan.json
 *.tmp.xlsx

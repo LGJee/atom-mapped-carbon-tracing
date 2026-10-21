@@ -446,3 +446,118 @@ inputs, the default analysis plan, the reference preparation script and existing
 root-level workbooks were not rewritten. Logs are kept locally under
 `data/validation/post_save_size_50mb/`. No real mapper or full research-model
 propagation was rerun, and no GitHub push was performed.
+
+
+## Combined Enumeration / size-1 EMU interface (2026-10-18)
+
+Restored the fefa1f9 positional source-balance core, with original-coefficient
+support for saved partial carbon rules and sparse mapper carbon views. Both
+methods now share one output per model/mapping version. Default detail export is
+R1-R3; later rounds still update Summary. Unknown is not redistributed, and
+formulas alone do not create positional links.
+
+Isolated validation reselected 2,641 reactions across six ordinary model
+workbooks, preserved all source/raw data, and ran one Enumeration round plus
+source balances for each model. Detailed counts, residuals and same-input
+historical/restored squalene comparisons are recorded in the local validation
+report, results/results_by_AI/combined_stage3_validation_20261018/report.md.
+These local outputs are not a new published benchmark. Full real AI versions
+and ten-round model runs were not repeated. Synthetic regressions cover both
+mapping versions, five-round detail omission, fractional transfer amounts,
+first-round rollback, malformed Summary collection and input preservation.
+
+
+## Withdrawal of additional fallback rules (2026-10-18)
+
+Automatic NoCarbon classification, FAD/FMN-family skeleton recovery and the IspG
+carbon template were withdrawn after the combined-method validation above. Its
+local six-model outputs are historical comparisons with those additions enabled,
+not results from the current rule set. Existing workbooks were not modified.
+
+After withdrawal, all 13 carbon-rule tests passed, including explicit checks that
+formula-only carbon-free reactions remain unresolved and withdrawn flavin/IspG
+fallbacks are not generated. Consensus selection, stage handoff and both combined
+method tests also passed. These checks use isolated small fixtures; six-model
+research outputs and mapper predictions were not regenerated.
+
+
+## Nonempty mapper predictions (2026-10-18)
+
+All 14 carbon-rule tests passed. The additional export regression checks each
+mapper as the only nonempty source and three conflicting unusable candidates.
+Both selection and final sheets retain the chosen prediction, original tool
+records remain unchanged, CarbonRules is not called, and unresolved candidates
+remain excluded from propagation. Consensus and stage-handoff regressions also
+passed. No existing research workbook or real mapper was rerun.
+
+
+## Reduced mapper inputs and maintained manual records (2026-10-18)
+
+Six focused checks passed for forward/reverse reduced inputs, original equation
+and flux preservation, nonempty retained sides, invalid/missing metabolite data,
+noncarbon retained candidates, workbook reload, false Complete rejection, source
+balances with original stoichiometry, and manual priority/amount/atom-budget checks.
+A matching manual record overrides software while leaving raw predictions intact;
+the saved partial remains usable without the external CSV.
+
+Fourteen project regression modules passed. Twenty-three AI-review checks and seven
+structure-handoff checks passed, including reduced-context extraction, accepted
+partial retention, rejected/unresolved disabling and complete-map guards. Source
+identity discovery and native mapper predictions were not tested against new real
+reactions in this change; external mapper calls in fixtures use synthetic results.
+
+A separate read-only-input IspG check used existing iML1515 annotations and the
+user-designated manual CSV record. Its five carbon pairs reload successfully with
+unchanged original equation/flux. Only an isolated validation workbook was written
+under data/validation/reduced_mapper_inputs_20261018/ispg/. No research-result
+workbook, original test project, or GitHub repository was replaced.
+
+
+## Full species directories and manual structures (2026-10-18)
+
+Model directories now use Escherichia_coli, Saccharomyces_cerevisiae and
+Yarrowia_lipolytica. All nine original model/annotation files retain their
+pre-migration SHA-256 hashes. The manual SMILES table uses exactly Species,
+MetaboliteName and SMILES; 39 condition/ID records were consolidated into eight
+unique species/name records, with the original table preserved locally under
+data/validation/species_layout_20261018/.
+
+Sixteen project regression modules passed after the plan fixture explicitly
+selected Enumeration for its Enumeration-only sheet assertions. Five focused
+species/name tests cover reuse across conditions and compartments, source-model
+identity, cross-species isolation, conflicting structures, formula/charge guards
+and schema validation. Eight AI structure-handoff tests and 23 workbook-review
+tests passed. All three affected skills passed their structural validation and
+were synchronized with their maintained local copies; no skills were published.
+
+The results directory contained no research workbooks at final verification, so
+the six existing real-input comparisons could not be completed. No step-1 solve,
+real mapper call or research propagation was rerun; original input hashes in the
+analysis plan were retained rather than fabricated or regenerated.
+
+
+## Three-column manual mappings and separate AI records (2026-10-18)
+
+The manual mapping CSV now contains Species, ReactionID, MappedReactionSMILES.
+The original detailed file is backed up under
+data/validation/manual_mapping_schema_20261018/. Its user-designated IspG
+five-carbon pairs were replayed and confirmed unchanged. Species-matched manual
+maps reach both selection and final sheets without reserializing their supplied
+SMILES (except automatic reversal for negative selected flux). Reduced maps
+retain derived positional/amount records and require review.
+
+All 17 isolated project regression modules passed. Six new manual-table tests
+cover complete maps, partial copy/fractional amounts, species/provenance matching,
+reverse flux, invalid/ambiguous data and standalone reload. Nine AI-structure
+handoff tests and 24 workbook-review/index tests passed, including source merging,
+accepted-only indexing and unchanged manual files. The existing 11 immutable
+review archives supplied 51 historical accepted proposals, consolidated into 19
+species/reaction/mapped-SMILES rows in ai_atom_mappings.csv. These are indexed
+historical records, not new predictions or renewed scientific validation.
+There were no historical structure archives to populate ai_smiles.csv; its header
+is ready for future discoveries. AI structures only fill missing input structures
+and retain review flags; AI mapping indexes do not automatically override step 2.
+
+No real mapper, preparation solve, six-model propagation or external lookup was
+run. Existing research workbooks were not regenerated. Only local skills and their
+maintained copies were synchronized; no repository was pushed.

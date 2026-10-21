@@ -17,6 +17,7 @@ REFRESH_MAPPINGS = False
 # Structure completion: manual overrides always apply; False disables online lookup.
 COMPLETE_MISSING_SMILES = True
 MANUAL_SMILES_FILE = "data/manual_smiles.csv"
+MANUAL_ATOM_MAPPINGS_FILE = "data/manual_atom_mappings.csv"
 STRUCTURE_CACHE_FILE = "data/structure_cache.json"
 STRUCTURE_TIMEOUT = 20  # Seconds per PubChem request.
 STRUCTURE_MIN_INTERVAL = 0.25  # At most four sequential requests per second.
@@ -43,6 +44,7 @@ def settings():
     return dict(
         analysis_plan="data/analysis_plan.json",
         input_dir=INPUT_DIR,
+        manual_mapping_file=MANUAL_ATOM_MAPPINGS_FILE,
         structure_options=dict(
             lookup=COMPLETE_MISSING_SMILES,
             manual_file=MANUAL_SMILES_FILE,

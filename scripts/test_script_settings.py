@@ -108,7 +108,9 @@ def run():
         "IUPD": ["D-glucose[e]", "isoprenol[e]"],
     }
     assert "mappers" not in settings and "batch_size" not in settings
-    assert "analysis_methods" not in settings
+    assert settings["analysis_methods"] == ["Enumeration", "EMU"]
+    assert settings["export_detail_rounds"] == 3
+    assert settings["emu_allow_inorganic_carbon_recycling"] is True
     assert "models" not in settings
     with tempfile.TemporaryDirectory() as temporary:
         folder = Path(temporary)

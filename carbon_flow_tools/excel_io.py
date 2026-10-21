@@ -11,7 +11,7 @@ def input_sheets(excel):
     """Find the original input tables by their headers, independent of sheet names."""
     reaction_sheets, metabolite_sheets = [], []
     for sheet in excel.sheet_names:
-        if sheet in ("Mapping_Selection", "Final_Mapping", "Mapping_Info"):
+        if sheet in ("Mapping_Selection", "Final_Mapping", "Mapping_Info", "Partial_Mapping"):
             continue
         columns = set(pd.read_excel(excel, sheet_name=sheet, nrows=0).columns)
         if {"ReactionID", "ReactionName", "Flux", "Equation"} <= columns:
@@ -90,7 +90,12 @@ def write_sheet(
     for index, row in enumerate(table.itertuples(index=False, name=None)):
         if memory_guard and index % 1024 == 0:
             memory_guard.check("writing " + name)
-        worksheet.append([None if pd.isna(value) else value for value in row])
+        values = [None if pd.isna(value) else value for value in row]
+        worksheet.append(values)
+        for column, value in enumerate(values, 1):
+            if isinstance(value, str) and value.startswith("="):
+                # An input boundary equation beginning with => is text, not an Excel formula.
+                worksheet.cell(worksheet.max_row, column).data_type = "s"
     format_columns(worksheet)
 
 

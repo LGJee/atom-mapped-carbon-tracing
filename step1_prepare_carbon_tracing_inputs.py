@@ -31,7 +31,7 @@ def prepare_models():
     # 1. Saccharomyces_cerevisiae_non_IUPD
     # ================================================================
     # Load the model.
-    model_file = "data/yeast9/yeast-GEM.mat"
+    model_file = "data/Saccharomyces_cerevisiae/yeast-GEM.mat"
     model_non_iupd = read_model(ROOT / model_file, SOLVER, "model")
 
     # Carbon sources (label introduction order).
@@ -71,7 +71,7 @@ def prepare_models():
     # 2. Saccharomyces_cerevisiae_IUPD
     # ================================================================
     # Load the model.
-    model_file = "data/yeast9/yeast-GEM.mat"
+    model_file = "data/Saccharomyces_cerevisiae/yeast-GEM.mat"
     # Load independently of the non-IUPD production constraints.
     model_iupd = read_model(ROOT / model_file, SOLVER, "model")
 
@@ -156,7 +156,7 @@ def prepare_models():
     # 3. Escherichia_coli_non_IUPD
     # ================================================================
     # Load the model.
-    model_file = "data/ecoli/iML1515.mat"
+    model_file = "data/Escherichia_coli/iML1515.mat"
     model_non_iupd = read_model(ROOT / model_file, SOLVER, "iML1515")
 
     # Carbon sources (label introduction order).
@@ -218,7 +218,7 @@ def prepare_models():
     # 4. Escherichia_coli_IUPD
     # ================================================================
     # Load the model.
-    model_file = "data/ecoli/iML1515.mat"
+    model_file = "data/Escherichia_coli/iML1515.mat"
     # Load independently of the non-IUPD production constraints.
     model_iupd = read_model(ROOT / model_file, SOLVER, "iML1515")
 
@@ -320,7 +320,7 @@ def prepare_models():
     # 5. Yarrowia_lipolytica_non_IUPD
     # ================================================================
     # Load the model.
-    model_file = "data/yarrowia/iYali5.mat"
+    model_file = "data/Yarrowia_lipolytica/iYali5.mat"
     model_non_iupd = read_model(ROOT / model_file, SOLVER, "model")
 
     # Carbon sources (label introduction order).
@@ -336,12 +336,12 @@ def prepare_models():
     close_other_carbon_uptake(model_non_iupd, "1714")
 
     # Growth constraint: calculate non-IUPD maximum, then fix 50%.
-    model_non_iupd.objective = "xBIOMASS"  # Biomass growth.
+    model_non_iupd.objective = "2111"  # Growth: biomass output.
     growth_non_iupd = model_non_iupd.optimize(objective_sense="maximize")
     check_solution(model_non_iupd, growth_non_iupd)
     max_growth_yarrowia = growth_non_iupd.objective_value
     fixed_growth_yarrowia = 0.5 * max_growth_yarrowia
-    biomass = model_non_iupd.reactions.get_by_id("xBIOMASS")
+    biomass = model_non_iupd.reactions.get_by_id("2111")
     biomass.lower_bound = fixed_growth_yarrowia
     biomass.upper_bound = fixed_growth_yarrowia
     model_non_iupd.reactions.get_by_id("1714").lower_bound = 2 * glucose_non_iupd
@@ -363,7 +363,7 @@ def prepare_models():
     # 6. Yarrowia_lipolytica_IUPD
     # ================================================================
     # Load the model.
-    model_file = "data/yarrowia/iYali5.mat"
+    model_file = "data/Yarrowia_lipolytica/iYali5.mat"
     # Load independently of the non-IUPD production constraints.
     model_iupd = read_model(ROOT / model_file, SOLVER, "model")
 
@@ -431,7 +431,7 @@ def prepare_models():
     )
 
     # Growth constraint: use the paired non-IUPD half-maximum rate.
-    biomass = model_iupd.reactions.get_by_id("xBIOMASS")
+    biomass = model_iupd.reactions.get_by_id("2111")
     biomass.lower_bound = fixed_growth_yarrowia
     biomass.upper_bound = fixed_growth_yarrowia
 

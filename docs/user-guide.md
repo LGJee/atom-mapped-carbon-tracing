@@ -102,7 +102,7 @@ export `SMILES_Model`; the legacy `SMILES_Yeast9` column remains supported.
 Step 1 records the source model automatically when `read_model()` loads it;
 the generated analysis plan carries this provenance alongside the Excel input. Step 1 does not
 retrieve SMILES or require a second annotation-file setting. Put each original
-model and its companion files in a separate `data/<model>/` directory. Do not mix
+model and its companion files in a separate `data/<Full_species_name>/` directory. Do not mix
 unrelated model versions in that folder.
 
 Step 2 verifies the recorded source SHA256 and examines that file plus JSON/YAML
@@ -140,7 +140,11 @@ Names must include compartments, such as `D-glucose[c]`, and match the names in
 reaction equations. Equations use `=>`, `->` or `<=>`, terms separated by ` + `,
 and positive integer stoichiometry, e.g. `A[c] + 2 B[c] => C[c]`.
 Flux sign determines the active direction. Fractional reactions and missing
-structures are recorded as unmappable.
+structures cannot form complete mapper inputs. After trying usable mapper carbon
+correspondences, step 2 may recover conservative partial skeleton transfers;
+other carbon remains unresolved. Generic biomass/macromolecule pools are not
+filled by PubChem name search with an arbitrary small-molecule representative.
+See [carbon mapping rules and evidence](carbon-mapping-rules.md).
 
 [step1_prepare_carbon_tracing_inputs.py](../step1_prepare_carbon_tracing_inputs.py)
 contains the model, medium, knockout, objective and carbon-source settings.
@@ -265,7 +269,7 @@ the plan for the supplied installation test.
 
 All three stage scripts run fixed code without LLM or skill calls. A future
 AI orchestrator is expected to include reaction review by default after step 2:
-the review skill processes `ReviewRequired=TRUE`, delegates biochemical mapping
+the review skill processes flagged and blank-mapping rows (except explicit NoCarbon/Boundary), delegates biochemical mapping
 to Enzymatic Atom Mapping Skill, and writes `_AIGenerated` copies. Step 3 then propagates both normal and reviewed copies independently. Failed
 reviews retain their original mappings and review flags. Neither deploying the
 environments nor running step 2 alone executes this review.
@@ -329,7 +333,8 @@ Each propagation batch writes `carbon_flow_run.json` in its output folder.
 It records each mapping workbook's model name, mapping path/hash, requested/saved
 rounds, output path and stop reason, including both normal and AI versions. A file-size stop
 does not imply convergence; zero saved rounds means any existing workbook is
-from an earlier run. Always check the command's exit status as well: an input
+from an earlier run in a combined task. EMU-only tasks save independently.
+Always check the command's exit status as well: an input
 validation error can occur before a new report is written. See
 [report fields](interfaces.md#propagation-status).
 
@@ -364,8 +369,11 @@ External review may supply `<model>_2_atom_mapping_AIGenerated.xlsx` copies.
 Keep the originals, raw tool predictions, copied inputs and hidden Mapping_Info
 with its SourceInputSHA256. Replace validated correspondences in Final_Mapping,
 set AIGenerated to TRUE only for successful replacements, and leave
-Mapping_Selection unchanged as the original tool-selection record. Append successful formerly
-unmapped reactions to Final_Mapping using its existing schema. AI provenance
+Mapping_Selection unchanged as the original tool-selection record. Every reaction
+now has a final row; set MappingCoverage=Complete for full accepted replacements.
+On older files, append successful formerly missing final rows. Confirmed rules
+remain Partial and AIGenerated=FALSE. Scientifically rejected/unresolved rules
+must become Unresolved and must not propagate; keep Partial_Mapping as audit context. AI provenance
 alone does not clear ReviewRequired or establish biochemical correctness.
 
 ```bash
@@ -396,9 +404,15 @@ the preceding complete output if publication fails and cleans its temporary
 staging directory. No permanent intermediate result directories are created.
 
 The step 2 workbook contains copied input tables, three raw tool sheets,
-`Mapping_Selection`, `Final_Mapping` and hidden `Mapping_Info` diagnostics.
-It is unchanged by step 3. The Enumeration workbook contains only `Summary` and
-`Carbon_Flow_Rn` sheets by default, with one sheet per complete round and no pagination.
+`Mapping_Selection`, `Final_Mapping`, optional `Partial_Mapping` and hidden `Mapping_Info` diagnostics.
+It is unchanged by step 3. The combined step-3 workbook contains `Summary`,
+`Carbon_Flow_R1` through R3 by default, `EMU_Metabolites`, and `EMU_BoundaryInputs`.
+`EXPORT_DETAIL_ROUNDS=3` limits detail export, not computation: later complete
+rounds still update Summary. Set it to 0 for no detail sheets, or to ROUNDS for
+all requested rounds. There is no pagination. Select methods with
+`ANALYSIS_METHODS=["Enumeration", "EMU"]`; each can also run alone.
+EMU uses the same ordinary/AI mapping version independently of Enumeration.
+See [source-balance assumptions](source-contributions.md).
 Input structures, mapper provenance and review flags remain in step 2.
 `AIGenerated` appears only in `Final_Mapping` and defaults to FALSE.
 
@@ -479,11 +493,14 @@ the limit stops further enumeration and discards the candidate round. A complete
 round is published atomically only below the limit. The saved output and its
 Summary therefore contain complete rounds only. Other models continue normally.
 
-There is no pagination or truncation. If the current round exceeds 1,048,575
+There is no pagination or truncation. If an exported detail round exceeds 1,048,575
 data rows, stop with `row_limit` and retain the preceding complete round. File
 size uses `file_size_limit`; neither is convergence. If the first round is
-rejected, zero completed rounds and a null output path identify that no current
-result was delivered. Existing historical files are not deleted or relabeled.
+rejected, zero Enumeration rounds are reported. For a combined run no new output
+is published until a complete Enumeration round is saved. EMU can be exported
+independently by selecting only EMU; emu_solved/emu_completed distinguish solving
+from delivery. Existing historical files are not
+deleted or relabeled.
 
 Size checks are bounded by batches, not instantaneous per-byte checks. A temporary
 candidate may exceed the limit before rejection; the final complete output stays
@@ -564,6 +581,38 @@ The custom growth example is
 `.envs/preparation/bin/python`; it produces an input workbook and the same plan.
 
 For an isolated output destination, use `--output-dir <folder>`. Step 3 performs
-Enumeration only; it reports possible label states and coverage, not quantitative
-source fractions. Previously generated experimental results remain historical
-files and are not read or regenerated by this entry.
+Enumeration and/or size-1 EMU-inspired balances, as selected at the script top.
+Enumeration reports possible states and coverage. EMU reports model-dependent
+mean source fractions, retains Unknown and does not simulate full isotopomer
+abundances. It uses original reaction turnover and saved partial-transfer amounts;
+formula-only structures never create invented positional links.
+
+
+### Maintained manual structures and carbon correspondences
+
+Use data/manual_smiles.csv for verified metabolite structures (highest structural
+priority), and data/manual_atom_mappings.csv for verified partial carbon
+correspondences (highest mapping priority). A Manual result is still a partial
+map of the original reaction; its remaining participants are not invented.
+Keep source evidence in the mapping CSV and review atom indices if SMILES change.
+See [the rule contract](carbon-mapping-rules.md#user-maintained-manual-data-has-priority).
+Missing structures may be omitted from mapper-only inputs; the original equations
+and fluxes remain intact. Optional AI review assesses these provisional partial
+results; ordinary script execution does not require AI.
+
+
+Manual SMILES use exactly three columns: Species, MetaboliteName, SMILES. Species
+is the full underscore-separated binomial used by result prefixes, without the
+non_IUPD/IUPD condition suffix. For example Escherichia_coli shares one isoprenol
+record across conditions and compartments. Terminal compartment suffixes are
+ignored for name matching; names are otherwise exact. Local model metabolite IDs
+are not manual-table keys. Conflicting structures for one species/name, or an
+explicit model formula/charge incompatible with an override, raise an error.
+The original detailed workbook IDs and review archives remain available for audit.
+
+
+AI-assisted discoveries are recorded separately in data/ai_smiles.csv and
+data/ai_atom_mappings.csv, each with a Source column for evidence URLs and archive
+references. Manual structures/mappings keep priority. Saved AI structures only fill
+missing input structures and require review; the AI mapping CSV is a reviewable
+index, not an automatic override. See [manual and AI records](carbon-mapping-rules.md#user-maintained-manual-data-has-priority).

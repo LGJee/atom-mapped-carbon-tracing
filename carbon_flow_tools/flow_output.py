@@ -20,9 +20,12 @@ class WorksheetRowLimitError(RuntimeError):
 class FlowOutput:
     MAX_DATA_ROWS = 1048575
 
-    def __init__(self, output, max_bytes, batch_rows, summaries, memory_guard):
+    def __init__(self, output, max_bytes, batch_rows, summaries, memory_guard, detail_rounds=None, extra_sheets=None):
         if type(batch_rows) is not int or batch_rows < 1:
             raise ValueError("Output batch rows must be a positive integer.")
+        if detail_rounds is not None and (type(detail_rounds) is not int or detail_rounds < 0):
+            raise ValueError("Detail rounds must be a nonnegative integer or None")
+        self.detail_rounds, self.extra_sheets = detail_rounds, extra_sheets or {}
         self.output = Path(output)
         self.output.parent.mkdir(parents=True, exist_ok=True)
         self.directory = tempfile.TemporaryDirectory(prefix=".carbon-flow-", dir=str(self.output.parent))
@@ -43,6 +46,9 @@ class FlowOutput:
         self.number, self.phase, self.layer, self.row_count = 0, 0, 0, 0
 
     def start_round(self, number):
+        if self.detail_rounds is not None and number > self.detail_rounds:
+            self.db.execute("DELETE FROM records WHERE round_no > ?", (self.detail_rounds,))
+            self.db.commit()
         self.number, self.phase, self.layer, self.row_count = number, 0, 0, 0
 
     def start_layer(self, phase=0):
@@ -64,9 +70,9 @@ class FlowOutput:
         self.buffer.clear()
         inserted = self.db.total_changes - before
         self.row_count += inserted
-        if self.row_count > self.MAX_DATA_ROWS:
+        if (self.detail_rounds is None or self.number <= self.detail_rounds) and self.row_count > self.MAX_DATA_ROWS:
             raise WorksheetRowLimitError("Round {} exceeds {} worksheet data rows; incomplete round discarded.".format(self.number, self.MAX_DATA_ROWS))
-        if inserted:
+        if inserted and (self.detail_rounds is None or self.number <= self.detail_rounds):
             self.checkpoint()
 
     def merge_states(self, states, first_steps, terminal_names, smiles):
@@ -99,7 +105,8 @@ class FlowOutput:
             sheet.append(list(summary.columns))
             for row in summary.itertuples(index=False, name=None):
                 sheet.append(list(row))
-            for number in range(1, self.number + 1):
+            last_detail = self.number if self.detail_rounds is None else min(self.number, self.detail_rounds)
+            for number in range(1, last_detail + 1):
                 sheet = workbook.create_sheet("Carbon_Flow_R{}".format(number))
                 format_columns(sheet, COLUMNS)
                 sheet.append(COLUMNS)
@@ -109,6 +116,12 @@ class FlowOutput:
                     if self.memory_guard and index % 1024 == 0:
                         self.memory_guard.check("streaming staged Excel rows")
                     sheet.append(row)
+            for name, table in self.extra_sheets.items():
+                sheet = workbook.create_sheet(name)
+                format_columns(sheet, list(table.columns))
+                sheet.append(list(table.columns))
+                for row in table.itertuples(index=False, name=None):
+                    sheet.append([None if pd.isna(value) else value for value in row])
             if self.exclusive_metabolites is not None:
                 columns = ["Round", "CarbonSource", "MetaboliteID", "MetaboliteName"]
                 sheet = workbook.create_sheet("Exclusive_Source_Metabolites")

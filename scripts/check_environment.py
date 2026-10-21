@@ -45,7 +45,7 @@ def main():
     from rdkit import Chem
 
     if args.backend == "localmapper":
-        for package in ("pandas", "openpyxl"):
+        for package in ("pandas", "openpyxl", "scipy.sparse.linalg"):
             importlib.import_module(package)
         from openpyxl import LXML
 
@@ -66,6 +66,7 @@ def main():
             "pandas",
             "openpyxl",
             "lxml",
+            "scipy",
         )
     elif args.backend == "rxnmapper":
         from carbon_flow_tools.mappers import rxnmapper_adapter as adapter

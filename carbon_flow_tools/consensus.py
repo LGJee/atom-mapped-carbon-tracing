@@ -1,6 +1,6 @@
-"""Compare candidate correspondences and select one complete original mapping."""
+"""Select mapper correspondences; always retain a nonempty generated candidate."""
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from copy import deepcopy
 
 import pandas as pd
@@ -8,7 +8,7 @@ from rdkit import Chem
 
 from .atom_helpers import mapped_components
 from .mapper_runner import mapping_error
-from .reactions import clean
+from .reactions import clean, parse_side, split_equation
 
 
 def mapping_signatures(reaction):
@@ -90,16 +90,7 @@ def preferred_backend(backends, predictions, index):
     """Use explicit tool priority, not a cross-tool numeric score."""
 
     def priority(backend):
-        score = predictions[backend][index].confident
-        if backend == "EnzymeMap":
-            return 0
-        if backend == "LocalMapper" and clean(score).lower() in ("true", "1", "1.0"):
-            return 1
-        if backend == "RXNMapper":
-            return 2
-        if backend == "LocalMapper":
-            return 3
-        return 4
+        return {"EnzymeMap": 0, "RXNMapper": 1, "LocalMapper": 2}.get(backend, 3)
 
     return min(
         backends,
@@ -107,8 +98,44 @@ def preferred_backend(backends, predictions, index):
     )
 
 
-def select_mappings(predictions):
-    """Select a carbon consensus; fewer than two supporters require review."""
+def carbon_candidate(reaction):
+    """Keep only unique C-to-C correspondences in an exactly aligned mapper result."""
+    view = deepcopy(reaction)
+    sides = mapped_components(view)
+    if sides is None:
+        raise ValueError("Mapper structures do not match input identity, charge or stereochemistry")
+    counts = []
+    for side in sides:
+        numbers = []
+        for component, maps in side:
+            molecule = Chem.MolFromSmiles(component.smiles)
+            numbers.extend(number for index, number in maps.items()
+                           if number and molecule.GetAtomWithIdx(index).GetAtomicNum() == 6)
+        counts.append(Counter(numbers))
+    shared = {n for n in counts[0] if counts[0][n] == counts[1][n] == 1}
+    if not shared:
+        raise ValueError("Mapper has no unique carbon-to-carbon correspondence")
+    marked = []
+    for text in reaction.mapped_smiles.split(">>"):
+        mol = Chem.MolFromSmiles(text)
+        if mol is None:
+            raise ValueError("Invalid mapper SMILES")
+        for atom in mol.GetAtoms():
+            if atom.GetAtomicNum() != 6 or atom.GetAtomMapNum() not in shared:
+                atom.SetAtomMapNum(0)
+        marked.append(Chem.MolToSmiles(mol))
+    view.mapped_smiles = ">>".join(marked)
+    view.status = "partial"
+    try:
+        mapping_signatures(view)
+        view.status = "mapped"
+    except ValueError:
+        pass
+    return view
+
+
+def select_mappings(predictions, invalid_structures=None):
+    """Prefer usable carbon consensus; retain failed candidates for review, never blank them."""
     if not predictions:
         raise ValueError("At least one mapper result is required")
     reference = next(iter(predictions.values()))
@@ -124,7 +151,15 @@ def select_mappings(predictions):
             raise ValueError(backend + " has inconsistent reaction inputs or direction")
     selected, records = [], []
     for index, base in enumerate(reference):
+        try:
+            invalid = {name: invalid_structures[name] for side in split_equation(base.equation)
+                       for _, name in parse_side(side) if name in (invalid_structures or {})}
+        except ValueError:
+            invalid = {}  # Preparation already records malformed equations for review.
+        input_error = ("Input carbon formula/structure mismatch: " + "; ".join(
+                       name + " (" + detail + ")" for name, detail in sorted(invalid.items()))) if invalid else ""
         groups, heavy_keys, valid = defaultdict(list), {}, []
+        candidates, partial_candidates, carbon_views = {}, {}, set()
         record = {
             "ReactionID": base.reaction_id,
             "ReactionName": base.reaction_name,
@@ -135,7 +170,9 @@ def select_mappings(predictions):
         for backend, reactions in predictions.items():
             reaction = reactions[index]
             error = ""
-            if reaction.is_transport:
+            if invalid:
+                error = input_error
+            elif reaction.is_transport:
                 pass
             elif reaction.status == "mapped":
                 try:
@@ -146,6 +183,23 @@ def select_mappings(predictions):
                     error = str(exc)
             else:
                 error = reaction.status
+            if not invalid and not reaction.is_transport and reaction.mapped_smiles:
+                if not error:
+                    candidates[backend] = reaction
+                else:
+                    try:
+                        view = carbon_candidate(reaction)
+                        if view.status == "mapped":
+                            carbon_key, _ = mapping_signatures(view)
+                            groups[carbon_key].append(backend)
+                            valid.append(backend)
+                            candidates[backend] = view
+                            carbon_views.add(backend)
+                        else:
+                            partial_candidates[backend] = view
+                        error += "; usable " + view.status + " carbon-only correspondence retained"
+                    except ValueError:
+                        pass
             reaction.comparison_error = error
             record[backend + "_Score"] = reaction.confident or None
             if reaction.confident is False or reaction.confident == 0:
@@ -153,7 +207,7 @@ def select_mappings(predictions):
             record[backend + "_ScoreType"] = score_type(backend, reaction)
             record[backend + "_Validation"] = (
                 "Identity transport; prediction tools were not called"
-                if reaction.is_transport
+                if reaction.is_transport and not invalid
                 else error or "Structure and carbon mapping checks passed"
             )
         final = deepcopy(base)
@@ -164,7 +218,7 @@ def select_mappings(predictions):
             False,
             "No mapping available for carbon propagation",
         )
-        if base.is_transport:
+        if base.is_transport and not invalid:
             final = deepcopy(base)
             winner = "Identity"
             reason = "Pure transport: unchanged identity and stoichiometry; use identity correspondence"
@@ -184,21 +238,56 @@ def select_mappings(predictions):
                     support
                 )
             elif len(groups) > 1:
-                reason = "Carbon mapping conflict; use documented tool priority; review required"
+                reason = "Carbon mapping conflict; selected {} by EnzymeMap > RXNMapper > LocalMapper priority; review required".format(winner)
             else:
-                reason = "Only one tool provides a usable mapping; review required"
-            final = deepcopy(predictions[winner][index])
+                reason = "Only {} provides a complete usable carbon mapping; review required".format(winner)
+            final = deepcopy(candidates[winner])
             final.status = "mapped"
-        else:
+            if winner in carbon_views:
+                review = True
+                reason += "; selected a validated carbon-only view; review required"
+        elif partial_candidates:
+            winner = preferred_backend(partial_candidates, predictions, index)
+            final = deepcopy(partial_candidates[winner])
             review = True
-            final.status = "Not selected: " + reason
+            reason = "No complete candidate; retain partial carbon correspondences from {}; EnzymeMap > RXNMapper > LocalMapper priority; review required".format(winner)
+        else:
+            generated = [name for name, rows in predictions.items() if rows[index].mapped_smiles]
+            review = True
+            if generated:
+                winner = preferred_backend(generated, predictions, index)
+                final = deepcopy(predictions[winner][index])
+                final.status = "candidate"
+                reason = (
+                    "No usable carbon correspondence passed validation; retain {} nonempty prediction by "
+                    "EnzymeMap > RXNMapper > LocalMapper priority; review required; "
+                    "excluded from propagation: {}"
+                ).format(winner, predictions[winner][index].comparison_error or input_error or "Unverified mapper result")
+            else:
+                reason = input_error or reason
+                final.status = "Not selected: " + reason
+        if final.omitted_components:
+            review = True
+            if final.status == "mapped" and final.mapped_smiles:
+                try:
+                    final = carbon_candidate(final)
+                    final.status = "partial"
+                except ValueError:
+                    final.status = "candidate"  # No usable carbon correspondence in the retained view.
+            reason += (
+                "; known-structure mapper input omits missing-SMILES participants: "
+                + "; ".join("{Side}: {Coefficient:g} {MetaboliteName}".format(**item)
+                            for item in final.omitted_components)
+                + "; partial original-reaction coverage; optional AI review must assess applicability")
         record.update(
             ValidMappers="; ".join(valid),
             SupportingMappers="; ".join(supporters),
             CarbonMappingGroups=len(groups),
             HeavyAtomAgreement=(
                 "identity"
-                if base.is_transport
+                if base.is_transport and not invalid
+                else "not comparable"
+                if carbon_views
                 else "agreement"
                 if len(set(heavy_keys.values())) == 1 and len(valid) > 1
                 else "disagreement"

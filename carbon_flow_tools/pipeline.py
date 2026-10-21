@@ -13,6 +13,7 @@ import pandas as pd
 from openpyxl import load_workbook, Workbook
 from rdkit import Chem, RDLogger
 
+from .atom_helpers import mapped_components
 from .carbon_trace import propagate_rounds, initialize_sources
 from .flow_output import FlowOutput, WorksheetRowLimitError
 from .config import configure, parallel_capacity, MemoryGuard, MemoryPressureError
@@ -25,10 +26,11 @@ from .excel_io import (
     workbook_limit,
     WorkbookSizeLimitError,
 )
+from .carbon_mapping_rules import apply_rules, apply_manual_mappings, load_partials, carbon_structure_issues, carbon_presence
 from .consensus import select_mappings
-from .consensus import mapping_signatures
+from .consensus import mapping_signatures, carbon_candidate
 from .mapper_runner import run_mapper, validate_mapper_config
-from .reactions import clean, get_smiles, prepare_reactions
+from .reactions import clean, get_smiles, prepare_reactions, parse_side, split_equation
 from .smiles_completion import complete_smiles
 
 
@@ -40,6 +42,18 @@ def carbon_metabolites(metabolites, reactions):
         if reaction.status == "mapped" and reaction.mapped_smiles
         for component in reaction.left + reaction.right
     }
+    for reaction in reactions:
+        if reaction.status == "partial" and reaction.mapped_smiles:
+            for side in mapped_components(reaction) or ():
+                for component, maps in side:
+                    molecule = Chem.MolFromSmiles(component.smiles)
+                    if any(number and molecule.GetAtomWithIdx(index).GetAtomicNum() == 6
+                           for index, number in maps.items()):
+                        mapped_names.add(component.metabolite)
+    mapped_names.update(
+        row[field] for reaction in reactions for row in reaction.partial_maps
+        for field in ("SourceMetabolite", "ProductMetabolite")
+    )
     carbon_ids, unknown_ids = defaultdict(set), set()
     for row in metabolites.drop_duplicates("MetaboliteID").itertuples(index=False):
         smiles = get_smiles(row)
@@ -218,6 +232,7 @@ def final_mapping_table(reactions, selection):
         "ReviewRequired",
         "AIGenerated",
         "MappedReactionSMILES",
+        "MappingCoverage",
         "Equation",
         "MappingDirection",
     ]
@@ -233,9 +248,10 @@ def final_mapping_table(reactions, selection):
                 "MappedReactionSMILES": r.mapped_smiles,
                 "ReviewRequired": bool(choices.loc[r.reaction_id, "ReviewRequired"]),
                 "AIGenerated": False,
+                "MappingCoverage": choices.loc[r.reaction_id].get(
+                    "MappingCoverage", "Complete" if r.status == "mapped" else "Unresolved"),
             }
             for r in reactions
-            if r.status == "mapped"
         ],
         columns=columns,
     )
@@ -299,6 +315,10 @@ def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None
     tasks = []
     inputs = set()
     for name, job in jobs.items():
+        methods = job.get("analysis_methods", ["Enumeration"])
+        if (not isinstance(methods, (list, tuple)) or not methods
+                or len(set(methods)) != len(methods) or any(m not in ("Enumeration", "EMU") for m in methods)):
+            raise ValueError("Select unique analysis methods: Enumeration, EMU")
         workbook_limit(job.get("max_excel_size_mb", 50))
         if not name or any(c in name for c in '/\\:*?"<>|') or name in (".", ".."):
             raise ValueError(f"Invalid analysis name for a file: {name}")
@@ -350,8 +370,9 @@ def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None
             if getattr(error, "run_status", {}).get("mapping_file") == str(task[3]):
                 status.update(error.run_status)
             if task[-1] in changed:
-                summary = pd.read_excel(task[-1], sheet_name="Summary", engine="openpyxl")
-                status.update(completed_rounds=int(summary.Round.max()), output_file=str(task[-1]))
+                with pd.ExcelFile(task[-1], engine="openpyxl") as excel:
+                    completed = int(pd.read_excel(excel, sheet_name="Summary").Round.max()) if "Summary" in excel.sheet_names else 0
+                status.update(completed_rounds=completed, output_file=str(task[-1]))
                 if status["stop_reason"] == "not_completed":
                     status["stop_reason"] = "batch_interrupted"
             saved.append(status)
@@ -395,11 +416,17 @@ def collect_carbon_summaries(output_dir):
             used_names.add(name.lower())
             original = load_workbook(source, read_only=True)
             try:
+                if "Summary" not in original.sheetnames:
+                    if {"EMU_Metabolites", "EMU_BoundaryInputs"} <= set(original.sheetnames):
+                        continue
+                    raise KeyError("Summary is missing from " + str(source))
                 sheet = workbook.create_sheet(name)
                 for row in original["Summary"].iter_rows(values_only=True):
                     sheet.append(row)
             finally:
                 original.close()
+        if not workbook.sheetnames:
+            return
         clear_formatting(workbook)
         save_output(workbook, output)
     finally:
@@ -409,7 +436,8 @@ def collect_carbon_summaries(output_dir):
 
 def trace_with_status(strain, job, rounds, mapping_file, output):
     """Return a small status record from each independent propagation worker."""
-    status = dict(model=strain, method="Enumeration",
+    methods = job.get("analysis_methods", ["Enumeration"])
+    status = dict(model=strain, method="+".join(methods),
                   allow_inorganic_carbon_recycling=job.get("allow_inorganic_carbon_recycling", False),
                   requested_rounds=rounds, completed_rounds=0,
                   stop_reason="round_limit", output_file=None,
@@ -432,7 +460,8 @@ def trace_with_status(strain, job, rounds, mapping_file, output):
 def write_carbon_run_report(output_dir, tasks, statuses, error=None):
     """Keep safety stops distinguishable from convergence for automated callers."""
     output = output_dir / "carbon_flow_run.json"
-    report = dict(version=1, method="Enumeration", finished_at_utc=datetime.utcnow().isoformat() + "Z",
+    methods = sorted({row.get("method", "Enumeration") for row in statuses})
+    report = dict(version=1, method=";".join(methods), finished_at_utc=datetime.utcnow().isoformat() + "Z",
                   status="error" if error else "finished", models=statuses)
     if error:
         report["error"] = error
@@ -451,7 +480,38 @@ def trace_mapping_file(strain, job, rounds, mapping_file, output):
     RDLogger.DisableLog("rdApp.warning")
     MemoryGuard(job.get("min_available_memory_gb", 2)).check("loading " + strain, force=True)
     reactions, source, metabolites = load_final_mappings(mapping_file, job)
-    return trace_analysis(strain, job, reactions, metabolites, rounds, Workbook(), output)
+    methods = job.get("analysis_methods", ["Enumeration"])
+    status = job.get("_run_status", {})
+    extra_sheets = {}
+    if "EMU" in methods:
+        from .source_contributions import solve_source_contributions
+        guard = MemoryGuard(job.get("min_available_memory_gb", 2))
+        tables, info = solve_source_contributions(reactions, metabolites, job["carbon_sources"],
+            allow_inorganic_carbon_recycling=job.get("emu_allow_inorganic_carbon_recycling", True),
+            tolerance=job.get("emu_tolerance", 1e-8), memory_guard=guard)
+        extra_sheets = {
+            "EMU_Metabolites": tables["MetaboliteContributions"].drop(columns=["FluxResidual", "Status"]),
+            "EMU_BoundaryInputs": tables["BoundaryInputs"],
+        }
+        info.update(mapping_version="AI" if mapping_file.stem.endswith("_AIGenerated") else "Original")
+        status.update(emu=info, emu_solved=True, emu_completed=False)
+        if "Enumeration" not in methods:
+            guard.check("exporting EMU results", force=True)
+            workbook = Workbook()
+            del workbook[workbook.active.title]
+            try:
+                for sheet, table in extra_sheets.items():
+                    write_sheet(workbook, sheet, table, guard)
+                save_output(workbook, output, max_bytes=workbook_limit(job.get("max_excel_size_mb", 50)))
+            finally:
+                workbook.close()
+            status.update(emu_completed=True, output_file=str(output))
+        print("{} EMU: {} carbon positions solved; combined output {}".format(strain, info["carbon_positions"], output), flush=True)
+    if "Enumeration" in methods:
+        return trace_analysis(strain, dict(job, _extra_sheets=extra_sheets), reactions,
+                              metabolites, rounds, Workbook(), output)
+    status["stop_reason"] = "emu_solved"
+    return output
 
 
 def load_final_mappings(mapping_file, job):
@@ -461,6 +521,9 @@ def load_final_mappings(mapping_file, job):
         final = pd.read_excel(
             excel, sheet_name="Final_Mapping", dtype={"ReactionID": str}
         ).fillna("")
+        partials = (pd.read_excel(excel, sheet_name="Partial_Mapping",
+                     dtype={"ReactionID": str, "RuleVersion": str}).fillna("")
+                    if "Partial_Mapping" in excel.sheet_names else pd.DataFrame())
     reactions, source, metabolites = read_input(
         mapping_file, reaction_sheet, metabolite_sheet
     )
@@ -481,6 +544,9 @@ def load_final_mappings(mapping_file, job):
             "Final_Mapping contains duplicated or unknown ReactionID values."
         )
     lookup = final.set_index("ReactionID")
+    structure_issues = carbon_structure_issues(metabolites)
+    carbon_by_name = {clean(row.MetaboliteName): carbon_presence(row)
+                      for row in metabolites.itertuples(index=False)}
     for reaction in reactions:
         reaction.status = "Not selected"
         if reaction.reaction_id not in lookup.index:
@@ -491,11 +557,47 @@ def load_final_mappings(mapping_file, job):
             or row.Equation != reaction.equation
         ):
             raise ValueError(
-                "Final_Mapping input or direction changed; rerun the mapping stage."
+                "Final_Mapping input or direction changed; rerun the mapping stage: {} ({!r} vs {!r})".format(reaction.reaction_id, row.Equation, reaction.equation)
             )
+        coverage = row.get("MappingCoverage", "Complete" if row.MappedReactionSMILES else "Unresolved")
+        if coverage not in ("Complete", "Partial", "Unresolved", "Boundary", "NoCarbon"):
+            raise ValueError("Unknown MappingCoverage: " + str(coverage))
         reaction.mapped_smiles = row.MappedReactionSMILES
+        inconsistent = [c.metabolite for c in reaction.left + reaction.right
+                        if c.metabolite in structure_issues]
+        if coverage in ("Complete", "Partial") and reaction.mapped_smiles and inconsistent:
+            raise ValueError("Final mapping uses carbon-inconsistent structures: "
+                             + ", ".join(sorted(set(inconsistent)))
+                             + "; review structures and rerun step 2 selection")
+        if coverage != "Complete":
+            if coverage == "NoCarbon":
+                names = [name for side in split_equation(reaction.equation) for _, name in parse_side(side)]
+                if not names or any(carbon_by_name.get(name) is not False for name in names):
+                    raise ValueError("NoCarbon coverage conflicts with saved inputs: " + reaction.reaction_id)
+            if coverage == "Boundary" and all(split_equation(reaction.equation)):
+                raise ValueError("Boundary coverage requires an open reaction side: " + reaction.reaction_id)
+            if coverage in ("Unresolved", "Boundary", "NoCarbon"):
+                # Retained failed candidates are audit data, never usable atom transfers.
+                reaction.mapped_smiles = ""
+                continue
+            if coverage == "Partial" and reaction.reaction_id in set(partials.get("ReactionID", [])):
+                continue  # Reduced rule subreactions are checked against their exact records below.
+            if coverage == "Partial" and reaction.mapped_smiles:
+                checked = carbon_candidate(reaction)
+                if ((checked.status != "partial" and not reaction.omitted_components)
+                        or checked.mapped_smiles != reaction.mapped_smiles):
+                    raise ValueError("Saved partial mapper correspondence must be a validated carbon-only view")
+                reaction.status = "partial"
+            elif reaction.mapped_smiles:
+                raise ValueError("Unresolved or boundary coverage cannot contain a mapped reaction")
+            continue
+        if reaction.omitted_components:
+            raise ValueError("Complete coverage cannot omit original reaction participants: " + reaction.reaction_id)
+        if not reaction.mapped_smiles:
+            raise ValueError("Complete coverage requires a full mapped reaction")
         mapping_signatures(reaction)
         reaction.status = "mapped"
+    load_partials(reactions, final, partials, metabolites)
     return reactions, source, metabolites
 
 
@@ -514,6 +616,7 @@ def run_analyses(
     carbon_memory_gb=None,
     stage="all",
     structure_options=None,
+    manual_mapping_file=None,
 ):
     """Predict independently, select one mapping per reaction and propagate."""
     if stage == "trace":
@@ -530,6 +633,7 @@ def run_analyses(
             in (
                 "Mapping_Selection",
                 "Final_Mapping",
+                "Partial_Mapping",
                 "Summary",
                 "Mapping_Info",
                 "Identity",
@@ -637,7 +741,7 @@ def run_analyses(
         task_kind="carbon propagation",
     )
     tasks = [
-        (strain, job, *prepared[strain], rounds, backends, output_dir, stage)
+        (strain, job, *prepared[strain], rounds, backends, output_dir, stage, manual_mapping_file)
         for strain, job in jobs.items()
     ]
     if workers == 1:
@@ -658,12 +762,15 @@ def finish_analysis(
     backends,
     output_dir,
     stage="all",
+    manual_mapping_file=None,
 ):
     """Write one strain workbook without sharing its state catalog."""
     RDLogger.DisableLog("rdApp.warning")
     print(f"{strain}: writing selected atom mappings.", flush=True)
     output = output_dir / f"{strain}_2_atom_mapping.xlsx"
-    reactions, selection = select_mappings(predictions)
+    reactions, selection = select_mappings(predictions, carbon_structure_issues(metabolites))
+    apply_manual_mappings(strain, reactions, selection, metabolites, manual_mapping_file, job.get("source_model"))
+    partials = apply_rules(reactions, selection, metabolites)
     if "StructureReviewRequired" in metabolites:
         review_names = set(
             metabolites.loc[
@@ -688,14 +795,20 @@ def finish_analysis(
     write_sheet(workbook, job["metabolite_sheet"], metabolites)
     for backend in backends:
         write_sheet(workbook, backend, prediction_table(predictions[backend]))
-    write_sheet(workbook, "Mapping_Selection", selection)
+    selection_columns = ["ReactionID", "ReactionName", "Flux", "Equation", "MappingDirection",
+                         "SelectedMapper", "ReviewRequired", "SelectionReason", "SelectedMappedReactionSMILES"]
+    write_sheet(workbook, "Mapping_Selection", selection[selection_columns])
     write_sheet(workbook, "Final_Mapping", final_mapping_table(reactions, selection))
+    if not partials.empty:
+        write_sheet(workbook, "Partial_Mapping", partials)
     metadata.extend(
         dict(
             Mapper=backend,
             ReactionID=r.reaction_id,
             MappingStatus=r.status,
             MappingTemplate=r.template,
+            MappingInputEquation=r.mapping_equation,
+            OmittedComponentsJSON=json.dumps(r.omitted_components, sort_keys=True),
         )
         for backend in backends
         for r in predictions[backend]
@@ -710,8 +823,9 @@ def finish_analysis(
     save_output(workbook, output)
     chosen = selection.loc[selection.SelectedMapper != ""]
     print(
-        f"{strain} consensus: {len(chosen)}/{len(reactions)} reactions have complete carbon mappings; "
-        f"{int(chosen.ReviewRequired.sum())} require review; "
+        f"{strain} consensus: {int(selection.MappingCoverage.eq('Complete').sum())}/{len(reactions)} complete, "
+        f"{int(selection.MappingCoverage.eq('Partial').sum())} partial carbon mappings; "
+        f"{int(selection.ReviewRequired.sum())} require review; "
         f"selected tools {chosen.SelectedMapper.value_counts().to_dict()}",
         flush=True,
     )
@@ -751,7 +865,10 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
     status = job.get("_run_status", {})
     batch_rows = job.get("output_batch_rows", 50000)
     status.update(output_batch_rows=batch_rows, max_excel_bytes=max_bytes)
-    store = FlowOutput(output, max_bytes, batch_rows, summary, memory_guard)
+    detail_rounds = job.get("export_detail_rounds", 3)
+    status["export_detail_rounds"] = detail_rounds
+    store = FlowOutput(output, max_bytes, batch_rows, summary, memory_guard,
+                       detail_rounds=detail_rounds, extra_sheets=job.get("_extra_sheets"))
     iterator = propagate_rounds(
         strain, reactions, metabolites, rounds, job["carbon_sources"], sources,
         allow_inorganic_carbon_recycling=job.get("allow_inorganic_carbon_recycling", False),
@@ -771,9 +888,11 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
             row.update(Method="Enumeration", InorganicCarbonRecycling=job.get("allow_inorganic_carbon_recycling", False))
             summary.append(row)
             store.complete_round()
+            if job.get("_extra_sheets"):
+                status["emu_completed"] = True
             completed_round = number
             status["stop_reason"] = "converged" if converged else "round_limit"
-            print(f"{strain} R{number} saved: {store.row_count} rows, {added} new states -> {output}", flush=True)
+            print(f"{strain} R{number} completed (detail export: {detail_rounds is None or number <= detail_rounds}): {store.row_count} rows, {added} new states -> {output}", flush=True)
     except (WorkbookSizeLimitError, WorksheetRowLimitError) as error:
         status["stop_reason"] = ("file_size_limit" if isinstance(error, WorkbookSizeLimitError) else "row_limit")
         print("{}: {}; {} complete round(s) retained. This stop is not convergence."
@@ -789,7 +908,7 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
         raise
     finally:
         status.update(completed_rounds=completed_round,
-                      output_file=str(output) if completed_round else None)
+                      output_file=str(output) if completed_round or status.get("emu_completed") else None)
         iterator.close()
         store.close()
-    return output if completed_round else None
+    return output if completed_round or status.get("emu_completed") else None

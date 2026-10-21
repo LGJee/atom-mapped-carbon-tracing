@@ -13,6 +13,7 @@ from .atom_helpers import (
     mapped_components,
     assignment_from_labeled_smiles,
 )
+from .carbon_mapping_rules import partial_reactions
 from .reactions import clean, get_smiles, parse_side, split_equation
 
 COLUMNS = [
@@ -61,9 +62,9 @@ def map_one_reaction(
         memory_guard.check(reaction.reaction_id)
     left, right = components
     left_groups = group_components(parse_side(reaction.source_text), left)
-    sides = split_equation(reaction.equation)
+    sides = split_equation(reaction.mapping_equation or reaction.equation)
     right_groups = group_components(
-        parse_side(sides[1 if reaction.flux >= 0 else 0]), right
+        parse_side(sides[1 if reaction.mapping_equation or reaction.flux >= 0 else 0]), right
     )
     choices = [
         sorted(states.get(name, {}).items()) or [None] for _, name, _ in left_groups
@@ -123,7 +124,7 @@ def map_one_reaction(
             production_id = catalog[key]
 
             row = dict(zip(COLUMNS, [
-                actual_step, reaction.reaction_id, reaction.source_text, source_ids,
+                actual_step, reaction.parent_reaction_id or reaction.reaction_id, reaction.source_text, source_ids,
                 name, production_id,
                 ",".join(sorted((a[2] for a in assignment), key=lambda x: int(x[1:]))),
                 marked,
@@ -175,14 +176,22 @@ def initialize_sources(source_names, smiles):
         labels = {label for _, _, label in assignment}
         sources.append((name, assignment, labels))
         offset += len(atoms)
-        print(f"Carbon source {name}: C{offset - len(atoms) + 1}–C{offset}", flush=True)
+        print(f"Carbon source {name}: C{offset - len(atoms) + 1}閳ユ弲{offset}", flush=True)
     return sources
 
 
 def prepare_mappings(reactions):
     prepared = []
+    used_ids = {reaction.reaction_id for reaction in reactions}
     for reaction in reactions:
-        if reaction.status != "mapped":
+        if reaction.status == "partial" and reaction.partial_maps:
+            for unit, components in partial_reactions(reaction):
+                while unit.reaction_id in used_ids:
+                    unit.reaction_id += ":"
+                used_ids.add(unit.reaction_id)
+                prepared.append((unit, components))
+            continue
+        if reaction.status not in ("mapped", "partial"):
             continue
         components = mapped_components(reaction)
         if components is None or any(

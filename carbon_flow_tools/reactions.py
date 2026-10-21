@@ -1,6 +1,6 @@
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
@@ -31,6 +31,10 @@ class PreparedReaction:
     template: str = ""
     confident: Any = ""
     is_transport: bool = False
+    partial_maps: List[Dict] = field(default_factory=list)
+    parent_reaction_id: str = ""
+    omitted_components: List[Dict] = field(default_factory=list)
+    mapping_equation: str = ""  # Active-direction input view; the model equation is unchanged.
 
 
 def clean(value) -> str:
@@ -160,6 +164,31 @@ def prepare_reactions(
             if not left_terms or not right_terms:
                 reaction.status = "Boundary reaction; no atom mapping required"
             else:
+                unknown = [name for _, name in left_terms + right_terms if name not in smiles_by_name]
+                if unknown:
+                    reaction.status = "Metabolite absent from input table: " + ", ".join(unknown)
+                    prepared.append(reaction)
+                    continue
+                retained = []
+                for side, terms in (("reactants", left_terms), ("products", right_terms)):
+                    retained.append([])
+                    for amount, name in terms:
+                        if smiles_by_name.get(name):
+                            retained[-1].append((amount, name))
+                        else:
+                            reaction.omitted_components.append(dict(
+                                Side=side, MetaboliteName=name, Coefficient=amount,
+                                Reason="Missing SMILES"))
+                if reaction.omitted_components:
+                    if not all(retained):
+                        reaction.status = "Missing SMILES leaves no mapper reactants or products"
+                        prepared.append(reaction)
+                        continue
+                    left_terms, right_terms = retained
+                    texts = [" + ".join(("{:g} ".format(amount) if amount != 1 else "") + name
+                                       for amount, name in terms) for terms in retained]
+                    reaction.mapping_equation = " => ".join(texts)
+                    reaction.source_text = texts[0]
                 reaction.left, error = build_side(left_terms, smiles_by_name)
                 if not error:
                     reaction.right, error = build_side(right_terms, smiles_by_name)
@@ -171,7 +200,7 @@ def prepare_reactions(
                         + ">>"
                         + ".".join(x.smiles for x in reaction.right)
                     )
-                    reaction.mapped_smiles = transport_mapping(reaction)
+                    reaction.mapped_smiles = transport_mapping(reaction) if not reaction.omitted_components else ""
                     if reaction.mapped_smiles:
                         reaction.is_transport = True
                         reaction.status = "mapped"

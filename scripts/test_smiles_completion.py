@@ -34,8 +34,8 @@ def main():
         manual = root / "manual.csv"
         with manual.open("w", newline="") as stream:
             writer = csv.writer(stream)
-            writer.writerow(["Model", "MetaboliteID", "MetaboliteName", "SMILES"])
-            writer.writerow(["Checked", "s_0", "", "CC(=C)CCO"])
+            writer.writerow(["Species", "MetaboliteName", "SMILES"])
+            writer.writerow(["Checked", "isoprenol", "CC(=C)CCO"])
         options = dict(
             manual_file=manual,
             cache_file=root / "cache.json",
@@ -168,7 +168,7 @@ def main():
             again = complete_smiles(table, "OtherModel", options)
         assert (
             get_smiles(next(again.itertuples(index=False))) == "CC"
-        )  # Model-scoped IDs.
+        )  # Species-scoped names.
 
         exact = table.iloc[[1]].copy()
         exact["PubChemCID"] = 7
@@ -312,7 +312,7 @@ def main():
                 structure_options=options,
             )
     print(
-        "PASS: manual priority, model scoping, PubChem ID/name review, cache/outages, full stages and input protection"
+        "PASS: manual priority, species/name scoping, PubChem ID/name review, cache/outages, full stages and input protection"
     )
 
 

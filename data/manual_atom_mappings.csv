@@ -1,0 +1,2 @@
+Species,ReactionID,MappedReactionSMILES
+Escherichia_coli,MECDPDH5,O=P1([O-])OP(=O)([O-])O[CH2:4][C@@H:3](O)[C@:2]([CH3:1])([CH2:5]O)O1>>O=P([O-])([O-])OP(=O)([O-])O[CH2:4]/[CH:3]=[C:2](\[CH3:1])[CH2:5]O

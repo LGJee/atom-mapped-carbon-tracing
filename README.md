@@ -42,9 +42,9 @@ Download these external files into `data/`, preserving their upstream licenses:
 
 | Species | Source | Local files |
 |---|---|---|
-| S. cerevisiae | [Yeast9 v9.1.1](https://github.com/SysBioChalmers/yeast-GEM/tree/v9.1.1/model) | `data/yeast9/yeast-GEM.mat`, `yeast-GEM.yml` |
-| E. coli | [BiGG iML1515](https://bigg.ucsd.edu/models/iML1515) | `data/ecoli/iML1515.mat`, `iML1515.json` |
-| Y. lipolytica | [Pinned iYali5 source](https://github.com/bioengtaltech/eciYali5-GEM/tree/3b97d38d92327a099f3b0f6f9cd92e8aeab78c10/model) | `data/yarrowia/iYali5.mat`, `eciYali5-GEM.yml` |
+| S. cerevisiae | [Yeast9 v9.1.1](https://github.com/SysBioChalmers/yeast-GEM/tree/v9.1.1/model) | `data/Saccharomyces_cerevisiae/yeast-GEM.mat`, `yeast-GEM.yml` |
+| E. coli | [BiGG iML1515](https://bigg.ucsd.edu/models/iML1515) | `data/Escherichia_coli/iML1515.mat`, `iML1515.json` |
+| Y. lipolytica | [Pinned iYali5 source](https://github.com/bioengtaltech/eciYali5-GEM/tree/3b97d38d92327a099f3b0f6f9cd92e8aeab78c10/model) | `data/Yarrowia_lipolytica/iYali5.mat`, `eciYali5-GEM.yml` |
 
 Keep each source model in its own subfolder under `data/`, with its companion
 JSON/YAML files in the same folder. Configure the computational model path only
@@ -134,7 +134,7 @@ CPU/memory-limited concurrency, then selects final correspondences. Each model
 has one `<model>_2_atom_mapping.xlsx` containing the three original predictions,
 `Mapping_Selection`, `Final_Mapping` and the enriched metabolite table.
 
-Step 2 applies model-scoped overrides from `data/manual_smiles.csv`, preserves
+Step 2 applies species/name overrides from `data/manual_smiles.csv`, preserves
 existing input structures, then uses compatible source/companion annotations before
 online structure completion. It checks metabolite identity rather than choosing
 a file by species name. Conflicting structures and name-selected database results
@@ -144,20 +144,63 @@ correct `Final_Mapping` before step 3. Rerunning step 2 can replace those edits.
 `AIGenerated` is stored only in `Final_Mapping` and defaults to FALSE.
 The three-tool mapping stage does not perform AI review.
 
+Formula/SMILES carbon-count conflicts require structure or repeat-unit review
+before accepting a whole-reaction map. Independent consistent cofactor pairs may
+still be recovered. Selection then uses complete carbon agreement; ties/conflicts use
+EnzymeMap > RXNMapper > LocalMapper (scores are not comparable). When a whole
+prediction fails validation, step 2 tries an exactly structure-aligned carbon-only
+view of that prediction. It keeps only unique carbon-to-carbon correspondences;
+partial views remain usable and require review. Raw predictions are unchanged.
+Only if no mapper supplies usable carbon correspondence does
+`carbon_flow_tools/carbon_mapping_rules.py` try conservative skeleton rules:
+unique identity retention, A/G/C/U nucleoside mono/di/triphosphates, NAD(H) or
+NADP(H) within each family, and uniquely positioned CoA-core carbons (not acyl carbon).
+Full structure connectivity, stereochemical compatibility, equal transfer amounts
+and unique donor/product pairing are required. Unsupported carbon remains unresolved.
+See [scientific basis and limitations](docs/carbon-mapping-rules.md).
+
+Every reaction appears in Final_Mapping. MappingCoverage is Complete, Partial,
+Unresolved or Boundary. Legacy NoCarbon records remain readable. Partial mapper views use sparse MappedReactionSMILES;
+rule-only partials show a reduced unit subreaction in the mapped-SMILES columns, with actual transfers in Partial_Mapping (zero-based atom
+positions in the exact saved structures, original molar coefficient and rule
+version). They are not a fabricated complete biomass map. All rule fallbacks and
+partial mapper views have ReviewRequired=TRUE and AIGenerated=FALSE. SelectionReason
+states the selected tool or rule and its limitation. Step 3 uses partial transfers
+for label reachability without rounding fractional coefficients; it never treats
+the unassigned carbon positions as known. Summary counts carbon-containing
+metabolite IDs with usable atom correspondences, now including partial donors and
+products, rather than all participants in an unresolved pseudo-reaction.
+
+AI review changes only Final_Mapping in a separate copy. Confirmed partial rules
+stay Partial; rejected or scientifically unresolved rules become Unresolved and
+are not propagated even though their original audit records remain. A validated
+complete AI replacement becomes Complete and supersedes partial records.
+
+
 ## 5. Analyze carbon origins
 
 ```bash
 python3 step3_carbon_flow.py
 ```
 
-Step 3 enumerates possible carbon-source label states from the selected mappings.
-It does not estimate quantitative source fractions or experimental isotope abundances.
+Step 3 runs two independent methods from the same selected mapping:
+Enumeration gives possible carbon-source label states; the restored size-1
+EMU-inspired solver gives fixed-flux mean carbon-origin fractions and retains
+Unknown. It is not a full isotopomer simulator or an experimental measurement.
+Set `ANALYSIS_METHODS` to `["Enumeration"]`, `["EMU"]`, or both at the top of
+`step3_carbon_flow.py`. Method-specific settings are grouped separately.
 
 Enumeration reads both normal and optional AI-reviewed step-2 mappings for models
 in the selected plan, using the same ordered carbon sources for both versions.
 It never calls mappers or changes input/mapping workbooks. Each
-`<model>_3_carbon_flow.xlsx` contains only `Carbon_Flow_R1` onward and `Summary`.
-The default maximum is 10 rounds, with earlier stopping on convergence.
+`<model>_3_carbon_flow.xlsx` combines `Summary`, exported `Carbon_Flow_Rn`,
+`EMU_Metabolites` and `EMU_BoundaryInputs`. AI copies use `_AIGenerated.xlsx` and
+both methods read that copy's Final_Mapping. No separate `_EMU` file is created.
+The default maximum is 10 Enumeration rounds, stopping earlier on convergence.
+`EXPORT_DETAIL_ROUNDS = 3` exports only R1-R3 details; later completed rounds
+still update Summary. Set this to the requested maximum to export all rounds,
+or 0 to keep Summary only. EMU does not use Enumeration rounds or ProductionID.
+See [EMU assumptions and limitations](docs/source-contributions.md).
 
 `MAX_EXCEL_SIZE_MB = 50` applies separately to each output. Generated rows are staged in temporary disk storage rather than retained
 as a whole-round DataFrame or an in-memory Excel workbook. `OUTPUT_BATCH_ROWS =
@@ -167,10 +210,11 @@ compressed size. If it reaches 50,000,000 bytes, enumeration stops and the
 unfinished round is discarded. Only complete rounds below the limit atomically
 replace the output; the preceding complete result is retained unchanged.
 
-There is no worksheet pagination. A round exceeding 1,048,575 data rows cannot fit
+There is no worksheet pagination. An exported round exceeding 1,048,575 data rows cannot fit
 in one sheet and is discarded with `row_limit`. Size stops use `file_size_limit`,
 never convergence. If round one cannot be saved, the report records zero completed
-rounds and no current output; an existing file is from an earlier run.
+Enumeration rounds. Combined output is published only with a complete Enumeration round; if none
+can be saved, prior output is retained. Select EMU alone to export it independently.
 
 Checks occur at batch boundaries, not at every byte: temporary candidates may
 exceed the limit before rejection. Rebuilding sorted candidate files costs disk
@@ -268,7 +312,7 @@ for commands and the [calling contract](docs/interfaces.md) for automation.
 
 Steps 1-3 run fixed code and do not call an LLM or a skill. The intended future
 AI-orchestrated workflow includes mapping review after step 2 by default:
-`carbon-tracing-ai-review-skill` delegates flagged reactions to
+`carbon-tracing-review-skill` delegates flagged reactions to
 `enzymatic-atom-mapping`, saves reviewed copies, then step 3 propagates both normal
 and reviewed copies for comparison. This repository provides the
 handoff files; automatic skill orchestration is not implemented here.
@@ -296,3 +340,36 @@ edit step 1 for model/input preparation and step 3 to change rounds. Third-party
 The `scripts/` folder contains environment setup, data-download utilities and
 optional `test_*.py` regression checks. Run tests as modules from the project root,
 for example `.envs/localmapper/bin/python -m scripts.test_carbon_tracing`.
+
+The original equation and all raw predictions remain in step 2. A nonempty
+prediction that fails validation is retained for review with Unresolved coverage;
+it is not silently used for propagation. Mapping_Selection shows only reaction
+information, selected tool, review flag, reason and mapped SMILES. Every selection
+row is retained in Final_Mapping. AI review also targets missing mapped strings,
+even if ReviewRequired is FALSE, except explicit NoCarbon/Boundary records.
+
+
+Manual structures in data/manual_smiles.csv take precedence over retrieved
+structures. Verified partial carbon correspondences in data/manual_atom_mappings.csv
+take precedence over mapper selections when exact inputs match; the current file
+contains a user-designated IspG carbon-backbone record. Missing-SMILES participants
+may be omitted from mapper-only inputs, retaining original equations/fluxes and
+marking partial coverage for optional AI review. See
+[manual data and reduced inputs](docs/carbon-mapping-rules.md#user-maintained-manual-data-has-priority).
+
+
+Manual SMILES use exactly three columns: Species, MetaboliteName, SMILES. Species
+is the full underscore-separated binomial used by result prefixes, without the
+non_IUPD/IUPD condition suffix. For example Escherichia_coli shares one isoprenol
+record across conditions and compartments. Terminal compartment suffixes are
+ignored for name matching; names are otherwise exact. Local model metabolite IDs
+are not manual-table keys. Conflicting structures for one species/name, or an
+explicit model formula/charge incompatible with an override, raise an error.
+The original detailed workbook IDs and review archives remain available for audit.
+
+
+AI-assisted discoveries are recorded separately in data/ai_smiles.csv and
+data/ai_atom_mappings.csv, each with a Source column for evidence URLs and archive
+references. Manual structures/mappings keep priority. Saved AI structures only fill
+missing input structures and require review; the AI mapping CSV is a reviewable
+index, not an automatic override. See [manual and AI records](docs/carbon-mapping-rules.md#user-maintained-manual-data-has-priority).

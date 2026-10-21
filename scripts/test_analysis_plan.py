@@ -24,7 +24,7 @@ def run():
     with tempfile.TemporaryDirectory() as temporary:
         folder = Path(temporary)
         (folder / "absent.csv").write_text(
-            "Model,MetaboliteID,MetaboliteName,SMILES\n", encoding="utf-8"
+            "Species,MetaboliteName,SMILES\n", encoding="utf-8"
         )
         names = (
             "Saccharomyces_cerevisiae_non_IUPD",
@@ -94,6 +94,7 @@ def run():
             },
         )
         ts.update(
+            analysis_methods=["Enumeration"],
             rounds=2,
             max_carbon_processes=1,
             carbon_memory_gb=None,
@@ -248,7 +249,7 @@ def check_independent_cases():
         default_plan.write_text('{"version":3,"default":true}')
         protected = default_plan.read_bytes()
         manual = root / "manual.csv"
-        manual.write_text("Model,MetaboliteID,MetaboliteName,SMILES\n")
+        manual.write_text("Species,MetaboliteName,SMILES\n")
         mapping_settings = mapping.settings()
         mapping_settings.update(
             analysis_plan=str(default_plan), mappers=["LocalMapper"],

@@ -7,10 +7,10 @@ supply a workbook with the same input schema and configure your own sources.
 
 ## Obtain the model
 
-Obtain `data/yeast9/yeast-GEM.mat` and `data/yeast9/yeast-GEM.yml` from
+Obtain `data/Saccharomyces_cerevisiae/yeast-GEM.mat` and `data/Saccharomyces_cerevisiae/yeast-GEM.yml` from
 [yeast-GEM v9.1.1](https://github.com/SysBioChalmers/yeast-GEM/tree/v9.1.1),
 commit `2d594ae1c4a2d550ccef120d96a58c7bbf586255`.
-Place both files in this project's `data/yeast9/`; configure only the MAT path in
+Place both files in this project's `data/Saccharomyces_cerevisiae/`; configure only the MAT path in
 step 1 when relocating them. Step 2 discovers matching annotations in that folder.
 The files must be from the same version; the YAML reader targets this version's
 metabolite ID and SMILES annotation layout.

@@ -138,11 +138,11 @@ def main():
         "EnzymeMap": [reaction(swapped, score=0.98)],
     }
     selected, table = select_mappings(candidates)
-    assert table.iloc[0].SelectedMapper == "LocalMapper"
+    assert table.iloc[0].SelectedMapper == "RXNMapper"
     assert len(table.iloc[0].SupportingMappers.split("; ")) == 2 and not bool(
         table.iloc[0].ReviewRequired
     )
-    assert selected[0].mapped_smiles == correct
+    assert selected[0].mapped_smiles == alias
     candidates.pop("RXNMapper")
     selected, table = select_mappings(candidates)
     assert table.iloc[0].SelectedMapper == "EnzymeMap" and bool(
@@ -153,11 +153,12 @@ def main():
         "LocalMapper": [reaction(correct)],
         "RXNMapper": [reaction(swapped, score=0.99)],
     }
-    assert select_mappings(candidates)[1].iloc[0].SelectedMapper == "LocalMapper"
+    assert select_mappings(candidates)[1].iloc[0].SelectedMapper == "RXNMapper"
     candidates["LocalMapper"][0].confident = False
     assert select_mappings(candidates)[1].iloc[0].SelectedMapper == "RXNMapper"
     for item in candidates.values():
         item[0].status = "failed"
+        item[0].mapped_smiles = ""
     selected, table = select_mappings(candidates)
     assert table.iloc[0].SelectedMapper == "" and not selected[0].mapped_smiles
     assert bool(table.iloc[0].ReviewRequired)

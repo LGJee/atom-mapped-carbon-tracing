@@ -11,7 +11,9 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 from rdkit import Chem
+from rdkit.Chem import rdMolDescriptors
 
+from .carbon_mapping_rules import generic_pool
 from .reactions import clean, get_smiles
 from .model_structures import compatible, discover_annotations, read_model_smiles
 
@@ -19,28 +21,43 @@ API = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound"
 PROPERTIES = "SMILES,MolecularFormula,Charge,InChIKey"
 
 
-def load_manual(path):
-    """Require model-scoped identities so local IDs cannot collide across models."""
+def metabolite_name(value):
+    """Use the compound name without a terminal compartment suffix."""
+    return re.sub(r"\[[^\[\]]+\]$", "", clean(value)).strip()
+
+
+def species_name(analysis, source=None):
+    """Prefer a full source-directory species name, otherwise its analysis prefix."""
+    names = [Path(source["path"]).parent.name] if source else []
+    names.append(clean(analysis))
+    matches = [re.match(r"^([A-Z][a-z]+_[a-z][a-z0-9]+)(?:_|$)", name) for name in names]
+    found = [match.group(1) for match in matches if match]
+    if len(set(found)) > 1:
+        raise ValueError("Analysis species conflicts with the source model directory")
+    return found[0] if found else clean(analysis)
+
+
+def load_manual(path, with_source=False):
+    """Read species/name structures; local metabolite IDs are not shared identifiers."""
     with Path(path).open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream)
-        required = {"Model", "MetaboliteID", "MetaboliteName", "SMILES"}
-        if not required <= set(reader.fieldnames or []):
-            raise ValueError(
-                "Manual structure CSV requires: " + ", ".join(sorted(required))
-            )
-        rows = list(reader)
+        required = {"Species", "MetaboliteName", "SMILES"} | ({"Source"} if with_source else set())
+        if set(reader.fieldnames or []) != required or len(reader.fieldnames) != len(required):
+            raise ValueError("Structure CSV requires exactly: Species,MetaboliteName,SMILES" + (",Source" if with_source else ""))
+        rows = [{field: clean(row.get(field)) for field in required} for row in reader]
+    structures = {}
     for row in rows:
-        if not row["Model"] or not (row["MetaboliteID"] or row["MetaboliteName"]):
-            raise ValueError(
-                "Manual structures require a model and an ID or qualified name."
-            )
+        if not row["Species"] or not row["MetaboliteName"]:
+            raise ValueError("Manual structures require a full species name and metabolite name")
         molecule = Chem.MolFromSmiles(row["SMILES"])
-        if (
-            molecule is None
-            or not molecule.GetNumAtoms()
-            or any(atom.GetAtomicNum() == 0 for atom in molecule.GetAtoms())
-        ):
+        if (molecule is None or not molecule.GetNumAtoms()
+                or any(atom.GetAtomicNum() == 0 for atom in molecule.GetAtoms())):
             raise ValueError("Invalid or unspecified manual structure: " + str(row))
+        key = (row["Species"], metabolite_name(row["MetaboliteName"]))
+        canonical = Chem.MolToSmiles(molecule)
+        if key in structures and structures[key] != canonical:
+            raise ValueError("Conflicting manual structures for species/metabolite: " + str(key))
+        structures[key] = canonical
     return rows
 
 
@@ -57,7 +74,7 @@ def query_key(row):
                 if int(value) < 1:
                     raise ValueError("PubChemCID must be positive.")
             return namespace, value
-    return "name", re.sub(r"\[[^\[\]]+\]$", "", clean(row.MetaboliteName)).strip()
+    return "name", metabolite_name(row.MetaboliteName)
 
 
 def fetch_properties(namespace, identifier, timeout):
@@ -108,6 +125,8 @@ def complete_smiles(metabolites, model, options):
             "Structure timeout must be positive; query interval cannot be negative."
         )
     manual = load_manual(options["manual_file"])
+    ai_file = Path(options["manual_file"]).with_name("ai_smiles.csv")
+    ai_structures = load_manual(ai_file, with_source=True) if ai_file.is_file() else []
     cache_file = Path(options["cache_file"])
     cache = (
         json.loads(cache_file.read_text(encoding="utf-8"))
@@ -119,6 +138,7 @@ def complete_smiles(metabolites, model, options):
     yaml_file = options.get("model_yaml_files", {}).get(model)
     annotations = read_model_smiles(yaml_file) if yaml_file else {}
     source = options.get("source_models", {}).get(model)
+    species = species_name(model, source)
     discovered, identifiers = (
         discover_annotations(source, metabolites) if source else ({}, {})
     )
@@ -157,19 +177,13 @@ def complete_smiles(metabolites, model, options):
                 ),
                 flush=True,
             )
-        matches = [
-            entry
-            for entry in manual
-            if entry["Model"] == model
-            and (
-                not entry["MetaboliteID"]
-                or entry["MetaboliteID"] == clean(row.MetaboliteID)
-            )
-            and (
-                not entry["MetaboliteName"]
-                or entry["MetaboliteName"] == clean(row.MetaboliteName)
-            )
-        ]
+        matches = [entry for entry in manual if entry["Species"] == species
+                   and metabolite_name(entry["MetaboliteName"]) == metabolite_name(row.MetaboliteName)]
+        ai_match = False
+        if not matches and not get_smiles(row):
+            matches = [entry for entry in ai_structures if entry["Species"] == species
+                       and metabolite_name(entry["MetaboliteName"]) == metabolite_name(row.MetaboliteName)]
+            ai_match = bool(matches)
         if len({entry["SMILES"] for entry in matches}) > 1:
             raise ValueError(
                 "Conflicting manual structures for {} {}".format(
@@ -177,11 +191,22 @@ def complete_smiles(metabolites, model, options):
                 )
             )
         if matches:
-            table.at[index, "SMILES_Manual"] = matches[0]["SMILES"]
-            table.at[index, "StructureSource"] = "manual table"
-            table.at[index, "StructureReference"] = Path(options["manual_file"]).name
-            table.at[index, "StructureReviewRequired"] = False
-            table.at[index, "StructureStatus"] = "Verified override"
+            molecule = Chem.MolFromSmiles(matches[0]["SMILES"])
+            formula = re.sub(r"[+-]\d*$", "", clean(getattr(row, "MolecularFormula", "")))
+            observed = re.sub(r"[+-]\d*$", "", rdMolDescriptors.CalcMolFormula(molecule))
+            charge = clean(getattr(row, "Charge", ""))
+            if (formula and re.fullmatch(r"(?:[A-Z][a-z]?\d*)+", formula)
+                    and not re.search(r"[RX]", formula) and formula != observed):
+                raise ValueError("Manual structure/formula conflict: " + species + " " + clean(row.MetaboliteName))
+            if charge and float(charge) != Chem.GetFormalCharge(molecule):
+                raise ValueError("Manual structure/charge conflict: " + species + " " + clean(row.MetaboliteName))
+            table.at[index, "SMILES_Retrieved" if ai_match else "SMILES_Manual"] = matches[0]["SMILES"]
+            table.at[index, "StructureSource"] = "AI structure table" if ai_match else "manual table"
+            table.at[index, "StructureReference"] = matches[0]["Source"] if ai_match else Path(options["manual_file"]).name
+            table.at[index, "StructureReviewRequired"] = ai_match
+            table.at[index, "StructureStatus"] = "AI-assisted structure; review required" if ai_match else "Verified override"
+            if ai_match:
+                table.at[index, "AIStructureCompleted"] = True
             continue
         existing = get_smiles(row)
         annotation = annotations.get(clean(row.MetaboliteID), {})
@@ -220,6 +245,9 @@ def complete_smiles(metabolites, model, options):
             )
             if not clean(table.at[index, "StructureSource"]):
                 table.at[index, "StructureSource"] = "input workbook"
+            if generic_pool(clean(row.MetaboliteName)):
+                table.at[index, "StructureReviewRequired"] = True
+                table.at[index, "StructureStatus"] = "Generic pool annotation; verify explicit macromolecular identity"
             continue
         table.at[index, "StructureStatus"] = "Missing structure; lookup disabled"
         if not options["lookup"]:
@@ -228,6 +256,10 @@ def complete_smiles(metabolites, model, options):
             # Include identifiers supplied by the source model directory.
             row = table.loc[index]
             namespace, identifier = query_key(row)
+            if namespace == "name" and generic_pool(clean(row.MetaboliteName)):
+                table.at[index, "StructureStatus"] = "Generic biomass/macromolecule pool; no unique molecular structure"
+                table.at[index, "StructureReviewRequired"] = True
+                continue
             key = namespace + ":" + identifier
             if key in cache:
                 properties = cache[key]

@@ -329,6 +329,7 @@ def main(stage, settings, argv=None):
             else settings["max_mapper_processes"],
             mapper_memory_gb=settings["mapper_memory_gb"],
             structure_options=structure_options,
+            manual_mapping_file=project_path(settings.get("manual_mapping_file", "data/manual_atom_mappings.csv")),
         )
     else:
         for name, job in jobs.items():
@@ -340,6 +341,10 @@ def main(stage, settings, argv=None):
                         )
                     )
                 job["carbon_sources"] = settings["carbon_sources"][name]
+            job["analysis_methods"] = settings.get("analysis_methods", ["Enumeration"])
+            job["export_detail_rounds"] = settings.get("export_detail_rounds", 3)
+            job["emu_allow_inorganic_carbon_recycling"] = settings.get("emu_allow_inorganic_carbon_recycling", True)
+            job["emu_tolerance"] = settings.get("emu_tolerance", 1e-8)
             job["min_available_memory_gb"] = settings.get("min_available_memory_gb", 2)
             job["max_excel_size_mb"] = settings.get("max_excel_size_mb", 50)
             job["output_batch_rows"] = settings.get("output_batch_rows", 50000)

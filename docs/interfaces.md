@@ -52,7 +52,11 @@ identifiers and computational introduction order, not biological feeding time.
 
 Step 2 writes `<model>_2_atom_mapping.xlsx`: raw LocalMapper, RXNMapper and
 EnzymeMap predictions, `Mapping_Selection`, `Final_Mapping`, enriched metabolites
-and provenance. Input workbooks remain unchanged. Missing structures and failed
+and provenance. Every reaction is retained in Final_Mapping, with MappingCoverage
+Complete/Partial/Unresolved/Boundary (legacy NoCarbon records remain readable). Partial mapper carbon views use
+MappedReactionSMILES; rule-derived partials include reduced unit mapped SMILES and Partial_Mapping, whose
+SourceSMILES/ProductSMILES and CarbonAtomMap indices are verified against the
+stored input and current rule version before propagation. Input workbooks remain unchanged. Missing structures and failed
 predictions retain the existing recorded statuses. Confidence and agreement do
 not certify biochemical correctness. See the user guide for selection rules.
 
@@ -61,13 +65,18 @@ not certify biochemical correctness. See the user guide for selection rules.
 The intended future AI deployment/analysis orchestrator includes this review by
 default after step 2. Review is external to the fixed stage scripts:
 
-1. Pass flagged step-2 workbooks to `carbon-tracing-ai-review-skill`; it delegates
-   `ReviewRequired=TRUE` reactions to `enzymatic-atom-mapping`.
+1. Pass flagged step-2 workbooks to `carbon-tracing-review-skill`; it delegates
+   flagged and blank-mapping reactions to `enzymatic-atom-mapping`; explicit
+   NoCarbon/Boundary coverage does not require mapping merely because its SMILES is empty.
 2. Save `<model>_2_atom_mapping_AIGenerated.xlsx` in the same plan's output folder.
    Update only `Final_Mapping` for successful validated replacements, including
    `MappedReactionSMILES` and `AIGenerated=TRUE`. Preserve raw predictions,
    `Mapping_Selection`, identifiers and input provenance. Failed review retains
-   the original mapping and flags. Keep review reports separately.
+   the original mapping and flags, except scientifically rejected/unresolved carbon
+   rules: mark their Final_Mapping.MappingCoverage Unresolved and clear mapped
+   SMILES so step 3 does not use them. Confirmed partial rules stay Partial without
+   setting AIGenerated. Full accepted AI replacements must be Complete. Preserve
+   Partial_Mapping as audit context. Keep review reports separately.
 3. Run step 3 to propagate both available versions independently:
 
 ```bash
@@ -84,8 +93,12 @@ This revision does not create or implement the future orchestrator skill.
 ## Propagation status
 
 Step 3 writes `<model>_3_carbon_flow.xlsx` for normal mappings and
-`<model>_3_carbon_flow_AIGenerated.xlsx`. Enumeration workbooks contain only saved
-`Carbon_Flow_R*` and `Summary` tables by default. Only the last saved Summary row
+`<model>_3_carbon_flow_AIGenerated.xlsx`. Each version combines Enumeration and
+size-1 EMU-inspired balances when both methods are selected. `Summary` contains
+all completed Enumeration rounds; `EXPORT_DETAIL_ROUNDS=3` exports only the
+first three `Carbon_Flow_R*` detail sheets by default. `EMU_Metabolites` and
+`EMU_BoundaryInputs` contain the independent source-balance result. EMU-only
+runs have no Summary and are omitted from Summary collection. Only the last saved Summary row
 contains `<source>_ExclusiveSourceMetabolites`: distinct mapped metabolite IDs whose
 recorded states all carry labels from that one source. Separate pure-source states
 from different sources disqualify a metabolite. The optional step-3 setting
@@ -123,12 +136,32 @@ threshold or exceeding a single sheet's row limit is discarded, with
 `file_size_limit` or `row_limit`; there are no pagination sheets. Only a complete
 candidate below the threshold atomically replaces the previous output.
 `completed_rounds` and `output_file` describe this invocation's published rounds,
-not the rejected candidate. Zero completed rounds means null output even if an
-older workbook exists. Reruns start at round 1, not a checkpoint.
+not the rejected candidate. For combined runs, zero completed Enumeration rounds means no new output; the
+previous workbook is retained. EMU-only runs can save independently with zero
+Enumeration rounds. emu_solved distinguishes a solved balance from emu_completed
+(successfully saved tables). Reruns start at round 1, not a checkpoint.
+The `emu` manifest field records numerical residual, unresolved positions,
+source-balance assumptions, independent recycling setting and mapping version.
 
-These outputs describe possible carbon-origin label reachability, not measured
-isotope abundance, physical time or quantitative carbon allocation. Existing
+Enumeration describes possible carbon-origin label reachability, not measured
+isotope abundance, physical time or quantitative carbon allocation. EMU gives
+model-dependent mean source fractions, not full isotopomer distributions. Existing
 propagation rules, inorganic-carbon settings and Summary denominators are unchanged.
 
 `--output-dir <folder>` optionally changes the propagation destination without
-changing the selected plan's mapping locations. Step 3 uses Enumeration only.
+changing the selected plan's mapping locations. Step 3 selects Enumeration, EMU, or both through ANALYSIS_METHODS; method settings stay separate.
+
+
+## Known-structure mapper inputs
+
+Step 2 retains original equations and signed fluxes. When some saved metabolites
+have no SMILES, it may pass only the known-structure participants to the mappers.
+At least one retained participant on each side is required. Invalid structures,
+unknown metabolite names, noninteger retained coefficients and atom limits still
+block that input. No identity or biochemical role is inferred for omitted pools.
+Mapping_Info records MappingInputEquation in the active direction and
+OmittedComponentsJSON (side, original coefficient, name and reason). Predictions
+on reduced inputs have Partial coverage and ReviewRequired=TRUE. Stage 3 uses only
+retained carbon correspondences and keeps full original network turnover for EMU;
+unresolved positions remain Unknown. A reduced map cannot be relabeled Complete.
+AI review is optional and assesses applicability and the omitted roles when used.

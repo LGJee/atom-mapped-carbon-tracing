@@ -33,7 +33,7 @@ def prepare_models():
     models = {}
 
     # 1. Escherichia_coli_glucose: illustrative single-carbon-source reference.
-    model_file = "data/ecoli/iML1515.json"
+    model_file = "data/Escherichia_coli/iML1515.json"
     model = read_model(ROOT / model_file, SOLVER)
     labels = metabolite_labels(model)
     carbon_sources = [labels["glc__D_e"]]  # D-glucose, extracellular.
@@ -46,7 +46,7 @@ def prepare_models():
     models["Escherichia_coli_glucose"] = (model, solution, carbon_sources)
 
     # 2. Escherichia_coli_glucose_xylose: simultaneous supply, not sequential feeding.
-    model_file = "data/ecoli/iML1515.json"
+    model_file = "data/Escherichia_coli/iML1515.json"
     model = read_model(ROOT / model_file, SOLVER)
     labels = metabolite_labels(model)
     carbon_sources = [labels["glc__D_e"], labels["xyl__D_e"]]

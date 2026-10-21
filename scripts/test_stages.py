@@ -377,6 +377,8 @@ def check_mapping_variants():
             "Summary",
             "Carbon_Flow_R1",
             "Carbon_Flow_R2",
+            "EMU_Metabolites",
+            "EMU_BoundaryInputs",
         ]
         assert hashlib.sha256(reviewed.read_bytes()).hexdigest() == reviewed_hash
         for path, digest in originals.items():
