@@ -1,4 +1,6 @@
-"""Check the preparation-to-mapping plan, six-model isolation and both stages."""
+"""Check the preparation-to-mapping plan, four-model isolation and both stages."""
+
+from scripts.test_carbon_tracing import read_carbon_round
 
 import hashlib
 import json
@@ -31,8 +33,6 @@ def run():
             "Saccharomyces_cerevisiae_IUPD",
             "Escherichia_coli_non_IUPD",
             "Escherichia_coli_IUPD",
-            "Yarrowia_lipolytica_non_IUPD",
-            "Yarrowia_lipolytica_IUPD",
         )
         models = {}
         hashes = {}
@@ -158,12 +158,11 @@ def run():
             with pd.ExcelFile(file, engine="openpyxl") as excel:
                 assert set(excel.sheet_names) == set(
                     [
-                        "Carbon_Flow_R1",
-                        "Carbon_Flow_R2",
+                        "Carbon_Flow",
                         "Summary",
                     ]
                 )
-                flow = pd.read_excel(excel, sheet_name="Carbon_Flow_R1")
+                flow = read_carbon_round(excel, 1)
                 assert set(flow.Production) == {"A[c]", "B[c]"}
             assert file.is_file()
         assert all(digest(path) == value for path, value in hashes.items())
@@ -292,7 +291,7 @@ def check_independent_cases():
             assert report["models"][0]["completed_rounds"] == 2
             assert report["models"][0]["mapping_sha256"] == digest(output / (name + "_2_atom_mapping.xlsx"))
             previous_result = result.read_bytes()
-            first_flow = pd.read_excel(result, sheet_name="Carbon_Flow_R1", engine="openpyxl")
+            first_flow = read_carbon_round(result, 1, engine="openpyxl")
             with patch("carbon_flow_tools.cli.ROOT", root):
                 assert main("trace", dict(trace_settings, max_excel_size_mb=.001),
                             ["--plan", str(plan)]) == 0
@@ -303,7 +302,7 @@ def check_independent_cases():
             assert result.read_bytes() == previous_result
             assert result.stat().st_size >= 1000
             pd.testing.assert_frame_equal(
-                pd.read_excel(result, sheet_name="Carbon_Flow_R1", engine="openpyxl"), first_flow)
+                read_carbon_round(result, 1, engine="openpyxl"), first_flow)
             pd.testing.assert_frame_equal(
                 pd.read_excel(result, sheet_name="Summary", engine="openpyxl"), summary)
             assert default_plan.read_bytes() == protected

@@ -35,8 +35,39 @@ class SpeciesManualTests(unittest.TestCase):
             species_name('Saccharomyces_cerevisiae_IUPD',dict(path='data/Escherichia_coli/iML1515.mat'))
     def test_conflicting_names_are_rejected_before_choosing_a_structure(self):
         self.write([['Escherichia_coli','compound[c]','CCO'],['Escherichia_coli','compound[e]','COC']])
-        with self.assertRaisesRegex(ValueError,'Conflicting'):
+        before = self.manual.read_bytes()
+        with self.assertRaises(ValueError) as caught:
             load_manual(self.manual)
+        message = str(caught.exception)
+        for detail in (str(self.manual.resolve()), 'Species: Escherichia_coli',
+                       'Metabolite: compound', 'Line 2: CCO', 'Line 3: COC',
+                       'Formula: C2H6O; formal charge: 0', 'keep one verified structure'):
+            self.assertIn(detail, message)
+        self.assertEqual(self.manual.read_bytes(), before)
+    def test_equivalent_smiles_spellings_are_accepted_through_completion(self):
+        self.write([['Escherichia_coli','ethanol[c]','CCO'],
+                    ['Escherichia_coli','ethanol[e]','OCC']])
+        table = pd.DataFrame([dict(MetaboliteID='m1', MetaboliteName='ethanol[c]')])
+        before = self.manual.read_bytes()
+        result = complete_smiles(table, 'Escherichia_coli_IUPD', self.options)
+        self.assertEqual(result.iloc[0].SMILES_Manual, 'CCO')
+        self.assertEqual(self.manual.read_bytes(), before)
+    def test_charge_and_stereochemistry_remain_real_conflicts(self):
+        for first, second in [('CC(=O)O', 'CC(=O)[O-]'),
+                              ('N[C@@H](C)C(=O)O', 'N[C@H](C)C(=O)O')]:
+            self.write([['Escherichia_coli', 'compound', first],
+                        ['Escherichia_coli', 'compound', second]])
+            with self.assertRaisesRegex(ValueError, 'Conflicting SMILES entries'):
+                load_manual(self.manual)
+    def test_ai_table_conflict_includes_its_own_file_and_records(self):
+        ai = self.root / 'ai_smiles.csv'
+        ai.write_text('Species,MetaboliteName,SMILES,Source\n'
+                      'Escherichia_coli,compound,CCO,https://example.org/first\n'
+                      'Escherichia_coli,compound,COC,https://example.org/second\n')
+        with self.assertRaises(ValueError) as caught:
+            load_manual(ai, with_source=True)
+        for detail in (str(ai.resolve()), 'Line 2: CCO', 'Line 3: COC'):
+            self.assertIn(detail, str(caught.exception))
     def test_formula_and_charge_conflicts_are_not_overridden(self):
         self.write([['Escherichia_coli','ethanol','CCO']])
         for formula,charge in [('CH4O',0),('C2H6O',-1)]:

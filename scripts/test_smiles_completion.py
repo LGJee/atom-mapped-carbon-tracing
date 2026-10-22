@@ -1,5 +1,7 @@
 """Check structure priority, reviewed name matches, caching and input protection."""
 
+from scripts.test_carbon_tracing import read_carbon_round
+
 import csv
 import hashlib
 from pathlib import Path
@@ -285,11 +287,7 @@ def main():
         )
         assert hashlib.sha256(mapping.read_bytes()).hexdigest() == mapping_digest
         assert (
-            pd.read_excel(
-                root / "Test_3_carbon_flow.xlsx",
-                sheet_name="Carbon_Flow_R1",
-                engine="openpyxl",
-            ).shape[0]
+            read_carbon_round(root / "Test_3_carbon_flow.xlsx", 1, engine="openpyxl").shape[0]
             == 2
         )
         with patch(

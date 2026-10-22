@@ -8,6 +8,7 @@ from rdkit import Chem
 from enzymemap import helpers_map, helpers_rdkit
 
 from .enzymemap_adapter import transfer, key
+from ..console import detail
 
 
 class RuleMapper:
@@ -28,7 +29,7 @@ class RuleMapper:
         self.normalize = options.get("normalize_protonation", True)
         if type(self.normalize) is not bool:
             raise ValueError("normalize_protonation must be True or False.")
-        print(
+        detail(
             "[EnzymeMap rules] loaded {} official rules.".format(len(self.rules)),
             flush=True,
         )

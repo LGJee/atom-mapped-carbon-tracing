@@ -83,27 +83,19 @@ These labels identify source atom origins, not experiment-derived abundances.
 
 Return to the [main workflow](../README.md).
 
-## Additional non-IUPD/IUPD comparison models
+## E. coli comparison models
 
-The test setup also includes E. coli iML1515 (`b2515`, ispG knockout) and
-Y. lipolytica iYali5 (`YALI0F30481g`, ERG13 knockout). The iYali5 model associates
-this gene with `559` and `560`; iML1515 associates ispG with `MECDPDH5`.
-Each IUPD model receives the same two-step isoprenol phosphorylation chemistry
-as the Yeast9 reference, using its own cytosolic ATP, ADP and IPP identifiers.
-
-ERG13's Y. lipolytica annotation is supported by
-[the original study](https://pmc.ncbi.nlm.nih.gov/articles/PMC7316989/).
+The reference setup also includes E. coli iML1515. Its IUPD condition knocks out
+`b2515` (ispG, reaction `MECDPDH5`) and adds the same two-step isoprenol
+phosphorylation chemistry as Yeast9, using cytosolic ATP, ADP and IPP identifiers.
+Both comparison models include heterologous SQS activity and a squalene output,
+using the stoichiometry of [RHEA:32295](https://www.rhea-db.org/rhea/32295).
 These are model-engineering comparisons, not experimentally validated strains.
-Each additional non-IUPD/IUPD pair fixes growth at 50% of its non-IUPD maximum, maximizes
-squalene formation and then minimize total absolute flux. non-IUPD uses the source
-model's native glucose bounds during growth optimization, then doubles its uptake
-limit after fixing growth: E. coli 10 -> 20 and Y. lipolytica 1 -> 2 mmol/gDW/h.
-For iYali5, step 1 enables a glucose medium with uptake limit 1 because the
-published model has glucose closed. Each IUPD keeps its growth-phase glucose bounds: uptake limits
-10 for E. coli and 1 for Y. lipolytica, with isoprenol limits 20.9 and 2.09,
-respectively. IUPD uses the saved non-IUPD growth reference; run non-IUPD before its IUPD block. Native oxygen bounds are inherited, allowing uptake up to 1000 mmol/gDW/h and other carbon
-boundary uptake is closed. E. coli non-IUPD/IUPD both include functional heterologous
-SQS activity and a squalene output, using the stoichiometry of
-[RHEA:32295](https://www.rhea-db.org/rhea/32295). IUPD isoprenol availability is 2.09 times the native glucose uptake limit.
-These values are analysis settings, not universal culture conditions.
-The Yeast9 paper's fixed-growth/squalene settings are retained separately.
+
+The non-IUPD condition uses the native glucose limit of 10 mmol/gDW/h to determine
+maximum growth, fixes growth at 50% of that value, then permits glucose uptake up
+to 20 while maximizing squalene and minimizing total absolute flux. IUPD uses the
+same fixed growth reference, keeps the glucose limit at 10, and permits isoprenol
+uptake up to 20.9. Run the non-IUPD block before its IUPD block. Native oxygen
+bounds are inherited and other carbon boundary uptake is closed.
+These settings are specific to this comparison, not universal culture conditions.

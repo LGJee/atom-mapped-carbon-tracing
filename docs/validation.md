@@ -1,3 +1,27 @@
+# Validation record
+
+The current reference setup contains four conditions: non-IUPD/IUPD pairs for
+Saccharomyces_cerevisiae and Escherichia_coli. Historical entries below describe
+checks performed before this scope reduction. Their model counts and local
+`data/validation/` artifact paths refer to the archived pre-removal state; they
+are not evidence of a fresh full-network rerun. The original record is preserved
+in the pre-removal Git snapshot and external data backup.
+
+## Current two-species reference scope (2026-10-21)
+
+Step 1 registers four conditions: non-IUPD/IUPD pairs for S. cerevisiae and E. coli.
+Their four model blocks are unchanged from the pre-removal snapshot. Retained
+source models and current Excel workbooks passed hash comparisons. The existing
+plan passes step-2 and step-3 loading checks with four models; Summary collection
+contains eight separate ordinary/AI sheets.
+
+The analysis-plan integration, manual mapping, species-isolation, script-settings,
+model-structure and model-preparation regression modules passed. Preparation tests
+include 14 isolated checks. No full mapper or long-round propagation was rerun.
+Historical mixed-species audit and validation artifacts were archived outside the
+active checkout with explicit user approval, preserving original evidence rather
+than rewriting old reports. The pre-removal Git snapshot retains the source history.
+
 ## Exclusive-source counts in the final saved round (2026-10-17)
 
 Step 3 adds `<source>_ExclusiveSourceMetabolites` only to the last saved Summary
@@ -14,11 +38,10 @@ of the previous round's counts/list after rejection; batched-output, output-limi
 and Summary-collection unit tests; script-settings, stage-handoff and scientific
 carbon-tracing regression programs. Existing Summary values remain unchanged.
 
-A read-only check of two existing ordinary-mapping workbooks at round 10 gave:
+A retained historical ordinary-mapping example at round 10 gave:
 
 | Model | Glucose-exclusive metabolites | Isoprenol-exclusive metabolites |
 |---|---:|---:|
-| Yarrowia_lipolytica_IUPD | 161 | 19 |
 | Escherichia_coli_IUPD | 216 | 10 |
 
 All previous comparable Summary fields matched. These counts concern observed
@@ -90,7 +113,7 @@ identical to the historical ordinary first-round baseline. Shared Summary values
 also matched for the ordinary output. There is no independent historical AI
 propagation baseline for this check. Input mapping hashes remained unchanged;
 new outputs were written under /tmp. The development results directory currently
-has no step-2 mapping workbooks, so a full six-model rerun was not performed.
+has no step-2 mapping workbooks, so a full reference-model rerun was not performed.
 No mapper predictions were rerun and no historical result files were deleted.
 
 ## Batched carbon-flow output checks (2026-10-16)
@@ -161,21 +184,21 @@ not constraints added to force the new solver's answer.
 A fresh isolated preparation environment was installed from its specification;
 the real COBRApy/GLPK smoke test and `pip check` passed. The default
 `python3 step1_prepare_carbon_tracing_inputs.py` command selected that interpreter,
-optimized all six real models and generated six inputs plus the version-3 plan.
+optimized the then-configured reference models and generated six inputs plus the version-3 plan.
 Seven focused preparation tests and all eight existing deterministic regression
 programs passed. The custom iML1515 growth example also exported in isolation.
 The existing compatible tracing interpreter was used for downstream regressions;
 a clean reinstallation of the three unchanged mapper environments was not run.
 
-The actual six-model checks verified the non-IUPD/IUPD shared fixed growth, doubled
+The actual reference-model checks verified the non-IUPD/IUPD shared fixed growth, doubled
 non-IUPD glucose bounds, 2.09-fold IUPD isoprenol bounds, nonfunctional knocked-out
 genes and the expected blocked reactions. The unchanged step-2 reader accepted
-all six inputs with offline structure completion; input hashes were unchanged.
+all reference inputs with offline structure completion; input hashes were unchanged.
 Shared metabolite names, formulas, charges and available InChI/InChIKey values
 matched the reference exports. Calibri fonts and plain tables were retained.
 
 Reference comparison uses rtol=1e-6 and atol=1e-8 for fixed growth, production
-flux and total absolute flux. All six comparisons passed those numerical
+flux and total absolute flux. All comparisons passed those numerical
 criteria. Reaction sets are **not identical**:
 
 | Model | Reference reactions | COBRApy reactions | Removed / added |
@@ -184,8 +207,6 @@ criteria. Reaction sets are **not identical**:
 | Saccharomyces_cerevisiae_IUPD | 486 | 492 | 23 / 29 |
 | Escherichia_coli_non_IUPD | 434 | 434 | 2 / 2 |
 | Escherichia_coli_IUPD | 436 | 436 | 5 / 5 |
-| Yarrowia_lipolytica_non_IUPD | 390 | 389 | 4 / 3 |
-| Yarrowia_lipolytica_IUPD | 386 | 385 | 4 / 3 |
 
 E. coli non-IUPD, for example, uses PYK2/PYK3 in place of NDPK1/NDPK2 while retaining
 the same numerical objectives. The larger yeast differences include alternative
@@ -213,7 +234,7 @@ biomass bounds and `pfba()` calls directly. The pFBA wrapper and nested
 stoichiometry comprehensions were removed; loading, validation and export remain
 shared. The custom-model example follows the same direct pFBA convention.
 
-Before and after this revision, all six actual models were serialized and their
+Before and after this revision, the then-configured reference models were serialized and their
 complete pFBA flux vectors compared using the same preparation environment.
 Model data, inactive genes and every reaction flux were identical (maximum
 absolute flux difference: 0 for each model). These checks compare the two Python
@@ -235,13 +256,13 @@ cover native MAT/JSON SMILES, differently named YAML companions, identity matchi
 directory isolation, source metadata records, source hash changes, manual/input
 priority, equivalent SMILES, conflicting structures and identifier-based lookup.
 All eight existing deterministic regression programs also passed, including the
-six-model plan-to-mapping-to-propagation integration check and step-4 settings.
+reference-model plan-to-mapping-to-propagation integration check and step-4 settings.
 
 For the six real reference networks, complete pFBA flux vectors were identical to
 the preceding Python revision (maximum absolute difference 0). Model data were
 identical except that E. coli companion InChIKey enrichment moved to step 2.
 Offline automatic structure selection matched the previous explicit-YAML selection
-for every exported metabolite in all six networks; E. coli InChIKeys were also
+for every exported metabolite in all reference networks; E. coli InChIKeys were also
 restored exactly when the old exported identifier column was removed in a test.
 Input Excel bytes were unchanged. The existing generated plan was refreshed with
 source provenance without rewriting its workbooks. Detailed local-only evidence
@@ -258,17 +279,16 @@ No original test-project files were changed and no changes were published.
 Each step-1 strain block now defines its own ordered `carbon_sources` list and
 exports it together with that model's solution. The separate global source table
 was removed. All nine preparation tests passed, including two independent source
-lists with different introduction orders. The six real models retained exactly
+lists with different introduction orders. The then-configured reference models retained exactly
 the same source lists and complete flux vectors (maximum absolute difference 0).
 No existing input, mapping or carbon-flow workbook was rewritten.
 
 ## Uniform model blocks and validation scope (2026-10-15)
 
-All six strain blocks use the same reading order: model loading, ordered carbon
+The reference strain blocks use the same reading order: model loading, ordered carbon
 sources, culture/model modifications, growth constraints, production pFBA and
 registration for export. Fixed-version enforcement was removed. non-IUPD biomass
 objectives are assigned explicitly instead of requiring a matching source objective.
-The Yarrowia glucose setting is local to each block rather than a shared constant.
 
 The generic requirement that a gene knockout must change reaction bounds was
 removed; redundant or already inactive genes can be valid knockouts. COBRApy still
@@ -278,7 +298,7 @@ exporter still verifies optimal status, finite fluxes, steady state and bounds
 before creating output.
 
 All ten preparation tests passed, including invalid-solution rejection before any
-output was created. A fresh comparison of all six real models found identical
+output was created. A fresh comparison of the then-configured reference models found identical
 serialized model data, inactive genes, ordered source lists and complete pFBA flux
 vectors (maximum absolute difference 0). Local evidence is in
 `data/validation/uniform_blocks_*`. Existing workbooks and the generated analysis
@@ -314,7 +334,7 @@ unreadable-memory failure, nested cgroup limits, stopping inside combination
 enumeration, unchanged propagation results, preservation of saved round 1 when
 round 2 stops, and guarded Excel writes/step-4 setting inheritance.
 
-Existing carbon-tracing and script-settings regressions passed. The six-model
+Existing carbon-tracing and script-settings regressions passed. The reference-model
 analysis-plan fixture passed with mocked safe-memory readings. The stage/AI-copy
 regression passed with mocked safe-memory readings and serial execution forced;
 the parallel-process path was not rerun while a live analysis occupied about
@@ -352,7 +372,7 @@ carbon_tracing, script_settings, analysis_plan, stages, parallel_carbon and
 consensus_mapping. They include real concurrent processes and synthetic AI
 mapping changes; no external mapper was called by propagation.
 
-All six real step-2 workbooks were propagated for one round in an isolated
+The then-configured step-2 workbooks were propagated for one round in an isolated
 validation directory. Every first-round carbon-flow value and original Summary
 count matched the existing output exactly. Input and mapping file hashes were
 unchanged. This was not a full rerun of later rounds or real AI-reviewed models.
@@ -383,7 +403,7 @@ GitHub push was performed.
 
 ## Separate analysis plans and automation interfaces (2026-10-15)
 
-The default six-model script and no-argument stage commands remain available.
+The default reference-model script and no-argument stage commands remain available.
 An optional copied COBRApy recipe can generate a separate analysis plan and
 results under `results/results_by_AI/<name>/`; steps 2 and 3 select it with `--plan`. Each analysis
 shares the installed environments and original model data. Generated plans add
@@ -413,7 +433,7 @@ model used 5 glucose and 6 xylose. Biological growth objectives were approximate
 0.876997214 and 0.871354700, respectively. This validates input preparation,
 not a new full-network mapping or carbon-propagation result.
 
-All six study inputs were independently regenerated using a selected validation
+The then-configured study inputs were independently regenerated using a selected validation
 plan. `Nonzero` and `Metabolites` tables matched the existing exports, including
 row order and numerical values within 1e-9 tolerance. The default plan and all
 12 existing root-level result workbooks retained identical SHA256 hashes.
@@ -471,13 +491,13 @@ first-round rollback, malformed Summary collection and input preservation.
 
 Automatic NoCarbon classification, FAD/FMN-family skeleton recovery and the IspG
 carbon template were withdrawn after the combined-method validation above. Its
-local six-model outputs are historical comparisons with those additions enabled,
+local reference-model outputs are historical comparisons with those additions enabled,
 not results from the current rule set. Existing workbooks were not modified.
 
 After withdrawal, all 13 carbon-rule tests passed, including explicit checks that
 formula-only carbon-free reactions remain unresolved and withdrawn flavin/IspG
 fallbacks are not generated. Consensus selection, stage handoff and both combined
-method tests also passed. These checks use isolated small fixtures; six-model
+method tests also passed. These checks use isolated small fixtures; reference-model
 research outputs and mapper predictions were not regenerated.
 
 
@@ -515,8 +535,7 @@ workbook, original test project, or GitHub repository was replaced.
 
 ## Full species directories and manual structures (2026-10-18)
 
-Model directories now use Escherichia_coli, Saccharomyces_cerevisiae and
-Yarrowia_lipolytica. All nine original model/annotation files retain their
+Model directories use full species names. The original model/annotation files retained their
 pre-migration SHA-256 hashes. The manual SMILES table uses exactly Species,
 MetaboliteName and SMILES; 39 condition/ID records were consolidated into eight
 unique species/name records, with the original table preserved locally under
@@ -558,6 +577,6 @@ There were no historical structure archives to populate ai_smiles.csv; its heade
 is ready for future discoveries. AI structures only fill missing input structures
 and retain review flags; AI mapping indexes do not automatically override step 2.
 
-No real mapper, preparation solve, six-model propagation or external lookup was
+No real mapper, preparation solve, reference-model propagation or external lookup was
 run. Existing research workbooks were not regenerated. Only local skills and their
 maintained copies were synchronized; no repository was pushed.

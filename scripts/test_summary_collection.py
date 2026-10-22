@@ -28,7 +28,7 @@ class SummaryCollectionTests(unittest.TestCase):
                         (1, index + 2, None), (2, index + 4, "round_limit")]
                 for row in rows:
                     sheet.append(row)
-                workbook.create_sheet("Carbon_Flow_R1").append(["not copied"])
+                workbook.create_sheet("Carbon_Flow").append(["not copied"])
                 workbook.save(path)
                 workbook.close()
                 hashes[path] = path.read_bytes()

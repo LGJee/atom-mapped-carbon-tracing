@@ -1,7 +1,7 @@
 """Step 2: predict atom mappings and select final correspondences."""
 
 import sys
-from carbon_flow_tools.cli import main
+from carbon_flow_tools.cli import run_cli
 
 # Mapping execution settings. Defaults work with the supplied environments.
 # Step 1 supplies the input files and output folder; no paths need repeating.
@@ -66,4 +66,4 @@ def settings():
 
 
 if __name__ == "__main__":
-    sys.exit(main("map", settings()))
+    sys.exit(run_cli("map", settings()))

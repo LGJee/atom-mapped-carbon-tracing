@@ -3,6 +3,8 @@ import os
 import time
 from pathlib import Path
 
+from .console import detail
+
 
 BATCH_SIZE = 1
 MAX_REACTION_ATOMS = 500
@@ -19,7 +21,7 @@ def configure(batch_size, max_reaction_atoms):
         )
     global BATCH_SIZE, MAX_REACTION_ATOMS
     BATCH_SIZE, MAX_REACTION_ATOMS = batch_size, max_reaction_atoms
-    print(
+    detail(
         f"Configuration: batch size {BATCH_SIZE}; maximum {MAX_REACTION_ATOMS} atoms per reaction (both sides combined).",
         flush=True,
     )
@@ -40,7 +42,7 @@ def parallel_capacity(
     ):
         raise ValueError("Memory budget must be a finite positive number or None.")
     if task_count == 0:
-        print("No pending predictions; no mapper processes needed.", flush=True)
+        detail("No pending predictions; no mapper processes needed.", flush=True)
         return 1, 1
     cpus = (
         len(os.sched_getaffinity(0))
@@ -72,7 +74,8 @@ def parallel_capacity(
     threads = max(1, cpus // workers)
     memory_text = f"{available:.1f} GiB" if available is not None else "unavailable"
     budget_kind = "estimated" if automatic else "configured"
-    print(
+    detail("{}: {} task(s), {} parallel worker(s).".format(task_kind.capitalize(), task_count, workers), flush=True)
+    detail(
         f"Resources: {cpus} CPU threads, {memory_text} available memory; "
         f"{task_count} {task_kind} tasks, up to {workers} concurrent processes; "
         f"{budget_kind} memory budget {memory_per_process_gb:.1f} GiB/process.",

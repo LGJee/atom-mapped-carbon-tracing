@@ -120,7 +120,7 @@ class ExclusiveSourceTests(unittest.TestCase):
                 self.assertEqual(len(rows), 2)
                 self.assertEqual(rows[1][rows[0].index("A[c]_ExclusiveSourceMetabolites")], 1)
                 self.assertEqual(list(workbook["Exclusive_Source_Metabolites"].values)[1][0], 1)
-                self.assertNotIn("Carbon_Flow_R2", workbook.sheetnames)
+                self.assertEqual({row[0] for row in list(workbook["Carbon_Flow"].values)[1:]}, {1})
             finally:
                 workbook.close()
 

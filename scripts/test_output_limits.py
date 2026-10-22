@@ -1,5 +1,7 @@
 """Check batch-level size stops and preservation of complete per-model results."""
 
+from scripts.test_carbon_tracing import read_carbon_round
+
 from pathlib import Path
 import json
 import os
@@ -30,7 +32,7 @@ def output_workbook(path, table):
     workbook = Workbook()
     del workbook[workbook.active.title]
     write_sheet(workbook, "Summary", table)
-    write_sheet(workbook, "Carbon_Flow_R1", pd.DataFrame({"ProductionID": [1, 2]}))
+    write_sheet(workbook, "Carbon_Flow", pd.DataFrame({"Carbon_Flow_Round": [1, 1], "ProductionID": [1, 2]}))
     save_output(workbook, path)
     workbook.close()
 
@@ -53,6 +55,7 @@ class OutputLimitTests(unittest.TestCase):
     def test_limit_and_shared_settings(self):
         self.assertEqual(workbook_limit(50), 50000000)
         self.assertEqual(step3.settings()["max_excel_size_mb"], 50)
+        self.assertEqual(step3.settings()["rounds"], 10)
         self.assertEqual(workbook_limit(.001), 1000)
         for value in (None, True, 0, -.1, float("inf"), float("nan"), .0000001):
             with self.assertRaises(ValueError):
@@ -109,9 +112,9 @@ class OutputLimitTests(unittest.TestCase):
                     self.assertEqual(status["output_file"], str(path) if completed else None)
                     if completed:
                         with pd.ExcelFile(path, engine="openpyxl") as excel:
-                            self.assertEqual(excel.sheet_names, ["Summary", "Carbon_Flow_R1"])
+                            self.assertEqual(excel.sheet_names, ["Summary", "Carbon_Flow"])
                             self.assertEqual(pd.read_excel(excel, "Summary").Round.tolist(), [1])
-                            pd.testing.assert_frame_equal(pd.read_excel(excel, "Carbon_Flow_R1", dtype={"SourceIDs": str}), table)
+                            pd.testing.assert_frame_equal(read_carbon_round(excel, 1, dtype={"SourceIDs": str}), table)
                     else:
                         self.assertEqual(path.read_bytes(), historical)
                     self.assertFalse(list(Path(directory).glob(".carbon-flow-*")))
@@ -130,8 +133,7 @@ class OutputLimitTests(unittest.TestCase):
             with pd.ExcelFile(path, engine="openpyxl") as excel:
                 self.assertEqual(pd.read_excel(excel, "Summary").Round.tolist(), [r[0] for r in expected])
                 for number, table, _, _ in expected:
-                    pd.testing.assert_frame_equal(pd.read_excel(excel,
-                        "Carbon_Flow_R{}".format(number), dtype={"SourceIDs": str}), table)
+                    pd.testing.assert_frame_equal(read_carbon_round(excel, number, dtype={"SourceIDs": str}), table)
 
     def test_failed_checkpoint_preserves_previous_complete_round(self):
         rxn, metabolites, _ = flow_fixture()
@@ -169,6 +171,7 @@ class OutputLimitTests(unittest.TestCase):
                 store.start_layer()
                 store.append(row)
                 if number == 2:
+                    calls.append("combined sheet overflow should stop the first row")
                     store.append(dict(row, SourceIDs="9"))
                     calls.append("must not be reached")
                 store.flush()
@@ -184,7 +187,7 @@ class OutputLimitTests(unittest.TestCase):
             self.assertEqual(status["stop_reason"], "row_limit")
             self.assertEqual(status["completed_rounds"], 1)
             with pd.ExcelFile(path, engine="openpyxl") as excel:
-                self.assertEqual(excel.sheet_names, ["Summary", "Carbon_Flow_R1"])
+                self.assertEqual(excel.sheet_names, ["Summary", "Carbon_Flow"])
                 self.assertEqual(pd.read_excel(excel, "Summary").Round.tolist(), [1])
 
     def test_first_batch_overflow_produces_no_current_output(self):

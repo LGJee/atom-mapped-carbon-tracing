@@ -8,6 +8,8 @@ import re
 
 from rdkit import Chem
 
+from .console import detail
+
 
 def read_model_smiles(path):
     """Read scalar/first-list SMILES from COBRA/RAVEN ordered-map YAML exports."""
@@ -143,6 +145,7 @@ def read_annotations(filename, modified, size, variable_name):
 
 
 def compatible(annotation, row, require_name=False):
+    from .carbon_mapping_rules import formulas_match
     name = annotation.get("name", "")
     if name == "D-Glucose":
         name = "D-glucose"
@@ -157,7 +160,7 @@ def compatible(annotation, row, require_name=False):
         and (
             not formula
             or not annotation.get("formula")
-            or formula == annotation["formula"]
+            or formulas_match(formula, annotation["formula"])
         )
     )
 
@@ -207,11 +210,8 @@ def discover_annotations(source, metabolites):
                 )
             smiles = annotation.get("smiles", "")
             molecule = Chem.MolFromSmiles(smiles) if smiles else None
-            if (
-                molecule is None
-                or not molecule.GetNumAtoms()
-                or any(atom.GetAtomicNum() == 0 for atom in molecule.GetAtoms())
-            ):
+            from .carbon_mapping_rules import structure_kind
+            if structure_kind(smiles) not in ("complete", "partial"):
                 continue
             candidates.setdefault(row.MetaboliteID, []).append(
                 dict(
@@ -222,7 +222,7 @@ def discover_annotations(source, metabolites):
             )
             matched += 1
         if matched:
-            print(
+            detail(
                 "Model structures: {} matched metabolites from {}".format(
                     matched, item.name
                 ),

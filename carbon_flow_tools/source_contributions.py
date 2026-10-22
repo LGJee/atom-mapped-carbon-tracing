@@ -2,7 +2,6 @@
 
 from collections import defaultdict, deque
 import math
-import re
 import warnings
 
 import numpy as np
@@ -14,6 +13,7 @@ from scipy.sparse.linalg import MatrixRankWarning, spsolve
 from .atom_helpers import mapped_components
 from .carbon_trace import inorganic_carbon_names
 from .consensus import mapping_signatures
+from .carbon_mapping_rules import structure_kind, STRUCTURE_LIMITS, carbon_structure_issues
 from .reactions import clean, get_smiles, parse_side, split_equation
 
 TOL = 1e-8
@@ -51,20 +51,20 @@ def solve_source_contributions(reactions, metabolites, source_names,
         raise ValueError("Duplicate reaction IDs.")
     nodes, positions, ambiguous, structure_issues = [], {}, set(), {}
     rows_by_name = {clean(r.MetaboliteName): r for r in metabolites.itertuples(index=False)}
+    carbon_issues = carbon_structure_issues(metabolites)
     for name, row in rows_by_name.items():
         structure = get_smiles(row)
+        kind = structure_kind(structure, clean(getattr(row, "MolecularFormula", "")))
+        if kind == "polymer":
+            structure_issues[name] = STRUCTURE_LIMITS[kind]
+            continue
         molecule = Chem.MolFromSmiles(structure) if structure else None
         if molecule is None:
             structure_issues[name] = "Missing or invalid structure; carbon positions unavailable"
             continue
-        formula = clean(getattr(row, "MolecularFormula", ""))
-        if formula and re.fullmatch(r"(?:[A-Z][a-z]?\d*)+", formula):
-            counts = re.findall(r"([A-Z][a-z]?)(\d*)", formula)
-            expected = sum(int(count or 1) for element, count in counts if element == "C")
-            actual = sum(a.GetAtomicNum() == 6 for a in molecule.GetAtoms())
-            if actual != expected:
-                structure_issues[name] = "Structure/formula carbon count mismatch"
-                continue
+        if name in carbon_issues:
+            structure_issues[name] = "Structure/formula carbon count mismatch"
+            continue
         positions[name] = []
         for part, fragment in enumerate(structure.split(".")):
             mol = Chem.MolFromSmiles(fragment)
@@ -80,6 +80,9 @@ def solve_source_contributions(reactions, metabolites, source_names,
                 if ranks.count(ranks[atom.GetIdx()]) > 1:
                     ambiguous.add(node)
     for name in source_names:
+        row = rows_by_name.get(name)
+        if row is not None and structure_kind(get_smiles(row), clean(getattr(row, "MolecularFormula", ""))) != "complete":
+            raise ValueError("Carbon source requires a complete, explicit structure: " + name)
         if not positions.get(name):
             raise ValueError("Carbon source has no usable carbon structure: " + name)
     if not nodes:
@@ -259,6 +262,16 @@ def solve_source_contributions(reactions, metabolites, source_names,
                 **{o: float(v) for o, v in zip(origins, fractions[i])}))
     atoms = pd.DataFrame(atom_rows)
     compounds = pd.DataFrame(metabolite_rows)
+    kinds = {name: structure_kind(get_smiles(row), clean(getattr(row, "MolecularFormula", "")))
+             for name, row in rows_by_name.items()}
+    if any(kind in ("partial", "polymer") for kind in kinds.values()):
+        compounds["StructureType"] = compounds.MetaboliteName.map(kinds)
+        compounds["KnownCarbonCount"] = compounds.CarbonCount
+        compounds.loc[compounds.StructureType.eq("polymer"), "KnownCarbonCount"] = np.nan
+        compounds["ContributionScope"] = compounds.StructureType.map(
+            lambda kind: "explicit carbon positions only; unknown region not quantified" if kind == "partial"
+            else "unavailable; repeat count unspecified" if kind == "polymer" else "whole explicit structure")
+        compounds.loc[compounds.StructureType.isin(["partial", "polymer"]), "CarbonCount"] = np.nan
     info = dict(method="fixed_flux_single_carbon_origin_balance", max_scaled_residual=residual,
                 carbon_positions=n, ambiguous_carbon_positions=len(ambiguous),
                 symmetry_mapped_transfers=symmetry_mapped,

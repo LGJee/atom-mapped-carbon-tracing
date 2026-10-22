@@ -102,7 +102,7 @@ exactly; qualitative unit transfers avoid rounding or creating 55 copies.
 Final_Mapping includes every reaction and MappingCoverage is Complete, Partial,
 Unresolved or Boundary. Legacy NoCarbon records remain readable. Mapper partial views use sparse MappedReactionSMILES.
 Rule partials show a reduced unit mapped subreaction in both selected/final
-mapped-SMILES fields. Partial_Mapping retains exact source/product structures,
+mapped-SMILES fields. Hidden Mapping_Info records (RecordType=PartialMapping) retain exact source/product structures,
 zero-based atom-index pairs, direction, original coefficient and rule version.
 The loader recomputes those records and checks the reduced string; it never
 compares a reduced map as if it described the full original equation.
@@ -127,7 +127,7 @@ issues, not opportunities to manufacture new carbon correspondences. Step 3
 rejects complete final mappings that still use such inconsistent structures.
 
 The AI-review skill must assess biochemical applicability, not just graph match.
-It leaves original Mapping_Selection, raw predictions and Partial_Mapping intact.
+It leaves original Mapping_Selection, raw predictions and saved partial correspondence records intact.
 In an AI copy, confirmed partial rules remain Partial; rejected/scientifically
 unresolved rules become Unresolved and are disabled. A validated complete AI
 replacement becomes Complete and takes precedence. Neither a rule match nor AI
@@ -189,7 +189,7 @@ Matched SMILES are written directly into Mapping_Selection.SelectedMappedReactio
 and Final_Mapping.MappedReactionSMILES. Complete validated mappings are Complete;
 carbon-only or reduced subreactions remain Partial with ReviewRequired=TRUE.
 The program derives the required positional/stoichiometric bookkeeping and saves
-it in Partial_Mapping. Users do not enter atom indices or transfer coefficients.
+it in hidden Mapping_Info. Users do not enter atom indices or transfer coefficients.
 Step 3 can reload these records without the external CSV, preserving the supplied
 mapped text. Original equations and fluxes are unchanged.
 
@@ -227,5 +227,93 @@ non_IUPD/IUPD condition suffix. For example Escherichia_coli shares one isopreno
 record across conditions and compartments. Terminal compartment suffixes are
 ignored for name matching; names are otherwise exact. Local model metabolite IDs
 are not manual-table keys. Conflicting structures for one species/name, or an
-explicit model formula/charge incompatible with an override, raise an error.
+explicit model formula/charge incompatible with an override, raise an error unless
+the protonation-compatible warning policy below applies.
 The original detailed workbook IDs and review archives remain available for audit.
+
+
+## Partial structures and unspecified repeats
+
+`structure_kind` in `carbon_mapping_rules.py` is the common policy used by manual
+validation, source annotations, mapper preparation, selection and step 3. It reports
+`complete`, `partial`, `polymer`, `invalid`, or `missing`; original structures are
+retained. Here `complete` means a syntactically explicit graph, not experimentally
+verified identity or fully specified stereochemistry.
+
+- `*` and `[*]` are legal dummy atoms (atomic number zero). They are not known
+  carbon, hydrogen, methyl, or evidence that two variable groups are identical.
+  For example, [ChEBI phosphatidylcholine](https://www.ebi.ac.uk/chebi/CHEBI:64482)
+  has two R groups and an explicit glycerophosphocholine/acyl-carbonyl skeleton.
+- A formula such as [KEGG C00110](https://www.kegg.jp/entry/C00110),
+  `C20H37O4P(C5H8)n`, describes variable repeats. Carbon count depends on n; no
+  positional graph is inferred, and n is never set to one. A supplied repeat-unit
+  SMILES does not resolve an unspecified whole polymer. Such a participant is
+  omitted only from the mapper input view, with its reason saved in Mapping_Info;
+  the original equation, stoichiometry and flux remain unchanged. Other, independently
+  mapped participants can still contribute partial carbon transfers.
+- SMILES aromatic `n` and `[nH]` are actual nitrogen atoms, not polymer repeats.
+  Ring numbers, charge, stereochemistry, isotopes and dot-separated components are
+  parsed normally by RDKit; none is stripped to make a structure pass validation.
+  See the [RDKit Book](https://www.rdkit.org/docs/RDKit_Book.html).
+- Genuine syntax/valence errors in applicable manual rows still fail with the file,
+  line, species, compound and original string. Runtime manual/AI structure validation
+  checks the current species and compounds present in its input; standalone
+  `load_manual(path)` still validates the entire table. Conflicting applicable rows
+  and complete-structure formula/charge conflicts remain errors except for the documented
+  protonation-compatible warning below. Partial fragments
+  cannot be compared with whole-compound formula/charge as if they were complete;
+  a known fragment carbon count exceeding a fixed formula count is still inconsistent.
+
+LocalMapper 0.1.1 and RXNMapper 0.4.3 returned predictions for both an ACP dehydration
+and a two-variable-group phosphatidylcholine hydrolysis probe. The pinned EnzymeMap
+single-step rules returned an ACP prediction but no PC prediction. These small tests
+establish parser/execution support for those inputs, not universal chemical accuracy.
+The EnzymeMap probe used an empty isolated lookup CSV and the installed official rules;
+coverage of the full dataset was not tested. Versioned probe outputs are local validation
+artifacts. Published mapper preference and raw predictions are unchanged.
+
+A wildcard prediction can never be `Complete`, even if the tool numbers every dummy.
+The existing carbon-only selection keeps only unique explicit C-to-C IDs, clears dummy
+and other noncarbon IDs, sets `Partial` and `ReviewRequired=TRUE`, and records the scope
+in SelectionReason. Two R groups are not merged or assigned carbons. An unresolved
+nonempty software candidate remains visible for review and is excluded from propagation.
+
+Automatic skeleton rules do not infer ACP/lipid transformations from generic graph
+similarity. The narrowly supported exception is a pure, same-identity compartment
+transport with equal amounts and the same partial graph: only explicit carbon pairs
+invariant over every exact alignment are retained. Dummy and symmetry-ambiguous
+positions stay unmapped. Other partial transfers require a usable software prediction
+or independently reviewed manual correspondence. They use the existing hidden
+Mapping_Info records; no Partial_Mapping worksheet is generated.
+
+Step 3 revalidates these sparse maps and propagates only explicit carbon positions.
+Summary counting definitions are unchanged: reachability of a partially described
+metabolite does not mean every carbon in its unknown region was reached. Variable-repeat
+polymers have no automatically constructed positions. A configured carbon source must
+have a complete explicit structure; generic carbon sources require resolution first.
+In fixed-flux source-contribution output containing partial/polymer structures,
+StructureType and ContributionScope identify the limit. Fractions for a partial graph
+are means over its KnownCarbonCount explicit carbons only; CarbonCount is blank because
+the whole count is unknown. Polymer totals/fractions are unavailable, not repeat-unit
+fractions or zero contribution. Unknown regions are not redistributed among sources.
+
+Unsupported cases include unspecified polymer lengths, variable-group identity or
+transfer without evidence, generic protein/biomass positional structures, ambiguous
+carbon alignments, and parser-invalid chemical notation. An explicit chain/sequence,
+exact small-molecule structure, or reviewed positional correspondence is needed before
+those regions can enter atom-level tracing.
+
+
+## Protonation-compatible manual structures
+
+A complete manual/AI-table structure may differ from the model formula/charge only
+by a protonation-compatible amount: all non-hydrogen element counts must match,
+both charges must be finite integers, and delta H must equal delta formal charge.
+Such a mismatch warns and continues without editing the supplied SMILES, formula,
+charge, stoichiometry or flux. StructureStatus records both forms and
+StructureReviewRequired=TRUE makes affected selected/final mappings reviewable.
+Formula/charge compatibility does not establish compound identity or a preferred
+pH microstate. Carbon/other-element conflicts, missing comparison metadata, and
+hydrogen changes without matching charge changes do not qualify for this exception.
+Other manual-table checks remain in force. No pH adjustment or Open Babel dependency
+is introduced; model annotations/database candidates retain their existing checks.

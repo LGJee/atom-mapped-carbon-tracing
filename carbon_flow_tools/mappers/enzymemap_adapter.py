@@ -6,6 +6,8 @@ from pathlib import Path
 
 from rdkit import Chem, RDLogger
 
+from ..console import Progress, detail
+
 
 @lru_cache(maxsize=50000)
 def structure(smiles):
@@ -104,13 +106,16 @@ def load_model(options):
     requested = {key(r) for r in options["reactions"]}
     matches = {}
     RDLogger.DisableLog("rdApp.warning")
+    progress = Progress(options.get("progress_label", "EnzymeMap") + " | scanning database",
+                        unit="records")
     with path.open(encoding="utf-8-sig", newline="") as source:
         rows = csv.DictReader(source)
         if not {"mapped", "unmapped"} <= set(rows.fieldnames or []):
             raise ValueError("EnzymeMap CSV requires mapped and unmapped columns.")
         for number, row in enumerate(rows, 2):
             if number % 10000 == 0:
-                print(
+                progress.update(number - 1)
+                detail(
                     "[EnzymeMap lookup] scanned {} records; {} reactions matched.".format(
                         number - 1, len(matches)
                     ),
@@ -145,7 +150,7 @@ def load_model(options):
                         }
             except (ValueError, TypeError):
                 continue
-    print(
+    detail(
         "[EnzymeMap lookup] {} requested reactions; {} database matches.".format(
             len(requested), len(matches)
         ),

@@ -5,7 +5,7 @@ Rules, in order:
 * Open-boundary reactions need no internal carbon mapping.
 * Preserve mapper predictions, including failed candidates retained for review.
 * Recover only structurally recognized, uniquely paired carbon skeletons.
-* Save a reduced unit subreaction plus original decimal transfer coefficients.
+* Save a reduced unit subreaction plus exact decimal amounts in hidden Mapping_Info.
 * Unknown pools and transfers remain unresolved; never average or invent atoms.
 
 Cofactor skeleton retention does not establish attached-group transfer. Generic
@@ -55,6 +55,123 @@ for _prefix, _family_name in (("A", "adenylate"), ("G", "guanylate"),
             "OP(=O)(O)OP(=O)(O)OP(=O)(O)O", "OP(=O)(O)" * _count + "O")
         _FAMILY_BY_NAME[_name] = _family_name
 
+
+# A formula is metadata, never a substitute for a positional molecular graph.
+_FORMULA = r"(?:[A-Z][a-z]?\d*)+"
+_REPEAT_FORMULA = r"(?:[A-Z][a-z]?\d*|\((?:[A-Z][a-z]?\d*)+\)[nm]\d*|[nm])+"
+STRUCTURE_LIMITS = {
+    "partial": "Partial structure: explicit carbon positions only; wildcard groups remain unresolved",
+    "polymer": "Unspecified polymer repeat count; no unique positional structure (n is not set to 1)",
+    "invalid": "Invalid SMILES syntax or unsupported valence",
+    "missing": "Missing SMILES",
+}
+
+
+def repeat_formula(formula):
+    """Recognize variable repeats only in formula syntax, not aromatic SMILES n."""
+    text = re.sub(r"[+-]\d*$", "", clean(formula))
+    return bool(re.fullmatch(_REPEAT_FORMULA, text) and re.search(
+        r"[nm]", re.sub(r"[A-Z][a-z]?\d*", "", text)))
+
+
+@lru_cache(maxsize=4096)
+def structure_kind(smiles, formula=""):
+    """Classify without editing the original SMILES, charges or stereochemistry.
+
+    RDKit dummy atoms (atomic number zero) are legal attachment placeholders,
+    not carbon atoms. Matching two dummies does not establish carrier identity.
+    A variable-repeat formula cannot define the omitted carbon positions.
+    """
+    text = clean(smiles)
+    if repeat_formula(formula):
+        return "polymer"
+    if not text:
+        return "missing"
+    molecule = Chem.MolFromSmiles(text)
+    if molecule is None or not molecule.GetNumAtoms():
+        return "polymer" if repeat_formula(text) else "invalid"
+    return "partial" if any(a.GetAtomicNum() == 0 for a in molecule.GetAtoms()) else "complete"
+
+
+def formula_counts(formula):
+    """Count explicit elements; variable groups and repeat units stay unresolved."""
+    text = clean(formula)
+    if not re.fullmatch(_FORMULA, text):
+        return None
+    totals = Counter()
+    for element, count in re.findall(r"([A-Z][a-z]?)(\d*)", text):
+        if element in ("R", "X"):
+            return None
+        totals[element] += int(count or 1)
+    return {element: count for element, count in totals.items() if count}
+
+
+def formulas_match(first, second):
+    """Compare elemental composition, accepting explicit 1 and reordered tokens.
+
+    Charge is checked separately by callers; unsupported formulas require exact
+    text equality, never equality between two failed parses.
+    """
+    left, right = formula_counts(first), formula_counts(second)
+    return left == right if left is not None and right is not None else clean(first) == clean(second)
+
+
+def protonation_compatible(first_formula, first_charge, second_formula, second_charge):
+    """Allow a reviewed H+/charge mismatch, never a generic charge bypass.
+
+    Non-hydrogen element counts must match and delta H must equal delta charge.
+    This is compatibility evidence, not proof of compound identity or pH state;
+    missing/variable formulas and redox-like differences remain unresolved.
+    """
+    first, second = formula_counts(first_formula), formula_counts(second_formula)
+    if first is None or second is None or not clean(first_charge) or not clean(second_charge):
+        return False
+    if {e: n for e, n in first.items() if e != "H"} != {e: n for e, n in second.items() if e != "H"}:
+        return False
+    try:
+        charges = [float(first_charge), float(second_charge)]
+    except (TypeError, ValueError):
+        return False
+    if not all(math.isfinite(q) and q.is_integer() for q in charges):
+        return False
+    hydrogen_difference = first.get("H", 0) - second.get("H", 0)
+    return hydrogen_difference != 0 and hydrogen_difference == charges[0] - charges[1]
+
+
+def fixed_formula_carbons(formula):
+    """Return a fixed total only for an explicit formula without variable groups."""
+    text = re.sub(r"[+-]\d*$", "", clean(formula))
+    counts = formula_counts(text)
+    return None if counts is None else counts.get("C", 0)
+
+
+def partial_transport_pairs(left, right, smiles):
+    """Use explicit identity-preserving transport, never wildcard identity alone.
+
+    Keep only carbon pairs invariant over all exact graph alignments. Unknown
+    groups and symmetry-ambiguous positions are not assigned. Chemical changes
+    of ACP/lipid variable groups require independent reaction-specific evidence.
+    """
+    if len(left) != 1 or len(right) != 1:
+        return None
+    source, target = left[0][1], right[0][1]
+    a = re.fullmatch(r"(.+)\[([^\[\]]+)\]", source)
+    b = re.fullmatch(r"(.+)\[([^\[\]]+)\]", target)
+    if not a or not b or a.group(1) != b.group(1) or a.group(2) == b.group(2):
+        return None
+    if structure_kind(smiles.get(source, "")) != "partial" or structure_kind(smiles.get(target, "")) != "partial":
+        return None
+    first, second = _structure(smiles[source]), _structure(smiles[target])
+    if first is None or second is None or Chem.MolToSmiles(first) != Chem.MolToSmiles(second):
+        return None
+    matches = second.GetSubstructMatches(first, uniquify=False, useChirality=True, maxMatches=257)
+    if not matches or len(matches) >= 257:
+        return None
+    assignments = [{(atom.GetIdx(), match[atom.GetIdx()]) for atom in first.GetAtoms()
+                    if atom.GetAtomicNum() == 6 and second.GetAtomWithIdx(match[atom.GetIdx()]).GetAtomicNum() == 6}
+                   for match in matches]
+    pairs = tuple(sorted(set.intersection(*assignments)))
+    return ("partial_identity_transport", pairs) if pairs else None
 
 
 def _graph(molecule, adenosine=False):
@@ -132,7 +249,8 @@ def _coa_core(smiles):
 def carbon_pairs(source, product):
     """Return only uniquely aligned, structurally recognized carbon skeletons."""
     left, right = _structure(source), _structure(product)
-    if left is None or right is None:
+    if (left is None or right is None or structure_kind(source) != "complete"
+            or structure_kind(product) != "complete"):
         return None
     family = _family(source)
     target_family = _family(product)
@@ -179,25 +297,20 @@ def carbon_pairs(source, product):
 
 def carbon_presence(row):
     """Return True/False/None; formula-only carbon evidence does not define positions."""
-    formula = re.sub(r"[+-]\d*$", "", clean(getattr(row, "MolecularFormula", "")))
-    count = None
-    if re.fullmatch(r"(?:[A-Z][a-z]?\d*)+", formula):
-        terms = re.findall(r"([A-Z][a-z]?)(\d*)", formula)
-        known = sum(int(n or 1) for e, n in terms if e == "C")
-        if not any(e in ("R", "X") for e, _ in terms):
-            count = known
-        elif known:
-            return True
+    formula = clean(getattr(row, "MolecularFormula", ""))
+    count = fixed_formula_carbons(formula)
     text = get_smiles(row)
-    molecule = Chem.MolFromSmiles(text) if text else None
+    kind = structure_kind(text, formula)
+    molecule = Chem.MolFromSmiles(text) if kind in ("complete", "partial") else None
     if molecule is not None:
         actual = sum(a.GetAtomicNum() == 6 for a in molecule.GetAtoms())
-        if count is not None and bool(actual) != bool(count):
+        if count is not None and (actual > count or (kind == "complete" and bool(actual) != bool(count))):
             return None
-        if any(a.GetAtomicNum() == 0 for a in molecule.GetAtoms()):
-            return True if actual else None
-        return bool(actual)
-    return None if count is None else bool(count)
+        return (True if actual or count else None) if kind == "partial" else bool(actual)
+    if count is not None:
+        return bool(count)
+    # Carbon in a repeat formula proves presence, not a count or atom ordering.
+    return True if re.search(r"C(?=\d|[A-Z(]|$)", formula) else None
 
 
 def partial_mapped_smiles(records):
@@ -226,20 +339,28 @@ def carbon_structure_issues(metabolites):
     issues = {}
     for row in metabolites.itertuples(index=False):
         formula = clean(getattr(row, "MolecularFormula", ""))
-        formula = re.sub(r"[+-]\d*$", "", formula)
-        if not re.fullmatch(r"(?:[A-Z][a-z]?\d*)+", formula):
+        text = get_smiles(row)
+        kind = structure_kind(text, formula)
+        if kind == "polymer":
             continue
-        tokens = re.findall(r"([A-Z][a-z]?)(\d*)", formula)
-        if any(element in ("R", "X") for element, _ in tokens):
+        expected = fixed_formula_carbons(formula)
+        molecule = Chem.MolFromSmiles(text) if kind in ("complete", "partial") else None
+        if expected is None or molecule is None:
             continue
-        molecule = _structure(get_smiles(row))
-        if molecule is None:
-            continue
-        expected = sum(int(count or 1) for element, count in tokens if element == "C")
         actual = sum(a.GetAtomicNum() == 6 for a in molecule.GetAtoms())
-        if expected != actual:
+        # A partial graph can contain fewer carbons than the whole compound.
+        if actual > expected or (kind == "complete" and expected != actual):
             issues[clean(row.MetaboliteName)] = "formula C{} versus SMILES C{}".format(expected, actual)
     return issues
+
+
+def rule_smiles(metabolites):
+    """Exclude unavailable positional graphs without blocking other participants."""
+    issues = carbon_structure_issues(metabolites)
+    return {clean(row.MetaboliteName): get_smiles(row)
+            for row in metabolites.itertuples(index=False)
+            if clean(row.MetaboliteName) not in issues and structure_kind(
+                get_smiles(row), clean(getattr(row, "MolecularFormula", ""))) in ("complete", "partial")}
 
 
 def generic_pool(name):
@@ -251,7 +372,12 @@ def generic_pool(name):
 
 
 def rule_transfers(reaction, smiles):
-    """Identify unique donor/product pairs with equal active-direction amounts."""
+    """Recover only unique, structurally recognized carbon-skeleton transfers.
+
+    Work in the flux direction and require matching original stoichiometric
+    amounts. Generic biomass/polymer pools do not define positional structures.
+    Unpaired or ambiguous carbon stays unresolved; this is not a full-reaction map.
+    """
     left, right = split_equation(reaction.equation)
     if reaction.flux < 0:
         left, right = right, left
@@ -268,9 +394,12 @@ def rule_transfers(reaction, smiles):
             if (not math.isfinite(target_amount) or target_amount <= 0 or
                     not math.isclose(amount, target_amount, rel_tol=1e-12, abs_tol=1e-12)):
                 continue
-            mapping = carbon_pairs(smiles.get(source, ""), smiles.get(product, ""))
+            mapping = partial_transport_pairs(left, right, smiles)
+            if mapping is None:
+                mapping = carbon_pairs(smiles.get(source, ""), smiles.get(product, ""))
             if mapping:
                 candidates.append((source, product, amount, mapping))
+    # Reject competing partners instead of choosing a plausible but unsupported pair.
     donors = Counter(item[0] for item in candidates)
     products = Counter(item[1] for item in candidates)
     return [dict(zip(COLUMNS, [reaction.reaction_id,
@@ -408,10 +537,8 @@ def apply_manual_mappings(model, reactions, selection, metabolites, filename=Non
                 raise ValueError("Invalid, empty or duplicated manual mapping: " + str(key))
             rows[key] = row["MappedReactionSMILES"]
     species = species_name(model, source)
-    smiles = {clean(row.MetaboliteName): get_smiles(row) for row in metabolites.itertuples(index=False)}
+    smiles = rule_smiles(metabolites)
     issues = carbon_structure_issues(metabolites)
-    for name in issues:
-        smiles.pop(name, None)
     for index, reaction in enumerate(reactions):
         mapped = rows.get((species, reaction.reaction_id))
         if mapped is None:
@@ -429,6 +556,11 @@ def apply_manual_mappings(model, reactions, selection, metabolites, filename=Non
         if not complete:
             reaction.partial_maps = manual_mapping_records(reaction, mapped, smiles,
                 "User-maintained mapping: " + path.name + "; Species=" + species)
+            if any(structure_kind(row[field]) == "partial" for row in reaction.partial_maps
+                   for field in ("SourceSMILES", "ProductSMILES")):
+                # Preserve the CSV; the usable view must not assert dummy-atom identity.
+                mapped = partial_mapped_smiles(reaction.partial_maps)
+                reaction.mapped_smiles = mapped
         reaction.status = "mapped" if complete else "partial"
         selection.at[index, "SelectedMapper"] = "Manual"
         selection.at[index, "ReviewRequired"] = not complete
@@ -439,11 +571,19 @@ def apply_manual_mappings(model, reactions, selection, metabolites, filename=Non
 
 
 def apply_rules(reactions, selection, metabolites):
-    """Leave complete mapper results intact; store auditable partial fallbacks."""
+    """Preserve mapper candidates; use rules only when no prediction is available.
+
+    A rule supplies only local pairs, never invents the missing remainder,
+    and always requires review. Exact amounts are persisted in Mapping_Info;
+    unit mapped SMILES alone cannot represent fractional original coefficients.
+    """
     smiles = {clean(r.MetaboliteName): get_smiles(r)
               for r in metabolites.itertuples(index=False)}
     issues = carbon_structure_issues(metabolites)
-    usable_smiles = {name: text for name, text in smiles.items() if name not in issues}
+    usable_smiles = rule_smiles(metabolites)
+    kinds = {clean(row.MetaboliteName): structure_kind(
+                get_smiles(row), clean(getattr(row, "MolecularFormula", "")))
+             for row in metabolites.itertuples(index=False)}
     internal_consumers = set()
     for item in reactions:
         try:
@@ -489,7 +629,7 @@ def apply_rules(reactions, selection, metabolites):
                     "All mapper predictions are empty; CarbonRules fallback: "
                     + "; ".join(row["Rule"] + ": " + row["SourceMetabolite"] + " -> "
                                 + row["ProductMetabolite"] for row in reaction.partial_maps)
-                    + "; reduced unit carbon-mapping subreaction; original amounts retained in Partial_Mapping"
+                    + "; reduced unit carbon-mapping subreaction; original amounts retained in Mapping_Info"
                     + "; remaining carbon unresolved; review required")
             involved_issues = sorted({name for side in terms
                                       for _, name in side if name in issues})
@@ -507,6 +647,14 @@ def apply_rules(reactions, selection, metabolites):
                 if terminal:
                     selection.at[index, "SelectionReason"] += (
                         "; terminal unresolved pools in the full nonzero network: " + ", ".join(terminal))
+        limitations = sorted({name + ": " + STRUCTURE_LIMITS[kind]
+                              for side in terms for _, name in side
+                              for kind in [kinds.get(name, "missing")]
+                              if kind in ("partial", "polymer", "invalid")})
+        if limitations:
+            selection.at[index, "SelectionReason"] += "; " + "; ".join(limitations)
+            if coverage != "Boundary":
+                selection.at[index, "ReviewRequired"] = True
         if not selection.at[index, "SelectedMapper"] and coverage == "Unresolved":
             selection.at[index, "SelectedMapper"] = "Unresolved"
         selection.at[index, "SelectedMappedReactionSMILES"] = reaction.mapped_smiles
@@ -516,22 +664,24 @@ def apply_rules(reactions, selection, metabolites):
 
 
 def load_partials(reactions, final, records, metabolites):
-    """Recompute saved rules before using them; a rejected final row disables them."""
+    """Validate saved structures, direction, amounts and rule version before use.
+
+    Metadata is audit context, not permission to propagate: only a Partial final
+    row activates its saved pairs. An Unresolved/rejected final row disables them.
+    """
     if records.empty:
         if ("MappingCoverage" in final and (final.MappingCoverage.eq("Partial") &
                 (final.MappedReactionSMILES.eq("") | final.get("SelectedMapper", pd.Series("", index=final.index)).eq("CarbonRules"))).any()):
-            raise ValueError("Partial Final_Mapping rows require Partial_Mapping records")
+            raise ValueError("Partial Final_Mapping rows require saved partial correspondence records")
         return
     if not set(COLUMNS) <= set(records.columns):
-        raise ValueError("Partial_Mapping is missing required columns")
+        raise ValueError("Saved partial correspondence records are missing required columns")
     if records[COLUMNS].duplicated().any():
         raise ValueError("Duplicated partial carbon correspondence")
     lookup = {r.reaction_id: r for r in reactions}
     if not set(records.ReactionID) <= set(lookup):
-        raise ValueError("Unknown Partial_Mapping ReactionID")
-    smiles = {clean(r.MetaboliteName): get_smiles(r) for r in metabolites.itertuples(index=False)}
-    for name in carbon_structure_issues(metabolites):
-        smiles.pop(name, None)
+        raise ValueError("Unknown partial correspondence ReactionID")
+    smiles = rule_smiles(metabolites)
     choices = final.set_index("ReactionID")
     for key, group in records.groupby("ReactionID", sort=False):
         if key not in choices.index or choices.loc[key].get("MappingCoverage", "") != "Partial":
@@ -555,13 +705,13 @@ def load_partials(reactions, final, records, metabolites):
         reduced = partial_mapped_smiles(saved)
         if reaction.mapped_smiles and reaction.mapped_smiles != reduced:
             if not manual:
-                raise ValueError("Saved reduced rule mapping does not match Partial_Mapping: " + key)
+                raise ValueError("Saved reduced rule mapping does not match saved partial correspondences: " + key)
             derived = manual_mapping_records(reaction, reaction.mapped_smiles, smiles, "Saved manual mapping")
             def transfers(rows):
                 return sorted(json.dumps({field: normalized(row)[field] for field in COLUMNS}, sort_keys=True)
                               for row in rows)
             if transfers(derived) != transfers(saved):
-                raise ValueError("Saved manual mapping does not match Partial_Mapping: " + key)
+                raise ValueError("Saved manual mapping does not match saved partial correspondences: " + key)
         reaction.mapped_smiles = reaction.mapped_smiles if manual and reaction.mapped_smiles else reduced
         reaction.partial_maps = saved
         reaction.status = "partial"

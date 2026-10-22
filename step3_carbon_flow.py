@@ -1,7 +1,7 @@
 """Step 3: Enumeration and size-1 EMU-inspired source balances in one workbook."""
 
 import sys
-from carbon_flow_tools.cli import main
+from carbon_flow_tools.cli import run_cli
 from step2_atom_mapping import OUTPUT_DIR as MAPPING_DIR
 
 # Read both <model>_2_atom_mapping.xlsx and its optional _AIGenerated copy.
@@ -18,7 +18,7 @@ CARBON_SOURCES = {}  # Loaded from step 1 for every configured model.
 ANALYSIS_METHODS = ["Enumeration", "EMU"]
 
 # Enumeration
-EXPORT_DETAIL_ROUNDS = 3  # Export R1-R3 details; later rounds still update Summary.
+EXPORT_DETAIL_ROUNDS = 3  # Combine R1-R3 in Carbon_Flow; later rounds still update Summary.
 ROUNDS = 10  # Maximum rounds; stop earlier when propagation converges.
 # Optional list for the last saved round; Summary always includes the counts.
 EXPORT_EXCLUSIVE_SOURCE_METABOLITES = False
@@ -67,4 +67,4 @@ def settings():
 
 
 if __name__ == "__main__":
-    sys.exit(main("trace", settings()))
+    sys.exit(run_cli("trace", settings()))

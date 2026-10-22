@@ -328,7 +328,11 @@ class CarbonRuleTests(unittest.TestCase):
             self.assertEqual(saved[0].status, "partial")
             with pd.ExcelFile(output, engine="openpyxl") as excel:
                 final = pd.read_excel(excel, sheet_name="Final_Mapping").fillna("")
-                partials = pd.read_excel(excel, sheet_name="Partial_Mapping", dtype={"RuleVersion": str})
+                from carbon_flow_tools.excel_io import read_partial_mapping_records
+                self.assertNotIn("Partial_Mapping", excel.sheet_names)
+                self.assertEqual(excel.book["Mapping_Info"].sheet_state, "hidden")
+                partials = read_partial_mapping_records(excel.book)
+            self.assertEqual([row["TransferCoefficient"] for row in saved[0].partial_maps], [55.3, 3.0])
             self.assertEqual(len(final), len(source))
             self.assertFalse(final.AIGenerated.any())
             partials.loc[0, "TransferCoefficient"] = 55

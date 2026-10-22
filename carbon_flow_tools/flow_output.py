@@ -9,6 +9,7 @@ import pandas as pd
 from openpyxl import Workbook
 
 from .carbon_trace import COLUMNS
+from .console import Progress
 from .atom_helpers import assignment_from_labeled_smiles
 from .excel_io import WorkbookSizeLimitError, format_columns
 
@@ -70,9 +71,11 @@ class FlowOutput:
         self.buffer.clear()
         inserted = self.db.total_changes - before
         self.row_count += inserted
-        if (self.detail_rounds is None or self.number <= self.detail_rounds) and self.row_count > self.MAX_DATA_ROWS:
-            raise WorksheetRowLimitError("Round {} exceeds {} worksheet data rows; incomplete round discarded.".format(self.number, self.MAX_DATA_ROWS))
         if inserted and (self.detail_rounds is None or self.number <= self.detail_rounds):
+            # All exported rounds share one worksheet and therefore one row limit.
+            exported_rows = self.db.execute("SELECT COUNT(*) FROM records WHERE round_no<=?", (self.number,)).fetchone()[0]
+            if exported_rows > self.MAX_DATA_ROWS:
+                raise WorksheetRowLimitError("Carbon_Flow exceeds {} combined worksheet data rows; incomplete round {} discarded.".format(self.MAX_DATA_ROWS, self.number))
             self.checkpoint()
 
     def merge_states(self, states, first_steps, terminal_names, smiles):
@@ -106,13 +109,20 @@ class FlowOutput:
             for row in summary.itertuples(index=False, name=None):
                 sheet.append(list(row))
             last_detail = self.number if self.detail_rounds is None else min(self.number, self.detail_rounds)
-            for number in range(1, last_detail + 1):
-                sheet = workbook.create_sheet("Carbon_Flow_R{}".format(number))
-                format_columns(sheet, COLUMNS)
-                sheet.append(COLUMNS)
-                rows = self.db.execute("SELECT " + self.fields + " FROM records WHERE round_no=? "
-                                       "ORDER BY phase, Step, ReactionID, SourceIDs, ProductionID, seq", (number,))
+            if last_detail:
+                sheet = workbook.create_sheet("Carbon_Flow")
+                columns = ["Carbon_Flow_Round"] + COLUMNS
+                format_columns(sheet, columns)
+                sheet.append(columns)
+                rows = self.db.execute("SELECT round_no, " + self.fields + " FROM records WHERE round_no<=? "
+                                       "ORDER BY round_no, phase, Step, ReactionID, SourceIDs, ProductionID, seq", (last_detail,))
+                total = self.db.execute(
+                    "SELECT COUNT(*) FROM records WHERE round_no<=?", (last_detail,)
+                ).fetchone()[0]
+                progress = Progress(self.output.stem + " | writing Excel", total, "rows")
                 for index, row in enumerate(rows):
+                    if index % 1024 == 0:
+                        progress.update(index)
                     if self.memory_guard and index % 1024 == 0:
                         self.memory_guard.check("streaming staged Excel rows")
                     sheet.append(row)

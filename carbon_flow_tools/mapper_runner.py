@@ -62,6 +62,15 @@ def validate_mapper_config(name, settings):
 def run_mapper(strain, reactions, name, settings, cpu_threads=1):
     """Run an isolated mapper process without biochemical corrections."""
     validate_mapper_config(name, settings)
+    from .carbon_mapping_rules import structure_kind, STRUCTURE_LIMITS
+    for reaction in reactions:
+        if reaction.status != "ready":
+            continue
+        for side in reaction.reaction_smiles.split(">>"):
+            kind = structure_kind(side)
+            if kind not in ("complete", "partial"):
+                reaction.status = "Mapper input unavailable: " + STRUCTURE_LIMITS[kind]
+                break
     ready = [r for r in reactions if r.status == "ready"]
     if not ready:
         return
@@ -73,6 +82,7 @@ def run_mapper(strain, reactions, name, settings, cpu_threads=1):
                 {
                     "reactions": [r.reaction_smiles for r in ready],
                     "options": settings.get("options", {}),
+                    "log_file": str(settings.get("log_file", Path(folder) / "mapper.log")),
                 }
             ),
             encoding="utf-8",
@@ -85,7 +95,7 @@ def run_mapper(strain, reactions, name, settings, cpu_threads=1):
             "NUMEXPR_NUM_THREADS",
         ):
             environment[key] = str(cpu_threads)
-        subprocess.run(
+        result = subprocess.run(
             [
                 str(settings["python"]),
                 str(worker),
@@ -96,9 +106,16 @@ def run_mapper(strain, reactions, name, settings, cpu_threads=1):
                 strain,
                 name,
             ],
-            check=True,
+            check=False,
             env=environment,
         )
+        if result.returncode:
+            raise RuntimeError(
+                "Atom-mapping worker failed (exit {}).\nModel: {}\nMapper: {}\nPython: {}\n"
+                "Details: {}\nAction: check the log, or rerun step2_atom_mapping.py --verbose."
+                .format(result.returncode, strain, name, settings["python"],
+                        settings.get("log_file", "rerun with --verbose for details"))
+            )
         results = json.loads(response.read_text(encoding="utf-8"))
     if not isinstance(results, list) or len(results) != len(ready):
         raise RuntimeError(name + " returned a result count inconsistent with input.")

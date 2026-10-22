@@ -8,6 +8,9 @@ from hashlib import sha256
 import json
 from multiprocessing import get_context
 from pathlib import Path
+from time import monotonic
+
+from .console import detail, duration
 
 import pandas as pd
 from openpyxl import load_workbook, Workbook
@@ -22,6 +25,8 @@ from .excel_io import (
     copy_input,
     input_sheets,
     write_sheet,
+    read_partial_mapping_records,
+    write_partial_mapping_records,
     save_output,
     workbook_limit,
     WorkbookSizeLimitError,
@@ -70,9 +75,16 @@ def carbon_metabolites(metabolites, reactions):
 def read_input(
     path, reaction_sheet, metabolite_sheet, structure_options=None, model=""
 ):
-    with pd.ExcelFile(path, engine="openpyxl") as excel:
-        reactions_df = pd.read_excel(excel, sheet_name=reaction_sheet)
-        metabolites = pd.read_excel(excel, sheet_name=metabolite_sheet)
+    try:
+        with pd.ExcelFile(path, engine="openpyxl") as excel:
+            reactions_df = pd.read_excel(excel, sheet_name=reaction_sheet)
+            metabolites = pd.read_excel(excel, sheet_name=metabolite_sheet)
+    except ValueError as error:
+        raise ValueError(
+            "Cannot read input tables.\nFile: {}\nSheets: {}, {}\nDetails: {}\n"
+            "Action: check the sheet names and workbook, or regenerate it with step 1."
+            .format(path, reaction_sheet, metabolite_sheet, error)
+        ) from error
     required = {
         "reactions": {"ReactionID", "ReactionName", "Equation", "Flux"},
         "metabolites": {"MetaboliteID", "MetaboliteName"},
@@ -80,26 +92,53 @@ def read_input(
     for name, table in (("reactions", reactions_df), ("metabolites", metabolites)):
         missing = required[name] - set(table.columns)
         if missing:
-            raise ValueError(f"Missing {name} columns: {sorted(missing)}")
+            sheet = reaction_sheet if name == "reactions" else metabolite_sheet
+            raise ValueError(
+                "Missing {} columns: {}\nFile: {}\nSheet: {}\n"
+                "Action: restore the required headers or regenerate the workbook with step 1."
+                .format(name, ", ".join(sorted(missing)), path, sheet)
+            )
         identity = "ReactionID" if name == "reactions" else "MetaboliteID"
         if (
             table[identity].map(clean).eq("").any()
             or table[identity].duplicated().any()
         ):
-            raise ValueError(f"{identity} must be nonempty and unique.")
+            invalid = table[identity].map(clean).eq("") | table[identity].duplicated(keep=False)
+            examples = ["{} ({})".format(position + 2, clean(value) or "empty")
+                        for position, (bad, value) in enumerate(zip(invalid, table[identity])) if bad]
+            sheet = reaction_sheet if name == "reactions" else metabolite_sheet
+            raise ValueError(
+                "{} must be nonempty and unique.\nFile: {}\nSheet: {}\n"
+                "Affected Excel rows (first 8): {}\n"
+                "Action: fill missing IDs and resolve duplicates."
+                .format(identity, path, sheet, ", ".join(examples[:8]))
+            )
     if (
         reactions_df.empty
         or not pd.to_numeric(reactions_df.Flux, errors="coerce")
         .map(lambda value: pd.notna(value) and abs(value) < float("inf") and value != 0)
         .all()
     ):
-        raise ValueError("Reaction inputs must contain finite nonzero fluxes.")
+        invalid = ~pd.to_numeric(reactions_df.Flux, errors="coerce").map(
+            lambda value: pd.notna(value) and abs(value) < float("inf") and value != 0)
+        examples = ["{} ({})".format(position + 2, identity)
+                    for position, (bad, identity) in enumerate(zip(invalid, reactions_df.ReactionID)) if bad]
+        raise ValueError(
+            "Reaction inputs must contain finite nonzero fluxes.\nFile: {}\nSheet: {}\n"
+            "Affected Excel rows / ReactionID (first 8): {}\n"
+            "Action: export a nonempty nonzero-flux solution; remove invalid or zero-flux rows."
+            .format(path, reaction_sheet, ", ".join(examples[:8]) or "reaction table is empty")
+        )
     if "SMILES_Manual" not in metabolites:
         metabolites["SMILES_Manual"] = float("nan")
     if not {"SMILES_Model", "SMILES_Yeast9"}.intersection(metabolites.columns):
         metabolites["SMILES_Model"] = float("nan")
     if structure_options is not None:
-        metabolites = complete_smiles(metabolites, model, structure_options)
+        try:
+            metabolites = complete_smiles(metabolites, model, structure_options)
+        except ValueError as error:
+            raise ValueError("{}\nInput workbook: {}\nMetabolite sheet: {}\nModel: {}"
+                             .format(error, path, metabolite_sheet, model)) from error
     structures = [get_smiles(row) for row in metabolites.itertuples(index=False)]
     if (
         pd.DataFrame({"name": metabolites.MetaboliteName, "smiles": structures})
@@ -108,8 +147,13 @@ def read_input(
         .gt(1)
         .any()
     ):
+        counts = pd.DataFrame({"name": metabolites.MetaboliteName, "smiles": structures}).groupby("name").smiles.nunique()
+        conflicts = counts[counts > 1].index.tolist()
         raise ValueError(
-            "A compartment-qualified metabolite name has conflicting structures."
+            "A compartment-qualified metabolite name has conflicting structures.\n"
+            "File: {}\nSheet: {}\nMetabolites (first 8): {}\n"
+            "Action: use one verified structure for each compartment-qualified metabolite."
+            .format(path, metabolite_sheet, ", ".join(map(str, conflicts[:8])))
         )
     reactions = prepare_reactions(reactions_df, metabolites)
     return reactions, reactions_df, metabolites
@@ -346,7 +390,7 @@ def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None
         raise ValueError("Mapping workbooks would overwrite the same carbon-flow output.")
     if any(task[-1] in inputs for task in tasks):
         raise ValueError("Output cannot overwrite an input or mapping workbook.")
-    print(f"Propagation rounds: {rounds}", flush=True)
+    detail(f"Propagation rounds: {rounds}", flush=True)
     workers, _ = parallel_capacity(
         len(tasks), max_processes, memory_gb, task_kind="carbon propagation"
     )
@@ -472,13 +516,15 @@ def write_carbon_run_report(output_dir, tasks, statuses, error=None):
     finally:
         if temporary.exists():
             temporary.unlink()
-    print("Run report: {}".format(output), flush=True)
+    detail("Run report: {}".format(output), flush=True)
 
 
 def trace_mapping_file(strain, job, rounds, mapping_file, output):
     """Validate final correspondences against the structures saved in step 2."""
     RDLogger.DisableLog("rdApp.warning")
     MemoryGuard(job.get("min_available_memory_gb", 2)).check("loading " + strain, force=True)
+    label = "{} / {}".format(strain, "AI" if mapping_file.stem.endswith("_AIGenerated") else "Original")
+    print(label + ": reading atom mappings.", flush=True)
     reactions, source, metabolites = load_final_mappings(mapping_file, job)
     methods = job.get("analysis_methods", ["Enumeration"])
     status = job.get("_run_status", {})
@@ -486,6 +532,7 @@ def trace_mapping_file(strain, job, rounds, mapping_file, output):
     if "EMU" in methods:
         from .source_contributions import solve_source_contributions
         guard = MemoryGuard(job.get("min_available_memory_gb", 2))
+        print(label + ": calculating carbon-source contributions...", flush=True)
         tables, info = solve_source_contributions(reactions, metabolites, job["carbon_sources"],
             allow_inorganic_carbon_recycling=job.get("emu_allow_inorganic_carbon_recycling", True),
             tolerance=job.get("emu_tolerance", 1e-8), memory_guard=guard)
@@ -506,7 +553,7 @@ def trace_mapping_file(strain, job, rounds, mapping_file, output):
             finally:
                 workbook.close()
             status.update(emu_completed=True, output_file=str(output))
-        print("{} EMU: {} carbon positions solved; combined output {}".format(strain, info["carbon_positions"], output), flush=True)
+        detail("{} EMU: {} carbon positions solved; combined output {}".format(strain, info["carbon_positions"], output), flush=True)
     if "Enumeration" in methods:
         return trace_analysis(strain, dict(job, _extra_sheets=extra_sheets), reactions,
                               metabolites, rounds, Workbook(), output)
@@ -521,9 +568,7 @@ def load_final_mappings(mapping_file, job):
         final = pd.read_excel(
             excel, sheet_name="Final_Mapping", dtype={"ReactionID": str}
         ).fillna("")
-        partials = (pd.read_excel(excel, sheet_name="Partial_Mapping",
-                     dtype={"ReactionID": str, "RuleVersion": str}).fillna("")
-                    if "Partial_Mapping" in excel.sheet_names else pd.DataFrame())
+        partials = read_partial_mapping_records(excel.book)
     reactions, source, metabolites = read_input(
         mapping_file, reaction_sheet, metabolite_sheet
     )
@@ -673,12 +718,13 @@ def run_analyses(
     ):
         raise ValueError("Output cannot overwrite any input workbook.")
     if stage != "map":
-        print(f"Propagation rounds: {rounds}", flush=True)
+        detail(f"Propagation rounds: {rounds}", flush=True)
     output_dir.mkdir(parents=True, exist_ok=True)
     RDLogger.DisableLog("rdApp.warning")
     prepared, pending = {}, []
     for strain, job in jobs.items():
         output = output_dir / f"{strain}_2_atom_mapping.xlsx"
+        print(strain + ": checking input and compound structures...", flush=True)
         reactions, source, metabolites = read_input(
             job["input_file"],
             job["reaction_sheet"],
@@ -696,12 +742,13 @@ def run_analyses(
                     output, backend, settings, candidates, source, metabolites, job
                 )
                 if reused:
-                    print(
+                    detail(
                         f"{strain} {backend}: inputs and configuration match; reusing predictions.",
                         flush=True,
                     )
             if not reused and any(r.status == "ready" for r in candidates):
-                pending.append((strain, backend, candidates, settings))
+                pending.append((strain, backend, candidates, dict(settings,
+                    log_file=str(output_dir / "logs" / (strain + "_" + backend + ".log")))))
             predictions[backend] = candidates
             info = dict(
                 Mapper=backend,
@@ -723,6 +770,10 @@ def run_analyses(
     workers, cpu_threads = parallel_capacity(
         len(pending), max_mapper_processes, mapper_memory_gb
     )
+    reused_count = sum(bool(row["ReusedPredictions"]) for _, _, rows in prepared.values() for row in rows)
+    print("Atom mapping: {} tool runs to complete; {} already saved.".format(len(pending), reused_count), flush=True)
+    if pending:
+        print("Technical logs: {}".format(output_dir / "logs"), flush=True)
     with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = {
             executor.submit(
@@ -733,12 +784,12 @@ def run_analyses(
         for future in as_completed(futures):
             strain, backend = futures[future]
             future.result()
-            print(f"{strain} {backend}: predictions complete.", flush=True)
+            detail(f"{strain} {backend}: predictions complete.", flush=True)
     workers, _ = parallel_capacity(
         len(jobs),
         max_carbon_processes,
         carbon_memory_gb,
-        task_kind="carbon propagation",
+        task_kind="mapping selection" if stage == "map" else "carbon propagation",
     )
     tasks = [
         (strain, job, *prepared[strain], rounds, backends, output_dir, stage, manual_mapping_file)
@@ -766,7 +817,7 @@ def finish_analysis(
 ):
     """Write one strain workbook without sharing its state catalog."""
     RDLogger.DisableLog("rdApp.warning")
-    print(f"{strain}: writing selected atom mappings.", flush=True)
+    detail(f"{strain}: writing selected atom mappings.", flush=True)
     output = output_dir / f"{strain}_2_atom_mapping.xlsx"
     reactions, selection = select_mappings(predictions, carbon_structure_issues(metabolites))
     apply_manual_mappings(strain, reactions, selection, metabolites, manual_mapping_file, job.get("source_model"))
@@ -799,8 +850,6 @@ def finish_analysis(
                          "SelectedMapper", "ReviewRequired", "SelectionReason", "SelectedMappedReactionSMILES"]
     write_sheet(workbook, "Mapping_Selection", selection[selection_columns])
     write_sheet(workbook, "Final_Mapping", final_mapping_table(reactions, selection))
-    if not partials.empty:
-        write_sheet(workbook, "Partial_Mapping", partials)
     metadata.extend(
         dict(
             Mapper=backend,
@@ -814,6 +863,7 @@ def finish_analysis(
         for r in predictions[backend]
     )
     write_sheet(workbook, "Mapping_Info", pd.DataFrame(metadata))
+    write_partial_mapping_records(workbook, partials)
     workbook.move_sheet(
         "Mapping_Selection", offset=-workbook.sheetnames.index("Mapping_Selection")
     )
@@ -822,13 +872,17 @@ def finish_analysis(
     )
     save_output(workbook, output)
     chosen = selection.loc[selection.SelectedMapper != ""]
-    print(
+    detail(
         f"{strain} consensus: {int(selection.MappingCoverage.eq('Complete').sum())}/{len(reactions)} complete, "
         f"{int(selection.MappingCoverage.eq('Partial').sum())} partial carbon mappings; "
         f"{int(selection.ReviewRequired.sum())} require review; "
         f"selected tools {chosen.SelectedMapper.value_counts().to_dict()}",
         flush=True,
     )
+    print("{}: mappings saved. {}/{} fully mapped; {} partly mapped; {} need review.\nSaved: {}"
+          .format(strain, int(selection.MappingCoverage.eq("Complete").sum()),
+                  len(reactions), int(selection.MappingCoverage.eq("Partial").sum()),
+                  int(selection.ReviewRequired.sum()), output), flush=True)
     if stage == "map":
         workbook.close()
         return
@@ -850,7 +904,7 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
     previous_counts = {}
     carbon_ids, unknown_count = carbon_metabolites(metabolites, reactions)
     carbon_total = sum(len(ids) for ids in carbon_ids.values())
-    print(
+    detail(
         f"{strain}: {carbon_total} carbon metabolites in the mapped network; {unknown_count} missing/invalid structures in Metabolites.",
         flush=True,
     )
@@ -869,8 +923,10 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
     status["export_detail_rounds"] = detail_rounds
     store = FlowOutput(output, max_bytes, batch_rows, summary, memory_guard,
                        detail_rounds=detail_rounds, extra_sheets=job.get("_extra_sheets"))
+    label = "{} / {}".format(strain, "AI" if output.stem.endswith("_AIGenerated") else "Original")
+    round_started = monotonic()
     iterator = propagate_rounds(
-        strain, reactions, metabolites, rounds, job["carbon_sources"], sources,
+        label, reactions, metabolites, rounds, job["carbon_sources"], sources,
         allow_inorganic_carbon_recycling=job.get("allow_inorganic_carbon_recycling", False),
         memory_guard=memory_guard, row_store=store,
     )
@@ -892,7 +948,13 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
                 status["emu_completed"] = True
             completed_round = number
             status["stop_reason"] = "converged" if converged else "round_limit"
-            print(f"{strain} R{number} completed (detail export: {detail_rounds is None or number <= detail_rounds}): {store.row_count} rows, {added} new states -> {output}", flush=True)
+            detail("{} | round {} saved | {} records, {} new states | elapsed {}"
+                  .format(label, number, store.row_count, added,
+                          duration(monotonic() - round_started)), flush=True)
+            print("{}: round {} saved.".format(label, number), flush=True)
+            detail("Detail exported: {}; output: {}".format(
+                detail_rounds is None or number <= detail_rounds, output), flush=True)
+            round_started = monotonic()
     except (WorkbookSizeLimitError, WorksheetRowLimitError) as error:
         status["stop_reason"] = ("file_size_limit" if isinstance(error, WorkbookSizeLimitError) else "row_limit")
         print("{}: {}; {} complete round(s) retained. This stop is not convergence."
@@ -911,4 +973,6 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
                       output_file=str(output) if completed_round or status.get("emu_completed") else None)
         iterator.close()
         store.close()
+    if completed_round or status.get("emu_completed"):
+        print("{}: finished with {} saved round(s).\nSaved: {}".format(label, completed_round, output), flush=True)
     return output if completed_round or status.get("emu_completed") else None

@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 from pathlib import Path
 import re
 
@@ -13,6 +14,26 @@ from openpyxl import Workbook
 import pandas as pd
 
 from .excel_io import save_output, write_sheet
+from .console import detail, verbose
+
+
+class _MatCompatibilityFilter(logging.Filter):
+    """Hide known legacy-format notices, never unrelated warnings or errors."""
+
+    def __init__(self):
+        super().__init__()
+        self.hidden = False
+
+    def filter(self, record):
+        routine = record.getMessage().startswith((
+            "This model seems to have metCharge instead of metCharges field.",
+            "No defined compartments in model ",
+            "Using regular expression found the following compartments:",
+        ))
+        if routine and record.levelno < logging.ERROR:
+            self.hidden = True
+            return False
+        return True
 
 
 def read_model(path, solver="glpk", variable_name=None):
@@ -23,7 +44,17 @@ def read_model(path, solver="glpk", variable_name=None):
         )
     suffix = path.suffix.lower()
     if suffix == ".mat":
-        model = cobra.io.load_matlab_model(str(path), variable_name=variable_name)
+        logger = logging.getLogger("cobra.io.mat")
+        compatibility = _MatCompatibilityFilter()
+        if not verbose():
+            logger.addFilter(compatibility)
+        try:
+            model = cobra.io.load_matlab_model(str(path), variable_name=variable_name)
+        finally:
+            logger.removeFilter(compatibility)
+        if compatibility.hidden:
+            print("  Source model: legacy MAT fields/compartments adapted (--verbose for details).",
+                  flush=True)
         # Retain source annotations that the generic MAT reader does not import.
         from scipy.io import loadmat
 
@@ -214,17 +245,22 @@ def export_model(
         save_output(workbook, path)
     finally:
         workbook.close()
-    print(
-        "{}: objective {:.9g}; total absolute flux {:.9g}; {} reactions, {} metabolites -> {}".format(
-            name,
-            objective,
-            float(solution.fluxes.abs().sum()),
-            len(reactions),
-            len(metabolites),
-            path,
-        ),
-        flush=True,
-    )
+    objectives = linear_reaction_coefficients(model)
+    direction = {"max": "maximize", "min": "minimize"}.get(
+        model.objective_direction, model.objective_direction)
+    print("  Model: {}\n  Solution: {}".format(name, solution.status), flush=True)
+    for reaction, coefficient in objectives.items():
+        label = "{} [{}]".format(reaction.name, reaction.id) if reaction.name else reaction.id
+        print("  Target: {} ({})\n  Target flux: {:.9g} (model flux units)"
+              .format(label, direction, float(solution.fluxes[reaction.id])), flush=True)
+        if len(objectives) > 1 or coefficient != 1:
+            print("  Objective coefficient: {:.9g}".format(coefficient), flush=True)
+    if len(objectives) != 1 or next(iter(objectives.values())) != 1:
+        print("  Weighted objective value: {:.9g}".format(objective), flush=True)
+    print("  Carbon sources: {}\n  Exported network: {} reactions, {} metabolites\n  File: {}"
+          .format(", ".join(sources), len(reactions), len(metabolites), path), flush=True)
+    detail("  Total absolute flux (diagnostic): {:.9g}"
+           .format(float(solution.fluxes.abs().sum())), flush=True)
     entry = dict(
         input_file=path.relative_to(project).as_posix(),
         carbon_sources=sources,

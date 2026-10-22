@@ -12,6 +12,14 @@ from carbon_flow_tools.atom_helpers import mapped_components
 from carbon_flow_tools.reactions import PreparedReaction, build_side, parse_side
 
 
+def read_carbon_round(path, number=1, **kwargs):
+    """Compare one exported round with the unchanged propagation records."""
+    import pandas as pd
+    kwargs.setdefault("engine", "openpyxl")
+    table = pd.read_excel(path, sheet_name="Carbon_Flow", **kwargs)
+    return table.loc[table.Carbon_Flow_Round.eq(number)].drop(columns="Carbon_Flow_Round").reset_index(drop=True)
+
+
 def reaction(left, right, smiles, mapped):
     l, error = build_side(parse_side(left), smiles)
     assert not error

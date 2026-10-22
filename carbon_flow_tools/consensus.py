@@ -13,6 +13,7 @@ from .reactions import clean, parse_side, split_equation
 
 def mapping_signatures(reaction):
     """Compare structurally aligned correspondences, ignoring IDs and equivalent symmetry."""
+    from .carbon_mapping_rules import structure_kind
     error = mapping_error(reaction.mapped_smiles)
     if error:
         raise ValueError(error)
@@ -26,6 +27,8 @@ def mapping_signatures(reaction):
     for side_index, side in enumerate(sides):
         side_maps, carbons = {}, set()
         for component, atom_maps in side:
+            if structure_kind(component.smiles) != "complete":
+                raise ValueError("Partial structure: wildcard groups have no established atom correspondence")
             part = Chem.MolFromSmiles(component.smiles)
             if len(atom_maps) != part.GetNumAtoms():
                 raise ValueError("Input atoms were not completely aligned")
@@ -136,6 +139,7 @@ def carbon_candidate(reaction):
 
 def select_mappings(predictions, invalid_structures=None):
     """Prefer usable carbon consensus; retain failed candidates for review, never blank them."""
+    from .carbon_mapping_rules import structure_kind
     if not predictions:
         raise ValueError("At least one mapper result is required")
     reference = next(iter(predictions.values()))
@@ -158,6 +162,8 @@ def select_mappings(predictions, invalid_structures=None):
             invalid = {}  # Preparation already records malformed equations for review.
         input_error = ("Input carbon formula/structure mismatch: " + "; ".join(
                        name + " (" + detail + ")" for name, detail in sorted(invalid.items()))) if invalid else ""
+        partial_input = any(structure_kind(component.smiles) == "partial"
+                            for component in base.left + base.right)
         groups, heavy_keys, valid = defaultdict(list), {}, []
         candidates, partial_candidates, carbon_views = {}, {}, set()
         record = {
@@ -172,7 +178,7 @@ def select_mappings(predictions, invalid_structures=None):
             error = ""
             if invalid:
                 error = input_error
-            elif reaction.is_transport:
+            elif reaction.is_transport and not partial_input:
                 pass
             elif reaction.status == "mapped":
                 try:
@@ -183,7 +189,7 @@ def select_mappings(predictions, invalid_structures=None):
                     error = str(exc)
             else:
                 error = reaction.status
-            if not invalid and not reaction.is_transport and reaction.mapped_smiles:
+            if not invalid and (not reaction.is_transport or partial_input) and reaction.mapped_smiles:
                 if not error:
                     candidates[backend] = reaction
                 else:
@@ -207,7 +213,7 @@ def select_mappings(predictions, invalid_structures=None):
             record[backend + "_ScoreType"] = score_type(backend, reaction)
             record[backend + "_Validation"] = (
                 "Identity transport; prediction tools were not called"
-                if reaction.is_transport and not invalid
+                if reaction.is_transport and not invalid and not partial_input
                 else error or "Structure and carbon mapping checks passed"
             )
         final = deepcopy(base)
@@ -218,7 +224,7 @@ def select_mappings(predictions, invalid_structures=None):
             False,
             "No mapping available for carbon propagation",
         )
-        if base.is_transport and not invalid:
+        if base.is_transport and not invalid and not partial_input:
             final = deepcopy(base)
             winner = "Identity"
             reason = "Pure transport: unchanged identity and stoichiometry; use identity correspondence"
@@ -279,13 +285,17 @@ def select_mappings(predictions, invalid_structures=None):
                 + "; ".join("{Side}: {Coefficient:g} {MetaboliteName}".format(**item)
                             for item in final.omitted_components)
                 + "; partial original-reaction coverage; optional AI review must assess applicability")
+        if partial_input:
+            review = True
+            final.is_transport = False
+            reason += "; explicit carbon positions only; wildcard groups are unresolved, not paired by their symbols"
         record.update(
             ValidMappers="; ".join(valid),
             SupportingMappers="; ".join(supporters),
             CarbonMappingGroups=len(groups),
             HeavyAtomAgreement=(
                 "identity"
-                if base.is_transport and not invalid
+                if base.is_transport and not invalid and not partial_input
                 else "not comparable"
                 if carbon_views
                 else "agreement"

@@ -36,7 +36,7 @@ class ManualTableTests(unittest.TestCase):
             self.assertEqual(choices.iloc[0].SelectedMappedReactionSMILES, UNIT)
             self.assertEqual(selected[0].partial_maps[0]["TransferCoefficient"], 2)
         _, mets, _, selected, choices = fixture()
-        apply_manual_mappings("Yarrowia_lipolytica_IUPD", selected, choices, mets, self.manual)
+        apply_manual_mappings("Saccharomyces_cerevisiae_IUPD", selected, choices, mets, self.manual)
         self.assertEqual(choices.iloc[0].SelectedMapper, "EnzymeMap")
     def test_complete_mapping_written_unchanged_to_both_sheets(self):
         source, mets, _, _, _ = fixture()

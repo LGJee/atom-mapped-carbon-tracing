@@ -23,7 +23,7 @@ python3 step3_carbon_flow.py --plan results/results_by_AI/my_analysis/analysis_p
 
 The example discovers the project root and places outputs beside its generated
 plan. Step 1 also accepts `--plan` and `--output-dir`. With no arguments, the
-study script still generates the original six-model plan in
+study script still generates the four-model reference plan in
 `data/analysis_plan.json` and writes to `results/`.
 
 Steps 2 and 3 accept `--plan` with a project-relative or absolute generated plan path,
@@ -54,7 +54,7 @@ Step 2 writes `<model>_2_atom_mapping.xlsx`: raw LocalMapper, RXNMapper and
 EnzymeMap predictions, `Mapping_Selection`, `Final_Mapping`, enriched metabolites
 and provenance. Every reaction is retained in Final_Mapping, with MappingCoverage
 Complete/Partial/Unresolved/Boundary (legacy NoCarbon records remain readable). Partial mapper carbon views use
-MappedReactionSMILES; rule-derived partials include reduced unit mapped SMILES and Partial_Mapping, whose
+MappedReactionSMILES; rule-derived partials include reduced unit mapped SMILES and hidden Mapping_Info records, whose
 SourceSMILES/ProductSMILES and CarbonAtomMap indices are verified against the
 stored input and current rule version before propagation. Input workbooks remain unchanged. Missing structures and failed
 predictions retain the existing recorded statuses. Confidence and agreement do
@@ -76,7 +76,7 @@ default after step 2. Review is external to the fixed stage scripts:
    rules: mark their Final_Mapping.MappingCoverage Unresolved and clear mapped
    SMILES so step 3 does not use them. Confirmed partial rules stay Partial without
    setting AIGenerated. Full accepted AI replacements must be Complete. Preserve
-   Partial_Mapping as audit context. Keep review reports separately.
+   saved partial records in Mapping_Info as audit context. Keep review reports separately.
 3. Run step 3 to propagate both available versions independently:
 
 ```bash
@@ -96,7 +96,8 @@ Step 3 writes `<model>_3_carbon_flow.xlsx` for normal mappings and
 `<model>_3_carbon_flow_AIGenerated.xlsx`. Each version combines Enumeration and
 size-1 EMU-inspired balances when both methods are selected. `Summary` contains
 all completed Enumeration rounds; `EXPORT_DETAIL_ROUNDS=3` exports only the
-first three `Carbon_Flow_R*` detail sheets by default. `EMU_Metabolites` and
+first three rounds of details in one `Carbon_Flow` sheet by default, with
+`Carbon_Flow_Round` as its first column. `EMU_Metabolites` and
 `EMU_BoundaryInputs` contain the independent source-balance result. EMU-only
 runs have no Summary and are omitted from Summary collection. Only the last saved Summary row
 contains `<source>_ExclusiveSourceMetabolites`: distinct mapped metabolite IDs whose
@@ -132,7 +133,7 @@ Size and row-limit stops return normally, retaining only complete rounds.
 `output_batch_rows` (default 50,000) controls staged row batches; `max_excel_bytes`
 records the configured size threshold (default 50,000,000). At batch/layer
 checkpoints the actual candidate XLSX is measured. A candidate reaching the
-threshold or exceeding a single sheet's row limit is discarded, with
+threshold or exceeding the combined `Carbon_Flow` sheet's row limit is discarded, with
 `file_size_limit` or `row_limit`; there are no pagination sheets. Only a complete
 candidate below the threshold atomically replaces the previous output.
 `completed_rounds` and `output_file` describe this invocation's published rounds,

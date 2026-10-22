@@ -2,6 +2,12 @@
 
 import hashlib
 import json
+import logging
+import os
+from contextlib import redirect_stdout
+from io import StringIO
+
+import pandas as pd
 from pathlib import Path
 import tempfile
 import unittest
@@ -43,6 +49,92 @@ def fixture():
 
 
 class PreparationTests(unittest.TestCase):
+    def test_console_reports_target_flux_and_keeps_flux_sum_separate(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            model = fixture()
+            model.objective = {model.reactions.get_by_id("growth"): 2}
+            solution = pfba(model)
+            before = solution.fluxes.copy()
+            for verbose in (False, True):
+                output = StringIO()
+                with patch.dict(os.environ, {"CARBON_TRACING_VERBOSE": "1" if verbose else "0"}), redirect_stdout(output):
+                    entry = export_model(model, solution, "Example", ["A[e]"], root)
+                text = output.getvalue()
+                for expected in ("Model: Example", "Solution: optimal", "Target flux: 10",
+                                 "Objective coefficient: 2", "Weighted objective value: 20",
+                                 "3 reactions, 2 metabolites", entry["input_file"]):
+                    self.assertIn(expected, text)
+                self.assertEqual("Total absolute flux" in text, verbose)
+                self.assertEqual(entry["preparation"]["objective_value"], 20)
+                pd.testing.assert_series_equal(solution.fluxes, before)
+
+    def test_step1_reports_actual_export_count_and_order(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            model = fixture()
+            prepared = {
+                "FirstCulture": (model, pfba(model), ["A[e]"]),
+                "SecondCulture": (model.copy(), pfba(model), ["A[e]"]),
+            }
+            output = StringIO()
+            with patch.object(step1, "ROOT", root), patch.object(step1, "prepare_models", return_value=prepared), patch.dict(os.environ), redirect_stdout(output):
+                step1.main([])
+            text = output.getvalue()
+            for expected in ("Prepared model conditions: 2", "Export [1/2]", "Export [2/2]",
+                             "Model: FirstCulture", "Model: SecondCulture",
+                             "Step 1 complete | 2/2 input workbooks exported.",
+                             "Next: python3 step2_atom_mapping.py", "Then: python3 step3_carbon_flow.py"):
+                self.assertIn(expected, text)
+            self.assertLess(text.index("Model: FirstCulture"), text.index("Model: SecondCulture"))
+            self.assertNotIn("Total absolute flux", text)
+            plan = json.loads((root / "data/analysis_plan.json").read_text())
+            self.assertEqual(list(plan["models"]), ["FirstCulture", "SecondCulture"])
+
+    def test_mat_compatibility_notices_are_scoped_and_verbose_is_supported(self):
+        logger = logging.getLogger("cobra.io.mat")
+        previous_level, previous_propagate = logger.level, logger.propagate
+        original_filters = list(logger.filters)
+        try:
+            logger.setLevel(logging.WARNING)
+            logger.propagate = False
+            with tempfile.TemporaryDirectory() as temporary:
+                path = Path(temporary) / "model.mat"
+                path.write_bytes(b"synthetic MAT reader fixture")
+                for verbose in (False, True):
+                    messages = StringIO()
+                    handler = logging.StreamHandler(messages)
+                    logger.addHandler(handler)
+                    def loader(*args, **kwargs):
+                        logger.warning("This model seems to have metCharge instead of metCharges field. Will use metCharge.")
+                        logger.warning("No defined compartments in model fixture.")
+                        logger.warning("Using regular expression found the following compartments:c, e")
+                        logger.warning("Unrelated model annotation warning")
+                        logger.error("No defined compartments in model: real error")
+                        return fixture()
+                    try:
+                        with patch.dict(os.environ, {"CARBON_TRACING_VERBOSE": "1" if verbose else "0"}), patch(
+                                "cobra.io.load_matlab_model", side_effect=loader), patch(
+                                "scipy.io.loadmat", return_value={"model": {"S": []}}), redirect_stdout(StringIO()):
+                            loaded = read_model(path, variable_name="model")
+                        self.assertAlmostEqual(check_solution(loaded, pfba(loaded)), 10)
+                    finally:
+                        logger.removeHandler(handler)
+                    text = messages.getvalue()
+                    self.assertEqual("metCharge instead of metCharges" in text, verbose)
+                    self.assertEqual("Using regular expression" in text, verbose)
+                    self.assertIn("Unrelated model annotation warning", text)
+                    self.assertIn("real error", text)
+                    self.assertEqual(logger.filters, original_filters)
+                with patch.dict(os.environ, {"CARBON_TRACING_VERBOSE": "0"}), patch(
+                        "cobra.io.load_matlab_model", side_effect=ValueError("broken source")):
+                    with self.assertRaisesRegex(ValueError, "broken source"):
+                        read_model(path)
+                self.assertEqual(logger.filters, original_filters)
+        finally:
+            logger.setLevel(previous_level)
+            logger.propagate = previous_propagate
+
     def test_pfba_reports_biological_flux_separately_from_flux_sum(self):
         model = fixture()
         model.objective = "growth"

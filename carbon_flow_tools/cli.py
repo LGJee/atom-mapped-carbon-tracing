@@ -8,6 +8,9 @@ import re
 from pathlib import Path
 import subprocess
 import sys
+from zipfile import BadZipFile
+
+from .console import detail
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKENDS = ("LocalMapper", "RXNMapper", "EnzymeMap")
@@ -97,8 +100,15 @@ def load_analysis_plan(path, stage, defaults):
         raise FileNotFoundError(
             "Run step1_prepare_carbon_tracing_inputs.py first: " + str(path)
         )
-    with path.open(encoding="utf-8") as handle:
-        plan = json.load(handle)
+    try:
+        with path.open(encoding="utf-8") as handle:
+            plan = json.load(handle)
+    except json.JSONDecodeError as error:
+        raise ValueError(
+            "Invalid analysis-plan JSON.\nFile: {}\nLine: {}; column: {}\n"
+            "Action: regenerate this plan with its step-1 script."
+            .format(path, error.lineno, error.colno)
+        ) from error
     if not isinstance(plan, dict) or plan.get("version") != 3:
         raise ValueError(
             "Unsupported analysis plan version; rerun step1_prepare_carbon_tracing_inputs.py"
@@ -172,7 +182,6 @@ def load_analysis_plan(path, stage, defaults):
                 "carbon_sources": sources,
                 "input_sha256": digest,
             }
-    print("Analysis plan: {} ({} models)".format(path, len(jobs)), flush=True)
     return settings, jobs
 
 
@@ -209,7 +218,9 @@ def main(stage, settings, argv=None):
             action="store_true",
             help="Do not reuse step 2 predictions",
         )
+    parser.add_argument("--verbose", action="store_true", help="Show detailed diagnostics and tracebacks")
     args = parser.parse_args(argv)
+    os.environ["CARBON_TRACING_VERBOSE"] = "1" if args.verbose else "0"
     if args.example and args.plan:
         parser.error("Use either --plan or --example, not both.")
     if os.name == "nt":
@@ -229,8 +240,9 @@ def main(stage, settings, argv=None):
     )
     if not tracing_python.is_file():
         raise FileNotFoundError(
-            "Tracing interpreter not found; run scripts/setup_environments.sh: "
-            + str(tracing_python)
+            "Tracing interpreter not found.\nFile: {}\n"
+            "Action: run bash scripts/setup_environments.sh from the project directory."
+            .format(tracing_python)
         )
     if Path(sys.executable).resolve() != tracing_python:
         script = ROOT / (
@@ -275,6 +287,10 @@ def main(stage, settings, argv=None):
     if stage == "trace" and args.output_dir:
         output = project_path(args.output_dir)
     jobs = {name: dict(models[name]) for name in names}
+    print("Step {}: {} model(s).\nResults folder: {}".format(
+        2 if stage == "map" else 3, len(jobs), output), flush=True)
+    if planned_models is not None:
+        detail("Analysis plan: {}".format(project_path(settings["analysis_plan"])), flush=True)
     if stage == "map":
         import pandas as pd
         from .excel_io import input_sheets
@@ -286,11 +302,15 @@ def main(stage, settings, argv=None):
                 and hashlib.sha256(job["input_file"].read_bytes()).hexdigest()
                 != job["input_sha256"]
             ):
-                raise ValueError("Input changed after step 1; rerun step 1: " + name)
+                raise ValueError(
+                    "Input changed after step 1; rerun step 1: {}\nFile: {}\n"
+                    "Action: regenerate the analysis plan after changing an input workbook."
+                    .format(name, job["input_file"])
+                )
             job.setdefault("input_sha256", hashlib.sha256(job["input_file"].read_bytes()).hexdigest())
             with pd.ExcelFile(job["input_file"], engine="openpyxl") as excel:
                 job["reaction_sheet"], job["metabolite_sheet"] = input_sheets(excel)
-            print(
+            detail(
                 "{}: input {}; sheets {}, {}".format(
                     name,
                     job["input_file"],
@@ -392,3 +412,35 @@ def main(stage, settings, argv=None):
             max_processes=1 if args.example else settings["max_carbon_processes"],
             memory_gb=settings["carbon_memory_gb"])
     return 0
+
+
+def run_cli(stage, settings, argv=None):
+    """Keep expected user errors readable; --verbose retains their traceback."""
+    arguments = sys.argv[1:] if argv is None else list(argv)
+    try:
+        return main(stage, settings, arguments)
+    except KeyboardInterrupt:
+        print("\nStopped by user.", file=sys.stderr, flush=True)
+        return 130
+    except (ValueError, OSError, RuntimeError, ImportError, MemoryError, BadZipFile,
+            subprocess.CalledProcessError) as error:
+        if "--verbose" in arguments:
+            raise
+        print("\nStep {} stopped: {}".format(
+            2 if stage == "map" else 3, str(error) or type(error).__name__), file=sys.stderr, flush=True)
+        status = getattr(error, "run_status", {})
+        if status:
+            print("Model: {}\nMapping file: {}\nComplete rounds saved in this run: {}"
+                  .format(status.get("model", "unknown"), status.get("mapping_file", "unknown"),
+                          status.get("completed_rounds", 0)), file=sys.stderr, flush=True)
+        if isinstance(error, PermissionError):
+            action = "Close the workbook in Excel and check output-directory permissions."
+        elif isinstance(error, BadZipFile):
+            action = "Check that the input is a valid .xlsx file; regenerate it if necessary."
+        elif isinstance(error, ImportError):
+            action = "Run scripts/setup_environments.sh to prepare the project environments."
+        else:
+            action = "Check the file or setting named above, correct the issue and rerun this step."
+        print("Action: {}\nFor technical details, rerun with --verbose."
+              .format(action), file=sys.stderr, flush=True)
+        return 1

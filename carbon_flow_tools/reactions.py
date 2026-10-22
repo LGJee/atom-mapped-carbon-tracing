@@ -98,6 +98,7 @@ def build_side(
 
 def transport_mapping(reaction):
     """Preserve atoms for identity- and stoichiometry-preserving compartment transport."""
+    from .carbon_mapping_rules import structure_kind
     if not reaction.left or len(reaction.left) != len(reaction.right):
         return ""
     remaining = list(enumerate(reaction.right))
@@ -108,6 +109,8 @@ def transport_mapping(reaction):
         if source_name is None:
             return ""
         molecule = Chem.MolFromSmiles(source.smiles)
+        if structure_kind(source.smiles) != "complete":
+            return ""  # Partial transport is handled as reviewed local carbon pairs.
         structure = Chem.MolToSmiles(molecule)
         for index, (position, target) in enumerate(remaining):
             target_name = re.fullmatch(r"(.+)\[([^\[\]]+)\]", target.metabolite)
@@ -140,9 +143,12 @@ def transport_mapping(reaction):
 def prepare_reactions(
     reactions: pd.DataFrame, metabolites: pd.DataFrame
 ) -> List[PreparedReaction]:
-    smiles_by_name = {}
+    from .carbon_mapping_rules import structure_kind, STRUCTURE_LIMITS
+    smiles_by_name, kinds = {}, {}
     for row in metabolites.itertuples(index=False):
-        smiles_by_name[clean(row.MetaboliteName)] = get_smiles(row)
+        name = clean(row.MetaboliteName)
+        smiles_by_name[name] = get_smiles(row)
+        kinds[name] = structure_kind(get_smiles(row), clean(getattr(row, "MolecularFormula", "")))
 
     prepared = []
     for row in reactions.itertuples(index=False):
@@ -173,15 +179,16 @@ def prepare_reactions(
                 for side, terms in (("reactants", left_terms), ("products", right_terms)):
                     retained.append([])
                     for amount, name in terms:
-                        if smiles_by_name.get(name):
+                        if kinds[name] in ("complete", "partial"):
                             retained[-1].append((amount, name))
                         else:
                             reaction.omitted_components.append(dict(
                                 Side=side, MetaboliteName=name, Coefficient=amount,
-                                Reason="Missing SMILES"))
+                                Reason=STRUCTURE_LIMITS[kinds[name]]))
                 if reaction.omitted_components:
                     if not all(retained):
-                        reaction.status = "Missing SMILES leaves no mapper reactants or products"
+                        reaction.status = "Unresolved structures leave no mapper reactants or products: " + "; ".join(
+                            item["MetaboliteName"] + ": " + item["Reason"] for item in reaction.omitted_components)
                         prepared.append(reaction)
                         continue
                     left_terms, right_terms = retained

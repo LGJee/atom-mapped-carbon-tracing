@@ -34,7 +34,10 @@ class CombinedMethodTests(unittest.TestCase):
                     store.complete_round()
                 workbook = load_workbook(path, read_only=True)
                 try:
-                    self.assertEqual(set(workbook.sheetnames), {"Summary", "Carbon_Flow_R1", "Carbon_Flow_R2", "Carbon_Flow_R3", "EMU_Metabolites"})
+                    self.assertEqual(set(workbook.sheetnames), {"Summary", "Carbon_Flow", "EMU_Metabolites"})
+                    details = list(workbook["Carbon_Flow"].values)
+                    self.assertEqual(details[0], tuple(["Carbon_Flow_Round"] + COLUMNS))
+                    self.assertEqual([row[0] for row in details[1:]], [1, 2, 3])
                     self.assertEqual(workbook["Summary"].max_row, None)  # Read-only streaming dimensions.
                     self.assertEqual(len(list(workbook["Summary"].values)), 6)
                 finally:
@@ -74,8 +77,8 @@ class CombinedMethodTests(unittest.TestCase):
                 with pd.ExcelFile(output, engine="openpyxl") as excel:
                     self.assertIn("EMU_Metabolites", excel.sheet_names)
                     self.assertIn("EMU_BoundaryInputs", excel.sheet_names)
-                    self.assertIn("Carbon_Flow_R1", excel.sheet_names)
-                    self.assertNotIn("Carbon_Flow_R2", excel.sheet_names)
+                    self.assertIn("Carbon_Flow", excel.sheet_names)
+                    self.assertEqual(set(pd.read_excel(excel, sheet_name="Carbon_Flow").Carbon_Flow_Round), {1})
                     self.assertGreaterEqual(pd.read_excel(excel, sheet_name="Summary").Round.max(), 2)
                     table = pd.read_excel(excel, sheet_name="EMU_Metabolites").set_index("MetaboliteName")
                     self.assertAlmostEqual(table.loc["B[c]", "A[e]"], 1)

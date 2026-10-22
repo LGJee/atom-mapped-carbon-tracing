@@ -44,7 +44,6 @@ Download these external files into `data/`, preserving their upstream licenses:
 |---|---|---|
 | S. cerevisiae | [Yeast9 v9.1.1](https://github.com/SysBioChalmers/yeast-GEM/tree/v9.1.1/model) | `data/Saccharomyces_cerevisiae/yeast-GEM.mat`, `yeast-GEM.yml` |
 | E. coli | [BiGG iML1515](https://bigg.ucsd.edu/models/iML1515) | `data/Escherichia_coli/iML1515.mat`, `iML1515.json` |
-| Y. lipolytica | [Pinned iYali5 source](https://github.com/bioengtaltech/eciYali5-GEM/tree/3b97d38d92327a099f3b0f6f9cd92e8aeab78c10/model) | `data/Yarrowia_lipolytica/iYali5.mat`, `eciYali5-GEM.yml` |
 
 Keep each source model in its own subfolder under `data/`, with its companion
 JSON/YAML files in the same folder. Configure the computational model path only
@@ -53,9 +52,7 @@ automatically reads supported native structures and scans that folder for matchi
 annotations. Companion filenames need not match the computational model.
 
 MAT is an upstream model **data format**, read directly by COBRApy and SciPy.
-Model files, large datasets and environments are not bundled. Ordinary iYali5
-supplies the Yarrowia pFBA network; its paired eciYali5 YAML supplies chemical
-structures only. Do not substitute the enzyme-constrained network.
+Model files, large datasets and environments are not bundled.
 
 ## 3. Configure and run step 1
 
@@ -66,11 +63,22 @@ Edit the user settings and relevant named model blocks in
 python3 step1_prepare_carbon_tracing_inputs.py
 ```
 
+Step 1 reports preparation by condition, the actual condition count, numbered
+exports, each target reaction and its flux, and the generated workbook path.
+Target fluxes use the source model's units. The pFBA total absolute flux is a
+separate diagnostic, available with `--verbose`; it is not the target-product flux.
+Only known legacy MAT field/compartment notices are hidden by default; other
+warnings remain visible:
+
+```bash
+python3 step1_prepare_carbon_tracing_inputs.py --verbose
+```
+
 Step 1 uses the configured `.envs/preparation/bin/python` when it is installed,
 even if the launching interpreter also has COBRApy. You can invoke it explicitly.
 Paths are resolved from the project directory, independently of the working folder.
 
-The six numbered blocks use standard COBRApy operations directly:
+The four numbered blocks use standard COBRApy operations directly:
 `gene.knock_out()`, `Metabolite`, `Reaction.add_metabolites()`, explicit
 `lower_bound` / `upper_bound` assignments, `model.optimize()` and `pfba()`.
 Each strain's modifications stay together, even where operations repeat between
@@ -81,8 +89,8 @@ solutions are validated by the shared exporter before writing any result.
 See the [COBRApy model-building tutorial](https://cobrapy.readthedocs.io/en/latest/building_model.html)
 for these operations.
 
-The default blocks prepare non-IUPD/IUPD pairs for Saccharomyces_cerevisiae,
-Escherichia_coli and Yarrowia_lipolytica. Each IUPD block independently reloads
+The default blocks prepare non-IUPD/IUPD pairs for Saccharomyces_cerevisiae
+and Escherichia_coli. Each IUPD block independently reloads
 its original model and uses 50% of its paired non-IUPD maximum growth rate. Both
 comparators maximize squalene, then minimize the sum of absolute reaction fluxes
 using `cobra.flux_analysis.pfba`. Its `objective_value` is the minimized flux sum;
@@ -97,13 +105,11 @@ Code identifiers and filenames use `non_IUPD`; descriptions use `non-IUPD`.
 |---|---:|---:|---:|
 | S. cerevisiae | 1 | 2 | 2.09 |
 | E. coli | 10 | 20 | 20.9 |
-| Y. lipolytica | 1 | 2 | 2.09 |
 
-Limits are mmol/gDW/h. S. cerevisiae and E. coli inherit native glucose bounds;
-iYali5 has glucose closed, so each Yarrowia block explicitly selects glucose
-medium with `glucose_uptake = 1.0`. IUPD retains the growth-phase glucose bounds. Native oxygen
-settings are inherited. Other carbon uptake is closed in the E. coli and
-Yarrowia comparisons. E. coli non-IUPD/IUPD both receive functional SQS activity and
+Limits are mmol/gDW/h. Both species inherit native glucose bounds.
+IUPD retains the growth-phase glucose bounds. Native oxygen settings are
+inherited. Other carbon uptake is closed in the E. coli comparison.
+E. coli non-IUPD/IUPD both receive functional SQS activity and
 a squalene output. These are model-specific conditions, not universal media
 or experimentally validated strains. See [model notes](docs/yeast9-example.md).
 
@@ -193,7 +199,8 @@ Set `ANALYSIS_METHODS` to `["Enumeration"]`, `["EMU"]`, or both at the top of
 Enumeration reads both normal and optional AI-reviewed step-2 mappings for models
 in the selected plan, using the same ordered carbon sources for both versions.
 It never calls mappers or changes input/mapping workbooks. Each
-`<model>_3_carbon_flow.xlsx` combines `Summary`, exported `Carbon_Flow_Rn`,
+`<model>_3_carbon_flow.xlsx` combines `Summary`, a `Carbon_Flow` sheet with
+`Carbon_Flow_Round` as its first column,
 `EMU_Metabolites` and `EMU_BoundaryInputs`. AI copies use `_AIGenerated.xlsx` and
 both methods read that copy's Final_Mapping. No separate `_EMU` file is created.
 The default maximum is 10 Enumeration rounds, stopping earlier on convergence.
@@ -256,6 +263,34 @@ python3 step2_atom_mapping.py Escherichia_coli_non_IUPD Escherichia_coli_IUPD
 python3 step3_carbon_flow.py Escherichia_coli_non_IUPD Escherichia_coli_IUPD --rounds 1
 ```
 
+
+### Console output and estimated time
+
+Steps 2 and 3 show short progress messages and result locations by default.
+For example: `Example / RXNMapper: 50% (174/348 reactions).`
+Mapper dependency warnings, library messages and per-reaction errors are saved in
+`logs/<model>_<mapper>.log` under the analysis result directory (latest run per tool).
+A short notice identifies reactions that need checking; final workbook summaries
+still report the review count. These messages do not change calculation or selection.
+Use `--verbose` to show library output and technical progress directly in the terminal. Routine batch, layer and resource details are available with
+`--verbose`; expected input/configuration errors otherwise show their context
+and an action instead of a traceback:
+
+```bash
+python3 step2_atom_mapping.py --verbose
+python3 step3_carbon_flow.py --verbose
+```
+
+Progress refreshes at computation checkpoints about every 15 seconds. ETA is
+recomputed from recent observed speed, so it can move up or down. Step 2 estimates
+the current mapper after model loading. Step 3 estimates the current reaction's
+substrate combinations or Excel-writing rows; it does not extrapolate earlier
+rounds into a full-run estimate. Source lookups/model loading, EMU solving and
+unknown work counts show `Estimating...` or `Unavailable` where an estimate is
+not justified. A long individual prediction or library call may delay the next
+update. Parallel tasks identify their model/tool or mapping version on each line.
+These are changing execution estimates, not convergence or biological rates.
+
 ### Optional: propagate using AI-reviewed mapping copies
 
 After external review, place `<model>_2_atom_mapping_AIGenerated.xlsx` copies
@@ -296,7 +331,7 @@ direct biological rankings.
 
 ## Custom inputs and installation check
 
-The default commands reproduce the six-model study. A different analysis can
+The default commands reproduce the four-model study. A different analysis can
 keep its own preparation script, generated plan and results under
 `results/results_by_AI/<analysis-name>/`, sharing this project's environments and model data.
 The case folder directly contains its script, plan, reports and Excel workbooks;

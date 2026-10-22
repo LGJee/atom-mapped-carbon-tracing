@@ -1,4 +1,4 @@
-"""Prepare six reference networks with COBRApy, then export the analysis plan."""
+"""Prepare four reference networks with COBRApy, then export the analysis plan."""
 
 import importlib.util
 import argparse
@@ -31,6 +31,7 @@ def prepare_models():
     # 1. Saccharomyces_cerevisiae_non_IUPD
     # ================================================================
     # Load the model.
+    print("Preparing: Saccharomyces_cerevisiae_non_IUPD", flush=True)
     model_file = "data/Saccharomyces_cerevisiae/yeast-GEM.mat"
     model_non_iupd = read_model(ROOT / model_file, SOLVER, "model")
 
@@ -71,6 +72,7 @@ def prepare_models():
     # 2. Saccharomyces_cerevisiae_IUPD
     # ================================================================
     # Load the model.
+    print("Preparing: Saccharomyces_cerevisiae_IUPD", flush=True)
     model_file = "data/Saccharomyces_cerevisiae/yeast-GEM.mat"
     # Load independently of the non-IUPD production constraints.
     model_iupd = read_model(ROOT / model_file, SOLVER, "model")
@@ -156,6 +158,7 @@ def prepare_models():
     # 3. Escherichia_coli_non_IUPD
     # ================================================================
     # Load the model.
+    print("Preparing: Escherichia_coli_non_IUPD", flush=True)
     model_file = "data/Escherichia_coli/iML1515.mat"
     model_non_iupd = read_model(ROOT / model_file, SOLVER, "iML1515")
 
@@ -218,6 +221,7 @@ def prepare_models():
     # 4. Escherichia_coli_IUPD
     # ================================================================
     # Load the model.
+    print("Preparing: Escherichia_coli_IUPD", flush=True)
     model_file = "data/Escherichia_coli/iML1515.mat"
     # Load independently of the non-IUPD production constraints.
     model_iupd = read_model(ROOT / model_file, SOLVER, "iML1515")
@@ -316,133 +320,6 @@ def prepare_models():
     # Register this analysis for export.
     models["Escherichia_coli_IUPD"] = (model_iupd, solution_iupd, carbon_sources)
 
-    # ================================================================
-    # 5. Yarrowia_lipolytica_non_IUPD
-    # ================================================================
-    # Load the model.
-    model_file = "data/Yarrowia_lipolytica/iYali5.mat"
-    model_non_iupd = read_model(ROOT / model_file, SOLVER, "model")
-
-    # Carbon sources (label introduction order).
-    carbon_sources = ["D-glucose[e]"]
-
-    # Culture conditions and model modifications.
-    glucose_uptake = 1.0  # mmol/gDW/h; uptake is closed in the source iYali5.
-    model_non_iupd.reactions.get_by_id("1714").bounds = (
-        -glucose_uptake,
-        1000,
-    )  # D-glucose exchange.
-    glucose_non_iupd = model_non_iupd.reactions.get_by_id("1714").lower_bound
-    close_other_carbon_uptake(model_non_iupd, "1714")
-
-    # Growth constraint: calculate non-IUPD maximum, then fix 50%.
-    model_non_iupd.objective = "2111"  # Growth: biomass output.
-    growth_non_iupd = model_non_iupd.optimize(objective_sense="maximize")
-    check_solution(model_non_iupd, growth_non_iupd)
-    max_growth_yarrowia = growth_non_iupd.objective_value
-    fixed_growth_yarrowia = 0.5 * max_growth_yarrowia
-    biomass = model_non_iupd.reactions.get_by_id("2111")
-    biomass.lower_bound = fixed_growth_yarrowia
-    biomass.upper_bound = fixed_growth_yarrowia
-    model_non_iupd.reactions.get_by_id("1714").lower_bound = 2 * glucose_non_iupd
-
-    # Production objective and pFBA.
-    model_non_iupd.objective = "1012"  # Squalene synthase.
-    # pFBA maximizes squalene first, then minimizes total absolute flux.
-    model_non_iupd.objective_direction = "max"
-    solution_non_iupd = pfba(model_non_iupd, fraction_of_optimum=1.0)
-
-    # Register this analysis for export.
-    models["Yarrowia_lipolytica_non_IUPD"] = (
-        model_non_iupd,
-        solution_non_iupd,
-        carbon_sources,
-    )
-
-    # ================================================================
-    # 6. Yarrowia_lipolytica_IUPD
-    # ================================================================
-    # Load the model.
-    model_file = "data/Yarrowia_lipolytica/iYali5.mat"
-    # Load independently of the non-IUPD production constraints.
-    model_iupd = read_model(ROOT / model_file, SOLVER, "model")
-
-    # Carbon sources (label introduction order).
-    carbon_sources = ["D-glucose[e]", "isoprenol[e]"]
-
-    # Culture conditions and model modifications.
-    glucose_uptake = 1.0  # mmol/gDW/h; uptake is closed in the source iYali5.
-    model_iupd.reactions.get_by_id("1714").bounds = (
-        -glucose_uptake,
-        1000,
-    )  # D-glucose exchange.
-    glucose_iupd = model_iupd.reactions.get_by_id("1714").lower_bound
-    close_other_carbon_uptake(model_iupd, "1714")
-    # YALI0F30481g: ERG13, HMG-CoA synthase (reactions 559 and 560).
-    model_iupd.genes.get_by_id("YALI0F30481g").knock_out()
-    # Add the IU-pathway metabolites.
-    isoprenol_e = Metabolite(
-        "isoprenol[e]", name="isoprenol", formula="C5H10O", compartment="e"
-    )
-    isoprenol_c = Metabolite(
-        "isoprenol[c]", name="isoprenol", formula="C5H10O", compartment="c"
-    )
-    isopentenyl_p = Metabolite(
-        "isopentenyl_phosphate[c]",
-        name="isopentenyl phosphate",
-        formula="C5H11O4P",
-        compartment="c",
-    )
-    model_iupd.add_metabolites([isoprenol_e, isoprenol_c, isopentenyl_p])
-    isoprenol_exchange = Reaction(
-        "Ex_isopentenol_e", lower_bound=2.09 * glucose_iupd, upper_bound=1000
-    )
-    isoprenol_exchange.add_metabolites({isoprenol_e: -1})  # Isoprenol exchange.
-    isoprenol_transport = Reaction(
-        "Ex_isopentenol_e_t", lower_bound=0, upper_bound=1000
-    )
-    # Isoprenol transport: extracellular -> cytosol.
-    isoprenol_transport.add_metabolites({isoprenol_e: -1, isoprenol_c: 1})
-    # m141: ATP; m143: ADP; m491: IPP, all cytosolic.
-    atp = model_iupd.metabolites.get_by_id("m141")
-    adp = model_iupd.metabolites.get_by_id("m143")
-    ipp = model_iupd.metabolites.get_by_id("m491")
-    # Isoprenol + ATP -> isopentenyl phosphate + ADP.
-    isoprenol_kinase = Reaction("isopentenolK", lower_bound=0, upper_bound=1000)
-    isoprenol_kinase.add_metabolites(
-        {isoprenol_c: -1, atp: -1, isopentenyl_p: 1, adp: 1}
-    )
-    isoprenol_kinase.gene_reaction_rule = "YLR133W"
-    # Isopentenyl phosphate + ATP -> IPP + ADP.
-    isopentenyl_phosphate_kinase = Reaction(
-        "PisopentenolK", lower_bound=0, upper_bound=1000
-    )
-    isopentenyl_phosphate_kinase.add_metabolites(
-        {isopentenyl_p: -1, atp: -1, ipp: 1, adp: 1}
-    )
-    isopentenyl_phosphate_kinase.gene_reaction_rule = "AtIPK"
-    model_iupd.add_reactions(
-        [
-            isoprenol_exchange,
-            isoprenol_transport,
-            isoprenol_kinase,
-            isopentenyl_phosphate_kinase,
-        ]
-    )
-
-    # Growth constraint: use the paired non-IUPD half-maximum rate.
-    biomass = model_iupd.reactions.get_by_id("2111")
-    biomass.lower_bound = fixed_growth_yarrowia
-    biomass.upper_bound = fixed_growth_yarrowia
-
-    # Production objective and pFBA.
-    model_iupd.objective = "1012"  # Squalene synthase.
-    # pFBA maximizes squalene first, then minimizes total absolute flux.
-    model_iupd.objective_direction = "max"
-    solution_iupd = pfba(model_iupd, fraction_of_optimum=1.0)
-
-    # Register this analysis for export.
-    models["Yarrowia_lipolytica_IUPD"] = (model_iupd, solution_iupd, carbon_sources)
     return models
 
 
@@ -453,7 +330,10 @@ def main(argv=None):
     parser.add_argument("--plan", default="data/analysis_plan.json",
                         help="Generated plan path inside this project")
     parser.add_argument("--output-dir", help="Project-relative output folder")
+    parser.add_argument("--verbose", action="store_true",
+                        help="Show model-format notices and total-flux diagnostics")
     args = parser.parse_args(arguments)
+    os.environ["CARBON_TRACING_VERBOSE"] = "1" if args.verbose else "0"
     python = ROOT / PREPARATION_PYTHON
     if python.is_file() and python.resolve() != Path(sys.executable).resolve():
         os.execv(
@@ -471,9 +351,13 @@ def main(argv=None):
         OUTPUT_DIR if target == (ROOT / "data/analysis_plan.json").resolve()
         else target.parent.relative_to(ROOT.resolve()).as_posix()
     )
+    print("Step 1 | Preparing metabolic models", flush=True)
     models = prepare_models()
+    print("\nPrepared model conditions: {}\nExporting step-2 input workbooks..."
+          .format(len(models)), flush=True)
     plan = {}
-    for name, (model, solution, carbon_sources) in models.items():
+    for number, (name, (model, solution, carbon_sources)) in enumerate(models.items(), 1):
+        print("\nExport [{}/{}]".format(number, len(models)), flush=True)
         plan[name] = export_model(
             model,
             solution,
@@ -484,6 +368,8 @@ def main(argv=None):
             NONZERO_TOLERANCE,
         )
     save_plan(ROOT, plan, output_dir, target, script_file=__file__)
+    print("\nStep 1 complete | {}/{} input workbooks exported."
+          .format(len(plan), len(models)), flush=True)
     relative_plan = target.relative_to(ROOT.resolve()).as_posix()
     print("Next: python3 step2_atom_mapping.py --plan {}\n"
           "Then: python3 step3_carbon_flow.py --plan {}"

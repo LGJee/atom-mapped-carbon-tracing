@@ -1,5 +1,7 @@
 """Check mapping-only output and propagation without any mapper calls."""
 
+from scripts.test_carbon_tracing import read_carbon_round
+
 import hashlib
 from pathlib import Path
 import sys
@@ -97,13 +99,11 @@ def main():
             root / "combined/Example_3_carbon_flow.xlsx", engine="openpyxl"
         ) as combined:
             assert set(split.sheet_names) == {
-                "Carbon_Flow_R1",
-                "Carbon_Flow_R2",
+                "Carbon_Flow",
                 "Summary",
             }
             for name in (
-                "Carbon_Flow_R1",
-                "Carbon_Flow_R2",
+                "Carbon_Flow",
                 "Summary",
             ):
                 pd.testing.assert_frame_equal(
@@ -129,8 +129,7 @@ def main():
                 root / "independent/Example_3_carbon_flow.xlsx", engine="openpyxl"
             ) as independent:
                 assert set(independent.sheet_names) == {
-                    "Carbon_Flow_R1",
-                    "Carbon_Flow_R2",
+                    "Carbon_Flow",
                     "Summary",
                 }
                 for sheet in independent.sheet_names:
@@ -173,7 +172,7 @@ def main():
             **options,
         )
         with pd.ExcelFile(output, engine="openpyxl") as excel:
-            assert "Carbon_Flow_R2" not in excel.sheet_names
+            assert set(pd.read_excel(excel, sheet_name="Carbon_Flow").Carbon_Flow_Round) == {1}
         # Numeric-looking model IDs must survive the Excel mapping/trace boundary.
         numeric_mapping = root / "numeric_mapping.xlsx"
         workbook = load_workbook(mapping_output)
@@ -209,11 +208,7 @@ def main():
             root / "numeric",
             max_processes=1,
         )
-        numeric_flow = pd.read_excel(
-            root / "numeric/Numeric_3_carbon_flow.xlsx",
-            sheet_name="Carbon_Flow_R1",
-            engine="openpyxl",
-        )
+        numeric_flow = read_carbon_round(root / "numeric/Numeric_3_carbon_flow.xlsx", 1, engine="openpyxl")
         assert len(numeric_flow) == 2
         assert set(numeric_flow.ReactionID.astype(str)) == {"1", "2"}
 
@@ -359,24 +354,19 @@ def check_mapping_variants():
                     pd.read_excel(path, sheet_name="Summary", engine="openpyxl"),
                 )
         updated_flow = folder / (names[0] + "_3_carbon_flow_AIGenerated.xlsx")
-        table = pd.read_excel(
-            updated_flow, sheet_name="Carbon_Flow_R1", engine="openpyxl"
-        )
+        table = read_carbon_round(updated_flow, 1, engine="openpyxl")
         marked = table.loc[table.Production == "B[c]", "LabeledSMILES"].iloc[0]
         assert assignment_from_labeled_smiles("CCO", marked) == (
             (0, 0, "C2"),
             (0, 1, "C1"),
         )
-        before = pd.read_excel(
-            original_flow, sheet_name="Carbon_Flow_R1", engine="openpyxl"
-        )
+        before = read_carbon_round(original_flow, 1, engine="openpyxl")
         assert (
             before.loc[before.Production == "B[c]", "LabeledSMILES"].iloc[0] != marked
         )
         assert pd.ExcelFile(updated_flow, engine="openpyxl").sheet_names == [
             "Summary",
-            "Carbon_Flow_R1",
-            "Carbon_Flow_R2",
+            "Carbon_Flow",
             "EMU_Metabolites",
             "EMU_BoundaryInputs",
         ]
@@ -403,7 +393,7 @@ def check_mapping_variants():
             carbon_sources=["A[e]"],
         )}, 2, parallel, max_processes=2, memory_gb=.25)
         for filename in (names[0] + "_3_carbon_flow.xlsx", updated_flow.name):
-            for sheet_name in ("Summary", "Carbon_Flow_R1", "Carbon_Flow_R2"):
+            for sheet_name in ("Summary", "Carbon_Flow"):
                 pd.testing.assert_frame_equal(
                     pd.read_excel(folder / filename, sheet_name=sheet_name, engine="openpyxl"),
                     pd.read_excel(parallel / filename, sheet_name=sheet_name, engine="openpyxl"),

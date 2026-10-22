@@ -1,5 +1,7 @@
 """Regression checks for preserved scientific behavior."""
 
+from scripts.test_carbon_tracing import read_carbon_round
+
 import hashlib
 import os
 import time
@@ -270,11 +272,7 @@ def main():
             assert len(pd.read_excel(excel, sheet_name="Final_Mapping")) == 2
             assert (
                 len(
-                    pd.read_excel(
-                        root / "out/non_IUPD_3_carbon_flow.xlsx",
-                        sheet_name="Carbon_Flow_R1",
-                        engine="openpyxl",
-                    )
+                    read_carbon_round(root / "out/non_IUPD_3_carbon_flow.xlsx", 1, engine="openpyxl")
                 )
                 == 2
             )
@@ -297,11 +295,7 @@ def main():
             assert info.ReusedPredictions.all()
             choices = pd.read_excel(excel, sheet_name="Mapping_Selection")
             final = pd.read_excel(excel, sheet_name="Final_Mapping")
-            flow = pd.read_excel(
-                root / "out/non_IUPD_3_carbon_flow.xlsx",
-                sheet_name="Carbon_Flow_R1",
-                engine="openpyxl",
-            )
+            flow = read_carbon_round(root / "out/non_IUPD_3_carbon_flow.xlsx", 1, engine="openpyxl")
             assert choices.SelectedMapper.tolist() == ["Identity", "EnzymeMap"]
             assert "CarbonAgreement" not in choices and not choices.ReviewRequired.any()
             assert len(final) == 2 and final.MappedReactionSMILES.eq(correct).all()

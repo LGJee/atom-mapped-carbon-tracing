@@ -6,6 +6,8 @@ from pathlib import Path
 import pandas as pd
 from openpyxl.utils import get_column_letter
 
+from .console import detail
+
 
 def input_sheets(excel):
     """Find the original input tables by their headers, independent of sheet names."""
@@ -21,8 +23,12 @@ def input_sheets(excel):
     if len(reaction_sheets) != 1 or len(metabolite_sheets) != 1:
         raise ValueError(
             "Workbook must contain exactly one reaction table and one metabolite table; "
-            "found reaction sheets {}, metabolite sheets {}.".format(
-                reaction_sheets, metabolite_sheets
+            "found reaction sheets {}, metabolite sheets {}.\n"
+            "File: {}\n"
+            "Required reaction columns: ReactionID, ReactionName, Flux, Equation.\n"
+            "Required metabolite columns: MetaboliteID, MetaboliteName.\n"
+            "Action: keep one table of each type, or regenerate the workbook with step 1.".format(
+                reaction_sheets, metabolite_sheets, getattr(excel, "io", "(supplied workbook)")
             )
         )
     return reaction_sheets[0], metabolite_sheets[0]
@@ -73,7 +79,7 @@ def copy_input(source: Path, destination: Path) -> Path:
         raise ValueError("Output cannot overwrite the input workbook.")
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(str(source), str(destination))
-    print(f"Input copied; analysis output: {destination}", flush=True)
+    detail(f"Input copied; analysis output: {destination}", flush=True)
     return destination
 
 
@@ -97,6 +103,44 @@ def write_sheet(
                 # An input boundary equation beginning with => is text, not an Excel formula.
                 worksheet.cell(worksheet.max_row, column).data_type = "s"
     format_columns(worksheet)
+
+
+def read_partial_mapping_records(workbook):
+    """Read hidden transfer records, with support for legacy visible tables."""
+    from .carbon_mapping_rules import COLUMNS
+    for name in ("Mapping_Info", "Partial_Mapping"):
+        if name not in workbook.sheetnames:
+            continue
+        rows = list(workbook[name].values)
+        table = pd.DataFrame(rows[1:], columns=rows[0], dtype=object) if rows else pd.DataFrame()
+        if name == "Mapping_Info":
+            if "RecordType" not in table:
+                continue
+            table = table.loc[table.RecordType.eq("PartialMapping")]
+        if table.empty:
+            continue
+        if not set(COLUMNS) <= set(table.columns):
+            raise ValueError("Saved partial correspondences are missing required columns")
+        fields = COLUMNS + [field for field in ("Evidence", "Notes") if field in table]
+        table = table[fields].fillna("")
+        for field in ("ReactionID", "RuleVersion"):
+            table[field] = table[field].astype(str)
+        return table.reset_index(drop=True)
+    return pd.DataFrame(columns=COLUMNS)
+
+
+def write_partial_mapping_records(workbook, records):
+    """Keep exact transfer amounts in existing metadata, without an extra sheet."""
+    rows = list(workbook["Mapping_Info"].values) if "Mapping_Info" in workbook.sheetnames else []
+    metadata = pd.DataFrame(rows[1:], columns=rows[0], dtype=object) if rows else pd.DataFrame()
+    if "RecordType" in metadata:
+        metadata = metadata.loc[~metadata.RecordType.eq("PartialMapping")]
+    if not records.empty:
+        metadata = pd.concat([metadata, records.assign(RecordType="PartialMapping")],
+                             ignore_index=True, sort=False)
+    write_sheet(workbook, "Mapping_Info", metadata)
+    if "Partial_Mapping" in workbook.sheetnames:
+        del workbook["Partial_Mapping"]
 
 
 class WorkbookSizeLimitError(RuntimeError):
@@ -156,6 +200,7 @@ def format_columns(worksheet, columns=None):
         "Equation": 50,
         "ReactionSMILES": 65,
         "MappedReactionSMILES": 65,
+        "Carbon_Flow_Round": 22,
         "Step": 10,
         "Source": 38,
         "SourceIDs": 20,

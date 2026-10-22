@@ -1,6 +1,6 @@
 # Detailed workflow and custom analyses
 
-Follow the [quick start](../README.md) for the six reference models. All stages
+Follow the [quick start](../README.md) for the four reference models. All stages
 run in Python; COBRApy and GLPK prepare the pFBA networks.
 
 ```text
@@ -125,11 +125,9 @@ candidate remains available for mapping; affected reactions inherit
 `StructureStatus` record the choice and alternatives. This is not biochemical
 validation. Conflicting database identifiers are not automatically selected.
 
-Yeast9 supplies S. cerevisiae structures; the differently named `eciYali5-GEM.yml`
-supplies Yarrowia structures while ordinary `iYali5.mat` provides its pFBA network.
-The manual table also identifies iYali5 protons (`H+_p+1`) as `[H+]`; no generic
-lipid/polymer structure is invented. Compatible companion InChIKeys are loaded
-automatically for exact database lookup, including the iML1515 JSON annotations.
+Yeast9 supplies S. cerevisiae structures. Compatible companion InChIKeys are
+loaded automatically for exact database lookup, including iML1515 JSON annotations.
+No generic lipid/polymer structure is invented.
 PubChem supplies remaining missing structures. Local sources still work when
 `COMPLETE_MISSING_SMILES=False` disables online lookup.
 
@@ -148,21 +146,18 @@ See [carbon mapping rules and evidence](carbon-mapping-rules.md).
 
 [step1_prepare_carbon_tracing_inputs.py](../step1_prepare_carbon_tracing_inputs.py)
 contains the model, medium, knockout, objective and carbon-source settings.
-The default test setup exports three species' non-IUPD/IUPD pairs. Both models of each species fix growth at 50% of the non-IUPD maximum and maximize squalene
-formation before minimizing total absolute flux. The E. coli comparison models
-both include introduced SQS activity and a squalene output; medium settings
-remain species-specific.
-S. cerevisiae and E. coli non-IUPD growth optimization preserves native glucose bounds.
-iYali5 ships with glucose uptake closed, so step 1 explicitly enables a glucose
-medium using `glucose_uptake = 1.0` in each Yarrowia block and closes other carbon uptake.
-After fixing half of the maximum growth rate, non-IUPD glucose uptake limits double:
-S. cerevisiae 1 -> 2, E. coli 10 -> 20 and Y. lipolytica 1 -> 2 mmol/gDW/h.
-The iYali5 glucose limit permits uptake rather than forcing it.
-IUPD retains the growth-phase glucose bounds (limits 1, 10 and 1),
-permits isoprenol uptake up to 2.09 times those limits (2.09, 20.9 and 2.09),
-and uses the same fixed growth rate as its paired non-IUPD, not half its own maximum.
-Native oxygen bounds are inherited (lower bound -1000 in all three reference
-models). Each non-IUPD block sets its biomass objective explicitly. Set a
+The default setup exports the non-IUPD/IUPD pairs for S. cerevisiae and E. coli.
+Both models of each species fix growth at 50% of the non-IUPD maximum and maximize
+squalene formation before minimizing total absolute flux. The E. coli comparison
+models both include introduced SQS activity and a squalene output.
+Both species preserve native glucose bounds during non-IUPD growth optimization.
+After fixing half of the maximum growth rate, non-IUPD glucose uptake limits
+double: S. cerevisiae 1 -> 2 and E. coli 10 -> 20 mmol/gDW/h.
+IUPD retains the growth-phase glucose limits (1 and 10), permits isoprenol uptake
+up to 2.09 times those limits (2.09 and 20.9), and uses the same fixed growth rate
+as its paired non-IUPD, not half its own maximum. Uptake limits permit uptake;
+they do not force it. Native oxygen bounds are inherited (lower bound -1000 in
+both reference models). Each non-IUPD block sets its biomass objective explicitly. Set a
 different medium bound or objective explicitly when adapting another model.
 IUPD uses its paired non-IUPD growth reference before selecting the squalene objective.
 pFBA supplies one representative solution, not all possible pathways.
@@ -199,7 +194,7 @@ counts both reaction sides. Optional command-line overrides take precedence for
 that run. Older generated plans are rejected with a request to rerun step 1.
 
 For a new analysis, keep a separate preparation script rather than editing the
-six-model study script. Copy the supplied readable example once:
+four-model study script. Copy the supplied readable example once:
 
 ```bash
 mkdir -p results/results_by_AI/my_analysis
@@ -264,6 +259,40 @@ Python execution settings do not require a new input export. If export fails, no
 remains: fix the error and rerun step 1 before proceeding. `--example` bypasses
 the plan for the supplied installation test.
 
+
+
+### Console output and estimated time
+
+Step 1 reports prepared condition counts, numbered exports, target reaction IDs
+and actual target fluxes in model units. Its pFBA total absolute flux is a separate
+diagnostic shown with `python3 step1_prepare_carbon_tracing_inputs.py --verbose`.
+The same option restores known legacy MAT field/compartment notices; unrelated
+warnings and errors remain visible.
+
+Steps 2 and 3 show short progress messages and result locations by default.
+For example: `Example / RXNMapper: 50% (174/348 reactions).`
+Mapper dependency warnings, library messages and per-reaction errors are saved in
+`logs/<model>_<mapper>.log` under the analysis result directory (latest run per tool).
+A short notice identifies reactions that need checking; final workbook summaries
+still report the review count. These messages do not change calculation or selection.
+Use `--verbose` to show library output and technical progress directly in the terminal. Routine batch, layer and resource details are available with
+`--verbose`; expected input/configuration errors otherwise show their context
+and an action instead of a traceback:
+
+```bash
+python3 step2_atom_mapping.py --verbose
+python3 step3_carbon_flow.py --verbose
+```
+
+Progress refreshes at computation checkpoints about every 15 seconds. ETA is
+recomputed from recent observed speed, so it can move up or down. Step 2 estimates
+the current mapper after model loading. Step 3 estimates the current reaction's
+substrate combinations or Excel-writing rows; it does not extrapolate earlier
+rounds into a full-run estimate. Source lookups/model loading, EMU solving and
+unknown work counts show `Estimating...` or `Unavailable` where an estimate is
+not justified. A long individual prediction or library call may delay the next
+update. Parallel tasks identify their model/tool or mapping version on each line.
+These are changing execution estimates, not convergence or biological rates.
 
 ## 4. Run carbon propagation
 
@@ -373,7 +402,7 @@ Mapping_Selection unchanged as the original tool-selection record. Every reactio
 now has a final row; set MappingCoverage=Complete for full accepted replacements.
 On older files, append successful formerly missing final rows. Confirmed rules
 remain Partial and AIGenerated=FALSE. Scientifically rejected/unresolved rules
-must become Unresolved and must not propagate; keep Partial_Mapping as audit context. AI provenance
+must become Unresolved and must not propagate; keep saved partial records in Mapping_Info as audit context. AI provenance
 alone does not clear ReviewRequired or establish biochemical correctness.
 
 ```bash
@@ -404,9 +433,10 @@ the preceding complete output if publication fails and cleans its temporary
 staging directory. No permanent intermediate result directories are created.
 
 The step 2 workbook contains copied input tables, three raw tool sheets,
-`Mapping_Selection`, `Final_Mapping`, optional `Partial_Mapping` and hidden `Mapping_Info` diagnostics.
+`Mapping_Selection`, `Final_Mapping` and hidden `Mapping_Info` diagnostics, including partial carbon correspondences.
 It is unchanged by step 3. The combined step-3 workbook contains `Summary`,
-`Carbon_Flow_R1` through R3 by default, `EMU_Metabolites`, and `EMU_BoundaryInputs`.
+one `Carbon_Flow` sheet containing R1-R3 details by default (the first column,
+`Carbon_Flow_Round`, identifies each row's round), `EMU_Metabolites`, and `EMU_BoundaryInputs`.
 `EXPORT_DETAIL_ROUNDS=3` limits detail export, not computation: later complete
 rounds still update Summary. Set it to 0 for no detail sheets, or to ROUNDS for
 all requested rounds. There is no pagination. Select methods with
@@ -493,7 +523,7 @@ the limit stops further enumeration and discards the candidate round. A complete
 round is published atomically only below the limit. The saved output and its
 Summary therefore contain complete rounds only. Other models continue normally.
 
-There is no pagination or truncation. If an exported detail round exceeds 1,048,575
+There is no pagination or truncation. If the combined Carbon_Flow worksheet exceeds 1,048,575
 data rows, stop with `row_limit` and retain the preceding complete round. File
 size uses `file_size_limit`; neither is convergence. If the first round is
 rejected, zero Enumeration rounds are reported. For a combined run no new output
@@ -571,7 +601,7 @@ redistributed. Follow citation instructions for
 [RXNMapper](https://github.com/rxn4chemistry/rxnmapper) and
 [EnzymeMap](https://github.com/hesther/enzymemap).
 
-The reference MAT files store the model as `model` (Yeast9 and iYali5) or
+The reference MAT files store the model as `model` (Yeast9) or
 `iML1515` (E. coli). COBRApy reads the arrays directly. The shared reader also
 accepts COBRApy JSON, SBML and YAML; adapt the model-specific IDs, validation and
 medium when using another model. Native RAVEN YAML is not necessarily a COBRApy
@@ -616,3 +646,15 @@ data/ai_atom_mappings.csv, each with a Source column for evidence URLs and archi
 references. Manual structures/mappings keep priority. Saved AI structures only fill
 missing input structures and require review; the AI mapping CSV is a reviewable
 index, not an automatic override. See [manual and AI records](carbon-mapping-rules.md#user-maintained-manual-data-has-priority).
+
+
+### Inspecting and clearing AI cache tables
+
+The two AI CSV files are the active, user-editable cache lists. Keep their four-column
+headers; the first three columns match the corresponding manual table. Rows are
+sorted and saved as UTF-8 with BOM for Excel. Delete data rows to disable those old
+AI candidates, or remove a CSV to disable that AI cache. Archived evidence alone
+must not restore deleted or edited entries. New accepted research may add a new
+record later. Clearing a cache does not alter existing workbooks, manual tables,
+model annotations or the independent database structure_cache.json. AI mapping
+rows remain review candidates, not automatic step-2 overrides.

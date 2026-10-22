@@ -16,7 +16,7 @@ Shared memory/concurrency and workbook-size safeguards apply to each output.
 Both methods read the same Final_Mapping version. Each model/version creates one
 <model>_3_carbon_flow.xlsx or <model>_3_carbon_flow_AIGenerated.xlsx:
 
-- Summary and Carbon_Flow_Rn belong to Enumeration. Only R1-R3 detail sheets are
+- Summary and Carbon_Flow belong to Enumeration. By default only R1-R3 detail rows are
   exported by default; Summary continues across all completed rounds.
 - EMU_Metabolites contains carbon counts, inflow/outflow and source/Unknown
   fractions. FluxResidual and Status remain internal validation fields.

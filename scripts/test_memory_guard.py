@@ -117,7 +117,7 @@ class MemoryGuardTests(unittest.TestCase):
                         trace_analysis("Test", {"carbon_sources": ["A[c]"]}, [rxn],
                                        metabolites, 3, Workbook(), output)
             with pd.ExcelFile(output, engine="openpyxl") as excel:
-                self.assertEqual(set(excel.sheet_names), {"Summary", "Carbon_Flow_R1"})
+                self.assertEqual(set(excel.sheet_names), {"Summary", "Carbon_Flow"})
                 self.assertEqual(pd.read_excel(excel, "Summary").Round.tolist(), [1])
             previous = output.read_bytes()
             with patch("carbon_flow_tools.config.available_memory", return_value=(.5, 16)):
@@ -136,9 +136,9 @@ class MemoryGuardTests(unittest.TestCase):
                     raise MemoryPressureError("simulated pressure during Excel write")
         workbook = Workbook()
         with self.assertRaises(MemoryPressureError):
-            write_sheet(workbook, "Carbon_Flow_R2",
+            write_sheet(workbook, "Carbon_Flow",
                         pd.DataFrame({"value": range(3000)}), StopWriting())
-        self.assertEqual(workbook["Carbon_Flow_R2"].max_row, 1025)
+        self.assertEqual(workbook["Carbon_Flow"].max_row, 1025)
         workbook.close()
         with patch.object(step3, "MIN_AVAILABLE_MEMORY_GB", 3):
             self.assertEqual(step3.settings()["min_available_memory_gb"], 3)

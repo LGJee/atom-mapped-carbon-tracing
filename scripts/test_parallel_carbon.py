@@ -1,5 +1,7 @@
 """Regression checks for preserved scientific behavior."""
 
+from scripts.test_carbon_tracing import read_carbon_round
+
 import hashlib
 import os
 import sys
@@ -159,7 +161,7 @@ def main():
                         pd.read_excel(serial, sheet_name=sheet),
                         pd.read_excel(parallel, sheet_name=sheet),
                     )
-                flow = pd.read_excel(parallel, sheet_name="Carbon_Flow_R1")
+                flow = read_carbon_round(parallel, 1)
                 assert set(flow.Production) == {"A[c]", product}
                 assert flow.ProductionID.tolist() == [1, 2]
                 assert flow.CarbonLabels.eq("C1,C2").all()

@@ -14,6 +14,7 @@ from .atom_helpers import (
     assignment_from_labeled_smiles,
 )
 from .carbon_mapping_rules import partial_reactions
+from .console import Progress, detail
 from .reactions import clean, get_smiles, parse_side, split_equation
 
 COLUMNS = [
@@ -57,6 +58,8 @@ def map_one_reaction(
     unordered_sources=False,
     memory_guard=None,
     record_sink=None,
+    progress=None,
+    progress_label="",
 ):
     if memory_guard:
         memory_guard.check(reaction.reaction_id)
@@ -69,8 +72,16 @@ def map_one_reaction(
     choices = [
         sorted(states.get(name, {}).items()) or [None] for _, name, _ in left_groups
     ]
+    combinations = 1
+    if progress is not None:
+        for options in choices:
+            combinations *= len(options)
+        progress.begin(progress_label + " | current reaction " + reaction.reaction_id,
+                       combinations)
     rows, produced = [], []
     for index, selected in enumerate(product(*choices)):
+        if progress is not None and index % 256 == 0:
+            progress.update(index)
         if memory_guard and index % 256 == 0:
             memory_guard.check(reaction.reaction_id)
         if not any(choice is not None for choice in selected):
@@ -135,6 +146,8 @@ def map_one_reaction(
                 rows.append(row)
             else:
                 record_sink(row)
+    if progress is not None:
+        progress.update(combinations)
     return produced, rows, next_id
 
 
@@ -144,13 +157,14 @@ def initialize_sources(source_names, smiles):
         raise ValueError(
             "Carbon sources must be nonempty and compartment-qualified names unique."
         )
+    from .carbon_mapping_rules import structure_kind
     sources, offset = [], 0
     rules = {"D-glucose": glucose_labels, "isoprenol": isoprenol_labels}
     for name in source_names:
         structure = smiles.get(name, "")
-        molecule = Chem.MolFromSmiles(structure) if structure else None
-        if molecule is None:
-            raise ValueError(f"Carbon source has no valid SMILES: {name}")
+        if structure_kind(structure) != "complete":
+            raise ValueError("Carbon source requires a complete, explicit structure: " + name)
+        molecule = Chem.MolFromSmiles(structure)
         rule = rules.get(name.rsplit("[", 1)[0])
         if rule is not None:
             local = rule(structure)
@@ -161,7 +175,7 @@ def initialize_sources(source_names, smiles):
                 for atom in molecule.GetAtoms()
                 if atom.GetAtomicNum() == 6
             ]
-            print(
+            detail(
                 f"{name}: origin labels follow carbon atom order in the input SMILES.",
                 flush=True,
             )
@@ -176,7 +190,7 @@ def initialize_sources(source_names, smiles):
         labels = {label for _, _, label in assignment}
         sources.append((name, assignment, labels))
         offset += len(atoms)
-        print(f"Carbon source {name}: C{offset - len(atoms) + 1}閳ユ弲{offset}", flush=True)
+        detail(f"Carbon source {name}: C{offset - len(atoms) + 1}-C{offset}", flush=True)
     return sources
 
 
@@ -217,6 +231,9 @@ def propagate_once(
     record_sink=None,
 ):
     """Read one state snapshot; return products for the caller to merge."""
+    tracker = progress if isinstance(progress, Progress) else (
+        Progress(progress, unit="combinations") if progress else None)
+    context = tracker.label if tracker is not None else ""
     produced, rows = [], []
     for index, (reaction, components) in enumerate(prepared, 1):
         new_states, new_rows, next_id = map_one_reaction(
@@ -232,13 +249,15 @@ def propagate_once(
             unordered_sources,
             memory_guard,
             record_sink=record_sink,
+            progress=tracker,
+            progress_label="{} | reaction {}/{}".format(context, index, len(prepared)),
         )
         produced.extend(new_states)
         rows.extend(new_rows)
         del new_states, new_rows
         if progress and index % 25 == 0:
-            print(
-                f"{progress}: {index}/{len(prepared)} reactions; "
+            detail(
+                f"{context}: {index}/{len(prepared)} reactions; "
                 + ("records staged on disk" if record_sink is not None else f"{len(rows)} records"),
                 flush=True,
             )
@@ -315,13 +334,18 @@ def propagate_rounds(
     terminal_names = (
         set() if allow_inorganic_carbon_recycling else inorganic_carbon_names(smiles)
     )
+    from .carbon_mapping_rules import structure_kind
+    for row in metabolites.itertuples(index=False):
+        if clean(row.MetaboliteName) in source_names and structure_kind(
+                get_smiles(row), clean(getattr(row, "MolecularFormula", ""))) != "complete":
+            raise ValueError("Carbon source requires a complete, explicit structure: " + clean(row.MetaboliteName))
     sources = initialize_sources(source_names, smiles) if sources is None else sources
     if any(name in terminal_names for name, _, _ in sources):
         raise ValueError(
             "For an inorganic carbon source, set ALLOW_INORGANIC_CARBON_RECYCLING = True "
             "at the top of step3_carbon_flow.py."
         )
-    print(
+    detail(
         "Inorganic-carbon label recycling: "
         + (
             "enabled."
@@ -333,6 +357,8 @@ def propagate_rounds(
     prepared = prepare_mappings(reactions)
     states, catalog, first_steps = defaultdict(dict), {}, {}
     next_id, phase_tables = 1, []
+    tracker = Progress(strain, unit="combinations")
+    print("{}: calculating round 1 of {}...".format(strain, rounds), flush=True)
     if row_store is not None:
         row_store.start_round(1)
     for phase, (seed, assignment, labels) in enumerate(sources):
@@ -361,9 +387,10 @@ def propagate_rounds(
             pending = [item for item in pending if item[0].reaction_id not in ready_ids]
             if row_store is not None:
                 row_store.start_layer(phase)
+            tracker.label = "{} | R1/{} | {} | layer {}".format(strain, rounds, seed, layer + 1)
             produced, table, next_id = propagate_once(
                 ready, states, first_steps, catalog, next_id, smiles, required,
-                memory_guard=memory_guard,
+                progress=tracker, memory_guard=memory_guard,
                 record_sink=row_store.append if row_store is not None else None,
             )
             if row_store is None:
@@ -378,7 +405,7 @@ def propagate_rounds(
                 ).fetchone()[0]
             del produced
             layer += 1
-            print(
+            detail(
                 f"{strain} {seed} layer {layer}: {len(ready)} reactions,{layer_records} records",
                 flush=True,
             )
@@ -399,6 +426,9 @@ def propagate_rounds(
     del first
     table = None
     for number in range(2, rounds + 1):
+        tracker.label = "{} | R{}/{}".format(strain, number, rounds)
+        print("{}: calculating round {} of {}..."
+              .format(strain, number, rounds), flush=True)
         if memory_guard:
             memory_guard.check("starting round {}".format(number), force=True)
         if row_store is not None:
@@ -413,7 +443,7 @@ def propagate_rounds(
             next_id,
             smiles,
             unordered_sources=True,
-            progress=f"{strain} R{number}",
+            progress=tracker,
             memory_guard=memory_guard,
             record_sink=row_store.append if row_store is not None else None,
         )
@@ -427,7 +457,7 @@ def propagate_rounds(
         del table
         if converged:
             print(
-                f"{strain} R{number}: no new states or earlier steps; propagation converged.",
+                f"{strain}: no further changes after round {number}; calculation complete.",
                 flush=True,
             )
             break
