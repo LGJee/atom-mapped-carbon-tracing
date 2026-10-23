@@ -343,16 +343,7 @@ def check_mapping_variants():
         }
         assert all(item["mapping_sha256"] == hashlib.sha256(
             Path(item["mapping_file"]).read_bytes()).hexdigest() for item in report["models"])
-        aggregate = folder / "carbon_flow_summary.xlsx"
-        with pd.ExcelFile(aggregate, engine="openpyxl") as summaries:
-            assert len(summaries.sheet_names) == 3
-            for result in report["models"]:
-                path = Path(result["output_file"])
-                title = result["model"] + ("_AI" if path.stem.endswith("_AIGenerated") else "")
-                pd.testing.assert_frame_equal(
-                    pd.read_excel(summaries, sheet_name=title),
-                    pd.read_excel(path, sheet_name="Summary", engine="openpyxl"),
-                )
+        assert not (folder / "carbon_flow_summary.xlsx").exists()
         updated_flow = folder / (names[0] + "_3_carbon_flow_AIGenerated.xlsx")
         table = read_carbon_round(updated_flow, 1, engine="openpyxl")
         marked = table.loc[table.Production == "B[c]", "LabeledSMILES"].iloc[0]
@@ -372,7 +363,7 @@ def check_mapping_variants():
         ]
         assert hashlib.sha256(reviewed.read_bytes()).hexdigest() == reviewed_hash
         for path, digest in originals.items():
-            if path.name != "carbon_flow_summary.xlsx" and "_3_carbon_flow" not in path.stem:
+            if "_3_carbon_flow" not in path.stem:
                 assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
         # The fallback interpreter must relaunch the unified propagation entry.
         with patch("carbon_flow_tools.cli.sys.executable", "/unrelated/python"), patch(

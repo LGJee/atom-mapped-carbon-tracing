@@ -1,5 +1,9 @@
 # Validation record
 
+Current behavior (2026-10-23): step 3 no longer generates a separate
+summary-collection workbook. Each model/version retains its own Summary.
+Summary-collection entries below describe historical behavior.
+
 The current reference setup contains four conditions: non-IUPD/IUPD pairs for
 Saccharomyces_cerevisiae and Escherichia_coli. Historical entries below describe
 checks performed before this scope reduction. Their model counts and local

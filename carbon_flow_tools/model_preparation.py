@@ -15,6 +15,7 @@ import pandas as pd
 
 from .excel_io import save_output, write_sheet
 from .console import detail, verbose
+from .config import MemoryGuard
 
 
 class _MatCompatibilityFilter(logging.Filter):
@@ -42,6 +43,8 @@ def read_model(path, solver="glpk", variable_name=None):
         raise FileNotFoundError(
             "Model not found: {}. Supply a local model file; see README.md.".format(path)
         )
+    guard = MemoryGuard()
+    guard.check_file(path, "loading metabolic model")
     suffix = path.suffix.lower()
     if suffix == ".mat":
         logger = logging.getLogger("cobra.io.mat")
@@ -84,6 +87,7 @@ def read_model(path, solver="glpk", variable_name=None):
         model = cobra.io.load_yaml_model(str(path))
     else:
         raise ValueError("Use a COBRApy-readable MAT, JSON, SBML or YAML model.")
+    guard.check("initializing model solver", force=True)
     model.solver = solver
     # Record provenance automatically; the user only supplies the model path.
     model._tracing_source = dict(
@@ -102,6 +106,8 @@ def read_model(path, solver="glpk", variable_name=None):
 
 
 def check_solution(model, solution):
+    MemoryGuard().check("validating flux solution", force=True,
+        extra_bytes=sum(len(r.metabolites) for r in model.reactions) * 256)
     values = solution.fluxes.reindex([r.id for r in model.reactions]).to_numpy()
     if solution.status != "optimal" or not np.isfinite(values).all():
         raise ValueError("Optimization did not return a finite optimal solution.")
@@ -185,6 +191,7 @@ def export_model(
         raise ValueError("Use a project-relative output directory.")
     directory = (project / directory).resolve()
     directory.relative_to(project)
+    MemoryGuard().check("preparing step-1 workbook", force=True)
     objective = check_solution(model, solution)
     active = [r for r in model.reactions if abs(solution.fluxes[r.id]) > tolerance]
     participating = {m.id for reaction in active for m in reaction.metabolites}
@@ -237,8 +244,8 @@ def export_model(
         metabolites.append(row)
     workbook = Workbook()
     del workbook[workbook.active.title]
-    write_sheet(workbook, "Nonzero", reactions)
-    write_sheet(workbook, "Metabolites", pd.DataFrame(metabolites))
+    write_sheet(workbook, "Nonzero", reactions, MemoryGuard())
+    write_sheet(workbook, "Metabolites", pd.DataFrame(metabolites), MemoryGuard())
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / (name + "_1_pFBA_nonzero_reactions.xlsx")
     try:

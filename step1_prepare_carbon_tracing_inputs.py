@@ -352,6 +352,8 @@ def main(argv=None):
         else target.parent.relative_to(ROOT.resolve()).as_posix()
     )
     print("Step 1 | Preparing metabolic models", flush=True)
+    from carbon_flow_tools.config import MemoryGuard
+    MemoryGuard().check("starting model preparation", force=True)
     models = prepare_models()
     print("\nPrepared model conditions: {}\nExporting step-2 input workbooks..."
           .format(len(models)), flush=True)

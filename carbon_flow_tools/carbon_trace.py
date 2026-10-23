@@ -15,6 +15,8 @@ from .atom_helpers import (
 )
 from .carbon_mapping_rules import partial_reactions
 from .console import Progress, detail
+from .enumeration import candidate_rows
+from .propagation_state import ordered_product
 from .reactions import clean, get_smiles, parse_side, split_equation
 
 COLUMNS = [
@@ -45,6 +47,38 @@ def group_components(terms, components):
     return groups
 
 
+def reaction_transfer(reaction, components):
+    """Compile fixed molecular-copy/atom transfers, never growing label states."""
+    signature = (reaction.source_text, reaction.equation, reaction.mapping_equation,
+        reaction.flux >= 0, tuple(tuple((c.metabolite, c.component_index, c.smiles,
+            tuple(maps.items())) for c, maps in side) for side in components))
+    if getattr(reaction, "_transfer_signature", None) != signature:
+        sides = split_equation(reaction.mapping_equation or reaction.equation)
+        groups = (group_components(parse_side(reaction.source_text), components[0]),
+                  group_components(parse_side(sides[1 if reaction.mapping_equation or reaction.flux >= 0 else 0]), components[1]))
+        reaction._transfer_plan = tuple(tuple((term, name, tuple(
+            (c.component_index, atom, number) for c, maps in group
+            for atom, number in maps.items() if number > 0))
+            for term, name, group in side) for side in groups)
+        reaction._transfer_signature = signature
+    return reaction._transfer_plan
+
+
+def projected_choices(left_groups, states, first_steps, required_labels):
+    """Project each substrate state once per molecular copy, before combinations."""
+    views, choices = {}, []
+    for _, name, transfers in left_groups:
+        if name not in views:
+            views[name] = [(number, {(part, atom): label for part, atom, label in assignment},
+                first_steps[(name, number)] if first_steps is not None else None,
+                required_labels is None or any(label in required_labels for _, _, label in assignment))
+                for number, assignment in sorted(states.get(name, {}).items())]
+        choices.append([(number, tuple((mapped, assignment[(part, atom)])
+            for part, atom, mapped in transfers if assignment.get((part, atom))),
+            first, required) for number, assignment, first, required in views[name]] or [None])
+    return choices
+
+
 def map_one_reaction(
     reaction,
     components,
@@ -60,92 +94,59 @@ def map_one_reaction(
     record_sink=None,
     progress=None,
     progress_label="",
+    candidate_pool=None,
+    compact_sink=None,
 ):
     if memory_guard:
         memory_guard.check(reaction.reaction_id)
-    left, right = components
-    left_groups = group_components(parse_side(reaction.source_text), left)
-    sides = split_equation(reaction.mapping_equation or reaction.equation)
-    right_groups = group_components(
-        parse_side(sides[1 if reaction.mapping_equation or reaction.flux >= 0 else 0]), right
-    )
-    choices = [
-        sorted(states.get(name, {}).items()) or [None] for _, name, _ in left_groups
-    ]
+    left_groups, right_groups = reaction_transfer(reaction, components)
+    disk_states = hasattr(states, "choices")
+    choices = (states.choices(left_groups, required_labels) if disk_states else
+               projected_choices(left_groups, states, first_steps, required_labels))
     combinations = 1
+    for options in choices:
+        combinations *= len(options)
     if progress is not None:
-        for options in choices:
-            combinations *= len(options)
         progress.begin(progress_label + " | current reaction " + reaction.reaction_id,
                        combinations)
-    rows, produced = [], []
-    for index, selected in enumerate(product(*choices)):
-        if progress is not None and index % 256 == 0:
-            progress.update(index)
-        if memory_guard and index % 256 == 0:
-            memory_guard.check(reaction.reaction_id)
-        if not any(choice is not None for choice in selected):
-            continue
-        if required_labels is not None and not any(
-            label in required_labels
-            for choice in selected
-            if choice
-            for _, _, label in choice[1]
-        ):
-            continue
-        label_by_map, by_term = {}, defaultdict(list)
-        used_steps = []
-        for (term, name, group), choice in zip(left_groups, selected):
-            by_term[term].append(0 if choice is None else choice[0])
-            if choice is None:
-                continue
-            if first_steps is not None:
-                used_steps.append(first_steps[(name, choice[0])])
-            assignment = {(part, atom): label for part, atom, label in choice[1]}
-            for component, atom_maps in group:
-                for atom, number in atom_maps.items():
-                    label = assignment.get((component.component_index, atom))
-                    if label and number > 0:
-                        label_by_map[number] = label
+    parallel = candidate_pool is not None and candidate_pool.eligible(combinations)
+    def checked_selections():
+        selections = ordered_product(choices) if disk_states else product(*choices)
+        for index, selected in enumerate(selections):
+            if index % 256 == 0:
+                if progress is not None and not parallel:
+                    progress.update(index)
+                if memory_guard:
+                    memory_guard.check(reaction.reaction_id)
+            yield selected
 
-        # Copy order affects asymmetric products; enumerate it before deduplication.
-        source_ids = " + ".join(
-            "&".join(map(str, sorted(by_term[i]) if unordered_sources else by_term[i]))
-            for i in sorted(by_term)
-        )
-        actual_step = (
-            max(used_steps, default=0) + 1 if first_steps is not None else step
-        )
-        for _, name, group in right_groups:
-            assignment = tuple(
-                sorted(
-                    (component.component_index, atom, label_by_map[number])
-                    for component, atom_maps in group
-                    for atom, number in atom_maps.items()
-                    if number > 0 and number in label_by_map
-                )
-            )
-            if not assignment:
-                continue
-            marked = labeled_smiles(smiles_by_name[name], assignment)
+    args = (left_groups, right_groups, checked_selections(), smiles_by_name,
+            step, first_steps is not None, required_labels is not None, unordered_sources)
+    candidates = (candidate_pool.rows(*args, memory_guard=memory_guard, progress=progress,
+                                     compact=compact_sink is not None)
+                  if parallel else candidate_rows(*args, compact=compact_sink is not None))
+    rows, produced = [], []
+    try:
+        for actual_step, source_ids, name, carbon_labels, marked in candidates:
             key = (name, marked)
             if key not in catalog:
                 catalog[key] = next_id
                 next_id += 1
             production_id = catalog[key]
-
-            row = dict(zip(COLUMNS, [
-                actual_step, reaction.parent_reaction_id or reaction.reaction_id, reaction.source_text, source_ids,
-                name, production_id,
-                ",".join(sorted((a[2] for a in assignment), key=lambda x: int(x[1:]))),
-                marked,
-            ]))
+            if compact_sink is not None:
+                compact_sink(name, production_id, marked, carbon_labels, actual_step)
+                continue
+            row = dict(zip(COLUMNS, [actual_step,
+                reaction.parent_reaction_id or reaction.reaction_id, reaction.source_text,
+                source_ids, name, production_id, carbon_labels, marked]))
             if record_sink is None:
                 restored = assignment_from_labeled_smiles(smiles_by_name[name], marked)
                 produced.append((name, production_id, restored))
                 rows.append(row)
             else:
                 record_sink(row)
+    finally:
+        candidates.close()
     if progress is not None:
         progress.update(combinations)
     return produced, rows, next_id
@@ -229,6 +230,8 @@ def propagate_once(
     progress=None,
     memory_guard=None,
     record_sink=None,
+    candidate_pool=None,
+    compact_sink=None,
 ):
     """Read one state snapshot; return products for the caller to merge."""
     tracker = progress if isinstance(progress, Progress) else (
@@ -251,6 +254,8 @@ def propagate_once(
             record_sink=record_sink,
             progress=tracker,
             progress_label="{} | reaction {}/{}".format(context, index, len(prepared)),
+            candidate_pool=candidate_pool,
+            compact_sink=compact_sink,
         )
         produced.extend(new_states)
         rows.extend(new_rows)
@@ -261,7 +266,7 @@ def propagate_once(
                 + ("records staged on disk" if record_sink is not None else f"{len(rows)} records"),
                 flush=True,
             )
-    if record_sink is not None:
+    if record_sink is not None or compact_sink is not None:
         return None, None, next_id
     if memory_guard:
         memory_guard.check("building propagation table", force=True,
@@ -321,6 +326,7 @@ def propagate_rounds(
     allow_inorganic_carbon_recycling=False,
     memory_guard=None,
     row_store=None,
+    candidate_pool=None,
 ):
     """Propagate by source and layer in round one, then by round snapshots."""
     if memory_guard:
@@ -355,7 +361,8 @@ def propagate_rounds(
         flush=True,
     )
     prepared = prepare_mappings(reactions)
-    states, catalog, first_steps = defaultdict(dict), {}, {}
+    states, catalog, first_steps = ((row_store.states, row_store.catalog, row_store.first_steps)
+                                   if row_store is not None else (defaultdict(dict), {}, {}))
     next_id, phase_tables = 1, []
     tracker = Progress(strain, unit="combinations")
     print("{}: calculating round 1 of {}...".format(strain, rounds), flush=True)
@@ -371,15 +378,10 @@ def propagate_rounds(
                 memory_guard.check("preparing first-round layer", force=True)
             ready = []
             for item in pending:
-                available = [
-                    a
-                    for _, name in parse_side(item[0].source_text)
-                    for a in states.get(name, {}).values()
-                ]
-                if available and (
-                    required is None
-                    or any(label in required for a in available for _, _, label in a)
-                ):
+                available = (a for _, name in parse_side(item[0].source_text)
+                             for a in states.get(name, {}).values())
+                if any(required is None or any(label in required for _, _, label in a)
+                       for a in available):
                     ready.append(item)
             if not ready:
                 break
@@ -392,6 +394,8 @@ def propagate_rounds(
                 ready, states, first_steps, catalog, next_id, smiles, required,
                 progress=tracker, memory_guard=memory_guard,
                 record_sink=row_store.append if row_store is not None else None,
+                candidate_pool=candidate_pool,
+                compact_sink=row_store.append_state if row_store is not None and row_store.compact else None,
             )
             if row_store is None:
                 merge_states(produced, table, states, first_steps, terminal_names, memory_guard)
@@ -434,7 +438,9 @@ def propagate_rounds(
         if row_store is not None:
             row_store.start_round(number)
             row_store.start_layer()
-        before, old_steps = len(catalog), dict(first_steps)
+        before = len(catalog)
+        # Steps only appear or decrease; a revision detects changes without copying the table.
+        old_steps = first_steps.revision if row_store is not None else dict(first_steps)
         produced, table, next_id = propagate_once(
             prepared,
             states,
@@ -446,12 +452,15 @@ def propagate_rounds(
             progress=tracker,
             memory_guard=memory_guard,
             record_sink=row_store.append if row_store is not None else None,
+            candidate_pool=candidate_pool,
+            compact_sink=row_store.append_state if row_store is not None and row_store.compact else None,
         )
         if row_store is None:
             merge_states(produced, table, states, first_steps, terminal_names, memory_guard)
         else:
             row_store.merge_states(states, first_steps, terminal_names, smiles)
-        converged = len(catalog) == before and first_steps == old_steps
+        converged = len(catalog) == before and (
+            first_steps.revision == old_steps if row_store is not None else first_steps == old_steps)
         del produced, old_steps
         yield number, table, len(catalog) - before, converged
         del table

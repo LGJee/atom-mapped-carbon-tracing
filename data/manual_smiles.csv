@@ -22,6 +22,7 @@ Saccharomyces_cerevisiae,"phosphatidylcholine (1-16:0, 2-18:1)  ",CCCCCCCCCCCCCC
 Saccharomyces_cerevisiae,"phosphatidylcholine (1-18:0, 2-18:1)  ",CCCCCCCCCCCCCCCCCC(=O)OC[C@H](COP(=O)([O-])OCC[N+](C)(C)C)OC(=O)CCCCCCC/C=C\CCCCCCCC
 Saccharomyces_cerevisiae,"1-phosphatidyl-1D-myo-inositol (1-16:0, 2-16:1) ",CCCCCCCCCCCCCCCC(=O)OC[C@H](COP(=O)(O)OC1C([C@@H](C(C(C1O)O)O)O)O)OC(=O)CCCCCCC/C=C\CCCCCC
 Saccharomyces_cerevisiae,polyphosphate ,OP(=O)([O-])OP(=O)([O-])[O-]
+Saccharomyces_cerevisiae,THF,Nc1nc2NC[C@H](CNc3ccc(cc3)C(=O)N[C@@H](CCC([O-])=O)C([O-])=O)Nc2c(=O)[nH]1
 Escherichia_coli,"1,2-dihexadecanoyl-sn-glycerol 3-phosphate ",CCCCCCCCCCCCCCCC(=O)OC[C@H](COP(=O)([O-])[O-])OC(=O)CCCCCCCCCCCCCCC
 Escherichia_coli,"CDP-1,2-dihexadec-9-enoylglycerol ",[H]Nc1ccn([C@@H]2O[C@H](COP(=O)([O-])OP(=O)([O-])OC[C@@H](COC(=O)CCCCCCC/C=C\CCCCCC)OC(=O)CCCCCCC/C=C\CCCCCC)[C@@H](O)[C@H]2O)c(=O)n1
 Escherichia_coli,Hexadecenoate (n-C16:1) ,CCCCCC/C=C\CCCCCCCC(=O)[O-]

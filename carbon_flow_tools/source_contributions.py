@@ -120,10 +120,14 @@ def solve_source_contributions(reactions, metabolites, source_names,
     index = {node: i for i, node in enumerate(nodes)}
     origin_index = {name: i for i, name in enumerate(origins)}
     n = len(nodes)
+    if memory_guard:
+        memory_guard.check("allocating EMU origin arrays", force=True, extra_bytes=n * len(origins) * 8 * 5)
     rhs = np.zeros((n, len(origins)))
     edge_rows, edge_cols, edge_rates = [], [], []
     diagnostics, symmetry_mapped = [], 0
-    for reaction, left, right, rate in directed:
+    for reaction_number, (reaction, left, right, rate) in enumerate(directed):
+        if memory_guard and reaction_number % 25 == 0:
+            memory_guard.check("building EMU transfers")
         status, unknown_rate = "sink", 0.0
         if not left:
             status = "external_input"
@@ -206,6 +210,9 @@ def solve_source_contributions(reactions, metabolites, source_names,
     invalid = {name for name in rows_by_name if abs(balance[name]) >
                1e-6 + 1e-7 * max(incoming[name], outgoing[name])}
 
+    if memory_guard:
+        memory_guard.check("building EMU sparse matrices", force=True,
+            extra_bytes=len(edge_rates) * 256 + n * len(origins) * 8 * 5)
     local_rhs = rhs.copy()
     weights = coo_matrix((edge_rates, (edge_rows, edge_cols)), shape=(n, n)).tocsr()
     fixed = {i for i, node in enumerate(nodes) if q[i] == 0 or node[0] in invalid}
@@ -230,6 +237,9 @@ def solve_source_contributions(reactions, metabolites, source_names,
     scales = np.asarray(abs(matrix).sum(axis=1)).ravel()
     scaled = diags(1 / scales).dot(matrix).tocsc()
     scaled_rhs = local_rhs / scales[:, None]
+    if memory_guard:
+        # Sparse LU fill-in can be much denser than the transfer matrix.
+        memory_guard.check("solving EMU balances", force=True, extra_bytes=n * n * 16)
     with warnings.catch_warnings():
         warnings.simplefilter("error", MatrixRankWarning)
         fractions = np.asarray(spsolve(scaled, scaled_rhs)).reshape(n, len(origins))
@@ -260,6 +270,9 @@ def solve_source_contributions(reactions, metabolites, source_names,
             atom_rows.append(dict(common, CarbonPosition=ordinal, FragmentIndex=node[1],
                 AtomIndex=node[2], AmbiguousPosition=node in ambiguous,
                 **{o: float(v) for o, v in zip(origins, fractions[i])}))
+    if memory_guard:
+        memory_guard.check("exporting EMU tables", force=True,
+            extra_bytes=(len(atom_rows) + len(metabolite_rows)) * (len(origins) + 12) * 128)
     atoms = pd.DataFrame(atom_rows)
     compounds = pd.DataFrame(metabolite_rows)
     kinds = {name: structure_kind(get_smiles(row), clean(getattr(row, "MolecularFormula", "")))

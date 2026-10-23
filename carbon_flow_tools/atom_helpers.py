@@ -11,6 +11,17 @@ def labeled_smiles(smiles: str, assignment: Iterable[Tuple[int, int, str]]) -> s
     return _labeled_smiles(smiles, tuple(assignment))
 
 
+@lru_cache(maxsize=512)
+def _structure_template(fragment):
+    """Cache an unlabelled template; callers must copy it before setting labels."""
+    molecule = Chem.MolFromSmiles(fragment)
+    if molecule is None:
+        raise ValueError(f"Invalid SMILES: {fragment}")
+    for atom in molecule.GetAtoms():
+        atom.SetAtomMapNum(0)
+    return molecule
+
+
 @lru_cache(maxsize=8192)
 def _labeled_smiles(smiles, assignment):
     # Bound reuse of exact structures and positional labels as state counts grow.
@@ -19,11 +30,11 @@ def _labeled_smiles(smiles, assignment):
     }
     output = []
     for part, fragment in enumerate(smiles.split(".")):
-        molecule = Chem.MolFromSmiles(fragment)
-        if molecule is None:
-            raise ValueError(f"Invalid SMILES: {fragment}")
-        for atom in molecule.GetAtoms():
-            atom.SetAtomMapNum(labels.get((part, atom.GetIdx()), 0))
+        molecule = Chem.Mol(_structure_template(fragment))
+        for (index, atom), label in labels.items():
+            # Match the original loop: ignore positions outside this component.
+            if index == part and 0 <= atom < molecule.GetNumAtoms():
+                molecule.GetAtomWithIdx(atom).SetAtomMapNum(label)
         output.append(Chem.MolToSmiles(molecule, canonical=True, isomericSmiles=True))
     return ".".join(output)
 

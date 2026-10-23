@@ -57,9 +57,83 @@ class ConsoleTests(unittest.TestCase):
         lines = output.getvalue().splitlines()
         self.assertIn("Estimating...", lines[0])
         self.assertIn("ETA ~2m 15s", lines[1])
-        self.assertIn("ETA ~3m 40s", lines[2])
+        self.assertIn("ETA ~11m 00s", lines[2])
         self.assertIn("100/100 reactions", lines[-1])
         self.assertIn("ETA 0s", lines[-1])
+
+    def test_samples_refresh_before_output_throttle_and_follow_speedups(self):
+        now = [0.0]
+        output = StringIO()
+        with patch("carbon_flow_tools.console.time.monotonic", side_effect=lambda: now[0]), redirect_stdout(output):
+            progress = Progress("Mapper", 1000)
+            for second in range(1, 16):
+                now[0] = second
+                progress.update(second)
+            slow_rate = progress.rate
+            for second in range(16, 26):
+                now[0] = second
+                progress.update(15 + (second - 15) * 10)
+            self.assertEqual(progress.rate, 10)
+            self.assertGreater(progress.rate, slow_rate)
+            self.assertEqual(len(output.getvalue().splitlines()), 1)
+
+    def test_phase_changes_and_counter_restarts_reset_speed(self):
+        now = [0.0]
+        with patch("carbon_flow_tools.console.time.monotonic", side_effect=lambda: now[0]), redirect_stdout(StringIO()):
+            progress = Progress("Lookup", 100)
+            now[0] = 5
+            progress.update(50)
+            self.assertIsNotNone(progress.rate)
+            progress.begin("Rules", 20)
+            self.assertIsNone(progress.rate)
+            now[0] = 6
+            progress.update(2)
+            self.assertIsNone(progress.rate)
+            now[0] = 11
+            progress.update(4)
+            self.assertIsNotNone(progress.rate)
+            progress.update(1)
+            self.assertIsNone(progress.rate)
+            self.assertEqual(progress.started, 11)
+
+    def test_stalled_work_drops_old_eta_and_recovers_after_completions(self):
+        now = [0.0]
+        output = StringIO()
+        with patch.dict(os.environ, {"CARBON_TRACING_VERBOSE": "1"}), patch("carbon_flow_tools.console.time.monotonic", side_effect=lambda: now[0]), redirect_stdout(output):
+            progress = Progress("Mapper", 100)
+            now[0] = 5
+            progress.update(10, force=True)
+            self.assertIsNotNone(progress.rate)
+            now[0] = 20
+            progress.update(10, force=True)
+            self.assertIsNone(progress.rate)
+            self.assertIn("Estimating...", output.getvalue().splitlines()[-1])
+            now[0] = 25
+            progress.update(12, force=True)
+            self.assertIsNotNone(progress.rate)
+
+    def test_heterogeneous_work_keeps_counts_without_an_eta(self):
+        now = [0.0]
+        output = StringIO()
+        with patch("carbon_flow_tools.console.time.monotonic", side_effect=lambda: now[0]), redirect_stdout(output):
+            progress = Progress("Structures", 100, estimate=False)
+            now[0] = 15
+            progress.update(70)
+            self.assertIsNone(progress.rate)
+        self.assertIn("70/100", output.getvalue())
+        self.assertNotIn("left", output.getvalue())
+
+    def test_burst_and_huge_completed_counts_do_not_invent_speed_or_overflow(self):
+        now = [0.0]
+        output = StringIO()
+        with patch.dict(os.environ, {"CARBON_TRACING_VERBOSE": "1"}), patch("carbon_flow_tools.console.time.monotonic", side_effect=lambda: now[0]), redirect_stdout(output):
+            progress = Progress("Burst", 10 ** 5001)
+            progress.update(100, force=True)
+            self.assertIsNone(progress.rate)
+            now[0] = 15
+            progress.update(10 ** 5000, force=True)
+            self.assertIsNone(progress.rate)
+        self.assertIn(">10^300/>10^300", output.getvalue())
 
     def test_progress_is_throttled_across_reactions(self):
         now = [0.0]

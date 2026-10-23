@@ -15,6 +15,7 @@ from rdkit.Chem import rdMolDescriptors
 
 from .carbon_mapping_rules import generic_pool, structure_kind, STRUCTURE_LIMITS, formulas_match, protonation_compatible
 from .console import Progress, detail
+from .config import MemoryGuard
 from .reactions import clean, get_smiles
 from .model_structures import compatible, discover_annotations, read_model_smiles
 
@@ -51,12 +52,15 @@ def load_manual(path, with_source=False, species=None, names=None):
                 + "\nFound columns: " + ", ".join(reader.fieldnames or [])
                 + "\nAction: use the required CSV header; keep one verified structure per species/metabolite."
             )
-        rows = [(reader.line_num, {field: clean(row.get(field)) for field in required})
-                for row in reader]
-    # Validate only applicable chemistry; the CSV schema is always checked.
-    rows = [(line, row) for line, row in rows
-            if (species is None or row["Species"] == species)
-            and (names is None or metabolite_name(row["MetaboliteName"]) in names)]
+        rows, guard = [], MemoryGuard()
+        for index, row in enumerate(reader):
+            if index % 1024 == 0:
+                guard.check("reading structure CSV")
+            entry = {field: clean(row.get(field)) for field in required}
+            # Filter while streaming, rather than retaining unrelated species first.
+            if ((species is None or entry["Species"] == species)
+                    and (names is None or metabolite_name(entry["MetaboliteName"]) in names)):
+                rows.append((reader.line_num, entry))
     structures = {}
     for line, row in rows:
         if not row["Species"] or not row["MetaboliteName"]:
@@ -169,6 +173,9 @@ def complete_smiles(metabolites, model, options):
     ai_file = Path(options["manual_file"]).with_name("ai_smiles.csv")
     ai_structures = load_manual(ai_file, with_source=True, species=species, names=names) if ai_file.is_file() else []
     cache_file = Path(options["cache_file"])
+    guard = MemoryGuard()
+    if options["lookup"] and cache_file.is_file():
+        guard.check_file(cache_file, "loading structure cache")
     cache = (
         json.loads(cache_file.read_text(encoding="utf-8"))
         if options["lookup"] and cache_file.is_file()
@@ -204,12 +211,14 @@ def complete_smiles(metabolites, model, options):
             table[field] = pd.Series(float("nan"), index=table.index, dtype=object)
     if "StructureReviewRequired" not in table:
         table["StructureReviewRequired"] = False
-    progress = Progress(model + " | structures", len(table), "metabolites")
+    # Cache hits and remote queries have unrelated costs; a shared ETA is misleading.
+    progress = Progress(model + " | structures", len(table), "metabolites", estimate=False)
     last_request = 0.0
     fetched, hits, filled = 0, 0, 0
     for position, (index, row) in enumerate(
         zip(table.index, table.itertuples(index=False)), 1
     ):
+        guard.check("completing compound structures")
         progress.update(position - 1)
         if position == 1 or position % 25 == 0:
             detail(
@@ -356,6 +365,7 @@ def complete_smiles(metabolites, model, options):
             KeyError,
         ) as error:
             table.at[index, "StructureStatus"] = "Lookup failed: " + str(error)
+    progress.update(len(table))
     if fetched and cache:
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         temporary = cache_file.with_suffix(".tmp.json")

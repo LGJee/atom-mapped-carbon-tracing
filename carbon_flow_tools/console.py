@@ -1,6 +1,8 @@
 """Concise progress shared by mapping workers and carbon propagation."""
 
 import os
+import math
+from collections import deque
 import sys
 import time
 import traceback
@@ -58,44 +60,66 @@ def duration(seconds):
 
 
 class Progress:
-    """Re-estimate one fixed work unit from recent samples, at most every 15 s."""
+    """Estimate the current fixed phase from completed work in a recent window."""
 
-    def __init__(self, label, total=None, unit="items"):
-        self.unit = unit
+    def __init__(self, label, total=None, unit="items", estimate=True):
+        self.unit, self.estimate = unit, estimate
         self.last_output = time.monotonic()
         self.begin(label, total)
 
-    def begin(self, label, total=None):
-        # Reuse the output throttle while changing the current reaction.
+    def begin(self, label, total=None, estimate=None):
+        # Keep the output throttle, but never reuse speed across phases/reactions.
         self.label, self.total = label, total
-        self.started = self.sample_time = time.monotonic()
-        self.sample_done, self.rate = 0, None
+        if estimate is not None:
+            self.estimate = estimate
+        self.started = self.last_advance = time.monotonic()
+        self.completed, self.rate = 0, None
+        self.samples = deque([(self.started, 0)])
 
     def update(self, completed=0, force=False):
         now = time.monotonic()
+        if completed < self.completed:
+            self.begin(self.label, self.total)
+        if completed > self.completed:
+            self.last_advance = now
+        self.completed = completed
+        # Sample independently of printing; batched callbacks must not imply zero-time work.
+        if now - self.samples[-1][0] >= 1:
+            self.samples.append((now, completed))
+            while len(self.samples) > 2 and self.samples[1][0] <= now - 10:
+                self.samples.popleft()
+        self.rate = None
+        elapsed = now - self.started
+        if self.estimate and elapsed >= 5 and completed >= 2 and now - self.last_advance < 15:
+            sample_time, sample_done = self.samples[0]
+            sample_elapsed = now - sample_time
+            if sample_elapsed > 0:
+                try:
+                    rate = (completed - sample_done) / sample_elapsed
+                    if rate > 0 and math.isfinite(rate):
+                        self.rate = rate
+                except OverflowError:
+                    pass
         if not force and now - self.last_output < 15:
             return
-        elapsed = now - self.started
-        sample_elapsed = now - self.sample_time
-        if sample_elapsed > 0 and completed > self.sample_done:
-            recent = (completed - self.sample_done) / sample_elapsed
-            self.rate = recent if self.rate is None else 0.5 * recent + 0.5 * self.rate
-        self.sample_time, self.sample_done = now, completed
         self.last_output = now
+        completed_text = ">10^300" if completed.bit_length() > 1000 else str(completed)
         if self.total is None:
-            count, eta = "{} {}".format(completed, self.unit), "Unavailable"
+            count, eta = "{} {}".format(completed_text, self.unit), "Unavailable"
         else:
             total_text = ">10^300" if self.total.bit_length() > 1000 else str(self.total)
-            count = "{}/{} {}".format(completed, total_text, self.unit)
+            count = "{}/{} {}".format(completed_text, total_text, self.unit)
+            eta = "Estimating..." if self.estimate else "Unavailable"
             if completed >= self.total:
                 eta = "0s"
-            elif self.rate and elapsed >= 3:
+            elif self.rate:
                 try:
-                    eta = "~" + duration((self.total - completed) / self.rate)
+                    remaining = (self.total - completed) / self.rate
+                    # Coarse estimates communicate uncertainty; elapsed time stays exact.
+                    quantum = 5 if remaining < 60 else 15 if remaining < 600 else 60
+                    eta = "~" + duration(math.ceil(remaining / quantum) * quantum)
                 except (OverflowError, ValueError):
                     eta = "Unavailable"
-            else:
-                eta = "Estimating..."
         if verbose():
             print("{} | {} | elapsed {} | ETA {}".format(
                 self.label, count, duration(elapsed), eta), flush=True)

@@ -24,7 +24,9 @@ STRUCTURE_MIN_INTERVAL = 0.25  # At most four sequential requests per second.
 # Model structures are discovered from step 1 provenance and the source directory.
 
 # Resources
-MAX_MAPPER_PROCESSES = None  # None selects a CPU/memory-limited capacity.
+MAX_MAPPER_PROCESSES = None  # Automatic CPU/memory limit; also caps EnzymeMap rule workers.
+# EnzymeMap shares one scan and exact predictions across models, then uses its own
+# CPU/memory-limited rule pool after other tools finish. No fixed machine size.
 MAPPER_MEMORY_GB = 6
 
 # Installation and EnzymeMap data

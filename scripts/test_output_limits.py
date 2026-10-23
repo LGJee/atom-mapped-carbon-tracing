@@ -227,7 +227,7 @@ class OutputLimitTests(unittest.TestCase):
             self.assertEqual(statuses[str(ai)]["stop_reason"], "memory_limit")
             self.assertIsNone(statuses[str(ai)]["output_file"])
 
-    def test_memory_stop_collects_saved_rounds_without_modifying_them(self):
+    def test_memory_stop_preserves_saved_rounds_without_aggregate(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             mapping = root / "A_2_atom_mapping.xlsx"
@@ -250,18 +250,12 @@ class OutputLimitTests(unittest.TestCase):
             self.assertEqual(report["status"], "error")
             self.assertEqual(report["models"][0]["stop_reason"], "memory_limit")
             self.assertEqual(report["models"][0]["completed_rounds"], 2)
-            pd.testing.assert_frame_equal(
-                pd.read_excel(aggregate, sheet_name="A", engine="openpyxl"),
-                pd.read_excel(result, sheet_name="Summary", engine="openpyxl"),
-            )
+            self.assertFalse(aggregate.exists())
             with patch("carbon_flow_tools.pipeline.trace_mapping_file",
                        side_effect=MemoryPressureError("no new rounds")):
                 with self.assertRaises(MemoryPressureError):
                     run_carbon_flow(jobs, 10, root, max_processes=1)
-            pd.testing.assert_frame_equal(
-                pd.read_excel(aggregate, sheet_name="A", engine="openpyxl"),
-                pd.read_excel(result, sheet_name="Summary", engine="openpyxl"),
-            )
+            self.assertFalse(aggregate.exists())
             report = json.loads((root / "carbon_flow_run.json").read_text())
             self.assertEqual(report["models"][0]["completed_rounds"], 0)
             self.assertIsNone(report["models"][0]["output_file"])

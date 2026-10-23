@@ -20,11 +20,13 @@ Both methods read the same Final_Mapping version. Each model/version creates one
   exported by default; Summary continues across all completed rounds.
 - EMU_Metabolites contains carbon counts, inflow/outflow and source/Unknown
   fractions. FluxResidual and Status remain internal validation fields.
+  All workbooks omit StructureType, KnownCarbonCount and ContributionScope;
+  the solver retains these fields internally.
 - EMU_BoundaryInputs records actual carbon imports and their origin categories.
 
 There is no EMU Summary, atom-position/diagnostic sheet, or separate method file.
 carbon_flow_run.json records EMU completion, assumptions and numerical checks.
-EMU-only workbooks are excluded from carbon_flow_summary.xlsx.
+No separate summary-collection workbook is generated.
 
 ## Partial mappings and Unknown
 

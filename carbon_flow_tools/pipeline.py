@@ -1,16 +1,16 @@
 """Prediction, consensus selection and carbon propagation stages."""
 
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 from datetime import datetime
 from hashlib import sha256
 import json
-from multiprocessing import get_context
 from pathlib import Path
 from time import monotonic
 
 from .console import detail, duration
+from .task_scheduler import run_tasks
+from .enumeration import EnumerationPool
 
 import pandas as pd
 from openpyxl import load_workbook, Workbook
@@ -19,7 +19,7 @@ from rdkit import Chem, RDLogger
 from .atom_helpers import mapped_components
 from .carbon_trace import propagate_rounds, initialize_sources
 from .flow_output import FlowOutput, WorksheetRowLimitError
-from .config import configure, parallel_capacity, MemoryGuard, MemoryPressureError
+from .config import configure, parallel_capacity, available_cpus, available_memory, task_memory_budget, MemoryGuard, MemoryPressureError, DiskSpaceLimitError
 from .excel_io import (
     clear_formatting,
     copy_input,
@@ -34,7 +34,7 @@ from .excel_io import (
 from .carbon_mapping_rules import apply_rules, apply_manual_mappings, load_partials, carbon_structure_issues, carbon_presence
 from .consensus import select_mappings
 from .consensus import mapping_signatures, carbon_candidate
-from .mapper_runner import run_mapper, validate_mapper_config
+from .mapper_runner import run_mapper, validate_mapper_config, group_mapper_jobs
 from .reactions import clean, get_smiles, prepare_reactions, parse_side, split_equation
 from .smiles_completion import complete_smiles
 
@@ -75,6 +75,8 @@ def carbon_metabolites(metabolites, reactions):
 def read_input(
     path, reaction_sheet, metabolite_sheet, structure_options=None, model=""
 ):
+    guard = MemoryGuard()
+    guard.check_file(path, "reading reaction and metabolite tables")
     try:
         with pd.ExcelFile(path, engine="openpyxl") as excel:
             reactions_df = pd.read_excel(excel, sheet_name=reaction_sheet)
@@ -85,6 +87,7 @@ def read_input(
             "Action: check the sheet names and workbook, or regenerate it with step 1."
             .format(path, reaction_sheet, metabolite_sheet, error)
         ) from error
+    guard.check("validating input tables", force=True)
     required = {
         "reactions": {"ReactionID", "ReactionName", "Equation", "Flux"},
         "metabolites": {"MetaboliteID", "MetaboliteName"},
@@ -301,14 +304,16 @@ def final_mapping_table(reactions, selection):
     )
 
 
-def summarize_sources(table, sources, carbon_ids, number, previous_counts, exclusive_metabolites=None):
+def summarize_sources(table, sources, carbon_ids, number, previous_counts, exclusive_metabolites=None, memory_guard=None):
     """Summarize sources and exclusivity across all recorded states of each product."""
     source_ids = {name: set() for name, _, _ in sources}
     mixed_ids = set()
     production_labels = {}
     records = (table[["Production", "CarbonLabels"]].drop_duplicates().itertuples(index=False, name=None)
                if isinstance(table, pd.DataFrame) else table)
-    for production, carbon_labels in records:
+    for index, (production, carbon_labels) in enumerate(records):
+        if memory_guard and index % 1024 == 0:
+            memory_guard.check("summarizing carbon-source states")
         labels = set(carbon_labels.split(","))
         production_labels.setdefault(production, set()).update(labels)
         matched_sources = 0
@@ -391,18 +396,26 @@ def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None
     if any(task[-1] in inputs for task in tasks):
         raise ValueError("Output cannot overwrite an input or mapping workbook.")
     detail(f"Propagation rounds: {rounds}", flush=True)
-    workers, _ = parallel_capacity(
+    workers, cpu_threads = parallel_capacity(
         len(tasks), max_processes, memory_gb, task_kind="carbon propagation"
     )
+    try:
+        available, total = available_memory()
+        enumeration_memory = task_memory_budget(memory_gb, total, available)
+    except (OSError, ValueError, KeyError):
+        enumeration_memory = 1
+    tasks = [(name, dict(job, _enumeration_cpu_budget=max(1, cpu_threads - 1),
+                        _enumeration_memory_budget_gb=enumeration_memory), count, mapping, output)
+             for name, job, count, mapping, output in tasks]
     output_dir.mkdir(parents=True, exist_ok=True)
     outputs = [task[-1] for task in tasks]
     previous_saves = {p: p.stat().st_mtime_ns if p.exists() else None for p in outputs}
     try:
-        if workers == 1:
-            saved = [trace_with_status(*task) for task in tasks]
-        else:
-            with get_context("spawn").Pool(processes=workers) as pool:
-                saved = pool.starmap(trace_with_status, tasks)
+        # Keep Original before AI within each model when only one slot is available.
+        weights = {task[0]: max(item[3].stat().st_size for item in tasks if item[0] == task[0])
+                   * len(task[1]["carbon_sources"]) for task in tasks}
+        saved = run_tasks(trace_with_status, tasks, workers, memory_gb,
+            weights=[weights[task[0]] for task in tasks], cpu_threads=cpu_threads, allow_children=True)
     except Exception as error:
         changed = [p for p in outputs if p.is_file()
                    and p.stat().st_mtime_ns != previous_saves[p]]
@@ -421,61 +434,10 @@ def run_carbon_flow(jobs, rounds, output_dir, max_processes=None, memory_gb=None
                     status["stop_reason"] = "batch_interrupted"
             saved.append(status)
         write_carbon_run_report(output_dir, tasks, saved, str(error))
-        try:
-            collect_carbon_summaries(output_dir)
-        except Exception as summary_error:
-            print("Summary collection failed: {}".format(summary_error), flush=True)
         raise
     write_carbon_run_report(output_dir, tasks, saved)
-    collect_carbon_summaries(output_dir)
     return saved
 
-
-
-def collect_carbon_summaries(output_dir):
-    """Copy existing Enumeration summaries without loading carbon-flow records."""
-    output_dir = Path(output_dir)
-    sources = sorted(output_dir.glob("*_3_carbon_flow*.xlsx"))
-    sources = [path for path in sources if path.name.endswith((
-        "_3_carbon_flow.xlsx",
-        "_3_carbon_flow_AIGenerated.xlsx",
-    )) and not path.name.startswith("~$")]
-    if not sources:
-        return
-    output = output_dir / "carbon_flow_summary.xlsx"
-    workbook = Workbook()
-    workbook.remove(workbook.active)
-    used_names = set()
-    try:
-        for source in sources:
-            model, version = source.stem.rsplit("_3_carbon_flow", 1)
-            model = model.replace("[", "_").replace("]", "_")
-            suffix = "_AI" if version else ""
-            name = model[:31 - len(suffix)] + suffix
-            number = 1
-            while name.lower() in used_names:
-                number += 1
-                tail = suffix + "_" + str(number)
-                name = model[:31 - len(tail)] + tail
-            used_names.add(name.lower())
-            original = load_workbook(source, read_only=True)
-            try:
-                if "Summary" not in original.sheetnames:
-                    if {"EMU_Metabolites", "EMU_BoundaryInputs"} <= set(original.sheetnames):
-                        continue
-                    raise KeyError("Summary is missing from " + str(source))
-                sheet = workbook.create_sheet(name)
-                for row in original["Summary"].iter_rows(values_only=True):
-                    sheet.append(row)
-            finally:
-                original.close()
-        if not workbook.sheetnames:
-            return
-        clear_formatting(workbook)
-        save_output(workbook, output)
-    finally:
-        workbook.close()
-    print("Summary workbook: {}".format(output), flush=True)
 
 
 def trace_with_status(strain, job, rounds, mapping_file, output):
@@ -495,7 +457,7 @@ def trace_with_status(strain, job, rounds, mapping_file, output):
         trace_mapping_file(strain, dict(job, _run_status=status), rounds, mapping_file, output)
     except Exception as error:
         status["stop_reason"] = ("memory_limit" if isinstance(error, (MemoryPressureError, MemoryError))
-                                 else "error")
+                                 else "disk_space_limit" if isinstance(error, DiskSpaceLimitError) else "error")
         error.run_status = status
         raise
     return status
@@ -536,8 +498,12 @@ def trace_mapping_file(strain, job, rounds, mapping_file, output):
         tables, info = solve_source_contributions(reactions, metabolites, job["carbon_sources"],
             allow_inorganic_carbon_recycling=job.get("emu_allow_inorganic_carbon_recycling", True),
             tolerance=job.get("emu_tolerance", 1e-8), memory_guard=guard)
+        # Keep validation and structure-scope metadata internally, outside the Excel export.
+        contributions = tables["MetaboliteContributions"].drop(
+            columns=["FluxResidual", "Status", "StructureType", "KnownCarbonCount",
+                     "ContributionScope"], errors="ignore")
         extra_sheets = {
-            "EMU_Metabolites": tables["MetaboliteContributions"].drop(columns=["FluxResidual", "Status"]),
+            "EMU_Metabolites": contributions,
             "EMU_BoundaryInputs": tables["BoundaryInputs"],
         }
         info.update(mapping_version="AI" if mapping_file.stem.endswith("_AIGenerated") else "Original")
@@ -563,6 +529,7 @@ def trace_mapping_file(strain, job, rounds, mapping_file, output):
 
 def load_final_mappings(mapping_file, job):
     """Load selected mappings through the carbon-propagation input checks."""
+    MemoryGuard(job.get("min_available_memory_gb", 2)).check_file(mapping_file, "loading final atom mappings")
     with pd.ExcelFile(mapping_file, engine="openpyxl") as excel:
         reaction_sheet, metabolite_sheet = input_sheets(excel)
         final = pd.read_excel(
@@ -767,25 +734,28 @@ def run_analyses(
             info["SourceInputSHA256"] = job.get("input_sha256", "")
             metadata.append(info)
         prepared[strain] = metabolites, predictions, metadata
+    grouped = group_mapper_jobs(pending)
+    ordinary = [task for task in grouped if task[3]["module"] !=
+                "carbon_flow_tools.mappers.enzymemap_adapter"]
+    enzyme = [task for task in grouped if task[3]["module"] ==
+              "carbon_flow_tools.mappers.enzymemap_adapter"]
     workers, cpu_threads = parallel_capacity(
-        len(pending), max_mapper_processes, mapper_memory_gb
+        len(ordinary), max_mapper_processes, mapper_memory_gb
     )
     reused_count = sum(bool(row["ReusedPredictions"]) for _, _, rows in prepared.values() for row in rows)
-    print("Atom mapping: {} tool runs to complete; {} already saved.".format(len(pending), reused_count), flush=True)
+    print("Atom mapping: {} tool runs to complete; {} already saved.".format(len(grouped), reused_count), flush=True)
     if pending:
         print("Technical logs: {}".format(output_dir / "logs"), flush=True)
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = {
-            executor.submit(
-                run_mapper, strain, candidates, backend, settings, cpu_threads
-            ): (strain, backend)
-            for strain, backend, candidates, settings in pending
-        }
-        for future in as_completed(futures):
-            strain, backend = futures[future]
-            future.result()
-            detail(f"{strain} {backend}: predictions complete.", flush=True)
-    workers, _ = parallel_capacity(
+    mapper_tasks = [(*task, cpu_threads, mapper_memory_gb) for task in ordinary]
+    run_tasks(run_mapper, mapper_tasks, workers, mapper_memory_gb, processes=False,
+              weights=[sum(r.status == "ready" for r in candidates)
+                       for _, candidates, _, _ in ordinary])
+    # EnzymeMap owns this phase's CPU/memory budget, avoiding nested oversubscription.
+    for task in enzyme:
+        MemoryGuard().check("starting EnzymeMap", force=True, extra_bytes=1024 ** 3)
+        run_mapper(*task, cpu_threads=min(available_cpus(), max_mapper_processes or available_cpus()),
+                   memory_gb=None)
+    workers, cpu_threads = parallel_capacity(
         len(jobs),
         max_carbon_processes,
         carbon_memory_gb,
@@ -795,12 +765,8 @@ def run_analyses(
         (strain, job, *prepared[strain], rounds, backends, output_dir, stage, manual_mapping_file)
         for strain, job in jobs.items()
     ]
-    if workers == 1:
-        for task in tasks:
-            finish_analysis(*task)
-    else:
-        with get_context("spawn").Pool(processes=workers) as pool:
-            pool.starmap(finish_analysis, tasks)
+    run_tasks(finish_analysis, tasks, workers, carbon_memory_gb,
+        weights=[len(next(iter(task[3].values()))) for task in tasks], cpu_threads=cpu_threads, allow_children=True)
 
 
 def finish_analysis(
@@ -921,6 +887,8 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
     status.update(output_batch_rows=batch_rows, max_excel_bytes=max_bytes)
     detail_rounds = job.get("export_detail_rounds", 3)
     status["export_detail_rounds"] = detail_rounds
+    candidate_pool = EnumerationPool(job.get("_enumeration_cpu_budget", 1),
+        job.get("_enumeration_memory_budget_gb", 1), job.get("max_enumeration_processes"))
     store = FlowOutput(output, max_bytes, batch_rows, summary, memory_guard,
                        detail_rounds=detail_rounds, extra_sheets=job.get("_extra_sheets"))
     label = "{} / {}".format(strain, "AI" if output.stem.endswith("_AIGenerated") else "Original")
@@ -928,13 +896,13 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
     iterator = propagate_rounds(
         label, reactions, metabolites, rounds, job["carbon_sources"], sources,
         allow_inorganic_carbon_recycling=job.get("allow_inorganic_carbon_recycling", False),
-        memory_guard=memory_guard, row_store=store,
+        memory_guard=memory_guard, row_store=store, candidate_pool=candidate_pool,
     )
     try:
         for number, _, added, converged in iterator:
             exclusive_metabolites = [] if job.get("export_exclusive_source_metabolites", False) else None
             row = summarize_sources(store.source_records(), sources, carbon_ids, number,
-                                    previous_counts, exclusive_metabolites)
+                                    previous_counts, exclusive_metabolites, memory_guard)
             # Each published round is provisional final; a rejected round leaves the old file intact.
             if summary:
                 for key in list(summary[-1]):
@@ -959,9 +927,9 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
         status["stop_reason"] = ("file_size_limit" if isinstance(error, WorkbookSizeLimitError) else "row_limit")
         print("{}: {}; {} complete round(s) retained. This stop is not convergence."
               .format(strain, error, completed_round), flush=True)
-    except (MemoryPressureError, MemoryError) as error:
+    except (MemoryPressureError, MemoryError, DiskSpaceLimitError) as error:
         print(
-            "{}: memory safety stop; {} round(s) saved in this run. "
+            "{}: resource safety stop; {} round(s) saved in this run. "
             "The last saved workbook is unchanged by the incomplete round. "
             "If no rounds were saved, any existing output belongs to an earlier run. "
             "Rerunning starts from round 1; this is not a resumable checkpoint. {}"
@@ -972,6 +940,7 @@ def trace_analysis(strain, job, reactions, metabolites, rounds, workbook, output
         status.update(completed_rounds=completed_round,
                       output_file=str(output) if completed_round or status.get("emu_completed") else None)
         iterator.close()
+        candidate_pool.close()
         store.close()
     if completed_round or status.get("emu_completed"):
         print("{}: finished with {} saved round(s).\nSaved: {}".format(label, completed_round, output), flush=True)

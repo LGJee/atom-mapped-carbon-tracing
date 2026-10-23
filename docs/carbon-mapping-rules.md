@@ -291,10 +291,10 @@ Summary counting definitions are unchanged: reachability of a partially describe
 metabolite does not mean every carbon in its unknown region was reached. Variable-repeat
 polymers have no automatically constructed positions. A configured carbon source must
 have a complete explicit structure; generic carbon sources require resolution first.
-In fixed-flux source-contribution output containing partial/polymer structures,
-StructureType and ContributionScope identify the limit. Fractions for a partial graph
-are means over its KnownCarbonCount explicit carbons only; CarbonCount is blank because
-the whole count is unknown. Polymer totals/fractions are unavailable, not repeat-unit
+Fixed-flux source-contribution exports omit StructureType, KnownCarbonCount and
+ContributionScope; the solver retains this structure-scope metadata internally.
+Fractions for a partial graph are means over its explicitly known carbon positions
+only; CarbonCount is blank because the whole count is unknown. Polymer totals/fractions are unavailable, not repeat-unit
 fractions or zero contribution. Unknown regions are not redistributed among sources.
 
 Unsupported cases include unspecified polymer lengths, variable-group identity or

@@ -363,6 +363,7 @@ def main(stage, settings, argv=None):
                 job["carbon_sources"] = settings["carbon_sources"][name]
             job["analysis_methods"] = settings.get("analysis_methods", ["Enumeration"])
             job["export_detail_rounds"] = settings.get("export_detail_rounds", 3)
+            job["max_enumeration_processes"] = settings.get("max_enumeration_processes")
             job["emu_allow_inorganic_carbon_recycling"] = settings.get("emu_allow_inorganic_carbon_recycling", True)
             job["emu_tolerance"] = settings.get("emu_tolerance", 1e-8)
             job["min_available_memory_gb"] = settings.get("min_available_memory_gb", 2)

@@ -99,17 +99,14 @@ all completed Enumeration rounds; `EXPORT_DETAIL_ROUNDS=3` exports only the
 first three rounds of details in one `Carbon_Flow` sheet by default, with
 `Carbon_Flow_Round` as its first column. `EMU_Metabolites` and
 `EMU_BoundaryInputs` contain the independent source-balance result. EMU-only
-runs have no Summary and are omitted from Summary collection. Only the last saved Summary row
+runs have no Summary. Only the last saved Summary row
 contains `<source>_ExclusiveSourceMetabolites`: distinct mapped metabolite IDs whose
 recorded states all carry labels from that one source. Separate pure-source states
 from different sources disqualify a metabolite. The optional step-3 setting
 `EXPORT_EXCLUSIVE_SOURCE_METABOLITES` (default `False`) adds an
 `Exclusive_Source_Metabolites` sheet for that round; it does not change propagation.
-`carbon_flow_summary.xlsx` copies each saved
-Enumeration workbook's Summary to its own sheet in the same output directory,
-including AI-reviewed versions. Existing files from earlier runs are included;
-use the manifest below to determine which outputs belong to the current run.
-Sheet names retain `_AI`, shorten long model names and resolve collisions numerically.
+Each model/version retains its own Summary; no separate summary-collection
+workbook is generated.
 
 Each batch writes `carbon_flow_run.json`. Version 1 records the finish
 timestamp, batch `status` (`finished` or `error`) and one entry per mapping

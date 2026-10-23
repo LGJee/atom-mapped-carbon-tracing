@@ -18,11 +18,12 @@ CARBON_SOURCES = {}  # Loaded from step 1 for every configured model.
 ANALYSIS_METHODS = ["Enumeration", "EMU"]
 
 # Enumeration
-EXPORT_DETAIL_ROUNDS = 3  # Combine R1-R3 in Carbon_Flow; later rounds still update Summary.
+EXPORT_DETAIL_ROUNDS = 3  # Later rounds retain only unique states and Summary, not provenance rows.
 ROUNDS = 10  # Maximum rounds; stop earlier when propagation converges.
+MAX_ENUMERATION_PROCESSES = None  # Share each model's CPU/memory budget; 1 forces serial candidates.
 # Optional list for the last saved round; Summary always includes the counts.
 EXPORT_EXCLUSIVE_SOURCE_METABOLITES = False
-OUTPUT_BATCH_ROWS = 50000  # Check actual candidate XLSX size after each batch/layer.
+OUTPUT_BATCH_ROWS = 50000  # Upper row bound; buffers also flush at an estimated 8 MiB.
 # Record CO2/bicarbonate endpoints, but exclude their label recycling by default.
 # Set True to trace inorganic-carbon sources or include carbon refixation.
 ALLOW_INORGANIC_CARBON_RECYCLING = False
@@ -53,6 +54,7 @@ def settings():
         rounds=ROUNDS,
         analysis_methods=ANALYSIS_METHODS,
         export_detail_rounds=EXPORT_DETAIL_ROUNDS,
+        max_enumeration_processes=MAX_ENUMERATION_PROCESSES,
         emu_allow_inorganic_carbon_recycling=EMU_ALLOW_INORGANIC_CARBON_RECYCLING,
         emu_tolerance=EMU_TOLERANCE,
         export_exclusive_source_metabolites=EXPORT_EXCLUSIVE_SOURCE_METABOLITES,

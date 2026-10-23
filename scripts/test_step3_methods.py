@@ -16,6 +16,37 @@ from carbon_flow_tools.reactions import prepare_reactions
 
 
 class CombinedMethodTests(unittest.TestCase):
+    def test_export_omits_structure_columns_for_all_sources_and_mapping_versions(self):
+        from carbon_flow_tools.pipeline import trace_mapping_file
+
+        scope_columns = ["StructureType", "KnownCarbonCount", "ContributionScope"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for sources in (["A[e]"], ["A[e]", "X[e]"]):
+                for suffix in ("", "_AIGenerated"):
+                    compounds = pd.DataFrame([dict(
+                        MetaboliteID="P", MetaboliteName="P[c]", CarbonCount=float("nan"),
+                        Inflow=1, Outflow=1, FluxResidual=0, Status="partial_unknown",
+                        StructureType="partial", KnownCarbonCount=2,
+                        ContributionScope="explicit carbon positions only",
+                        Unknown=0.25, **{name: 0.75 / len(sources) for name in sources})])
+                    original = compounds.copy(deep=True)
+                    output = root / ("case_" + str(len(sources)) + suffix + ".xlsx")
+                    job = dict(carbon_sources=sources, analysis_methods=["EMU"],
+                               min_available_memory_gb=0.01)
+                    tables = dict(MetaboliteContributions=compounds,
+                                  BoundaryInputs=pd.DataFrame(columns=["ReactionID", "Source"]))
+                    with patch("carbon_flow_tools.pipeline.load_final_mappings",
+                               return_value=([], pd.DataFrame(), pd.DataFrame())), patch(
+                            "carbon_flow_tools.source_contributions.solve_source_contributions",
+                            return_value=(tables, dict(carbon_positions=2))):
+                        trace_mapping_file("ArbitraryModel", job, 1,
+                            root / ("case_2_atom_mapping" + suffix + ".xlsx"), output)
+                    actual = pd.read_excel(output, sheet_name="EMU_Metabolites", engine="openpyxl")
+                    expected = compounds.drop(columns=["FluxResidual", "Status"] + scope_columns)
+                    pd.testing.assert_frame_equal(actual, expected, check_dtype=False)
+                    pd.testing.assert_frame_equal(compounds, original)
+
     def test_round_details_stop_at_three_but_summaries_and_emu_remain(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "flow.xlsx"
@@ -42,7 +73,8 @@ class CombinedMethodTests(unittest.TestCase):
                     self.assertEqual(len(list(workbook["Summary"].values)), 6)
                 finally:
                     workbook.close()
-                self.assertEqual(store.db.execute("SELECT DISTINCT round_no FROM records ORDER BY round_no").fetchall(), [(1,), (2,), (3,), (5,)])
+                self.assertEqual(store.db.execute("SELECT DISTINCT round_no FROM records ORDER BY round_no").fetchall(), [(1,), (2,), (3,)])
+                self.assertEqual(store.db.execute("SELECT name,id FROM round_states").fetchall(), [("P", 5)])
             finally:
                 store.close()
 
@@ -84,7 +116,7 @@ class CombinedMethodTests(unittest.TestCase):
                     self.assertAlmostEqual(table.loc["B[c]", "A[e]"], 1)
                     self.assertAlmostEqual(table.loc["B[c]", "Unknown"], 0)
             self.assertFalse(list((root / "combined").glob("*_EMU*.xlsx")))
-            self.assertTrue((root / "combined/carbon_flow_summary.xlsx").is_file())
+            self.assertFalse((root / "combined/carbon_flow_summary.xlsx").exists())
             from carbon_flow_tools.excel_io import WorkbookSizeLimitError
             previous = {p: p.read_bytes() for p in (root / "combined").glob("Test_3_carbon_flow*.xlsx")}
             with patch("carbon_flow_tools.flow_output.FlowOutput.checkpoint", side_effect=WorkbookSizeLimitError("test first-round rejection")):

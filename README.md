@@ -211,7 +211,8 @@ See [EMU assumptions and limitations](docs/source-contributions.md).
 
 `MAX_EXCEL_SIZE_MB = 50` applies separately to each output. Generated rows are staged in temporary disk storage rather than retained
 as a whole-round DataFrame or an in-memory Excel workbook. `OUTPUT_BATCH_ROWS =
-50000` controls size-check batches; checks also occur at layer and round boundaries.
+50000` is an upper batch bound; byte-based checks can flush earlier. Size checks
+also occur at layer and round boundaries.
 At a checkpoint, the program streams a real candidate XLSX and measures its
 compressed size. If it reaches 50,000,000 bytes, enumeration stops and the
 unfinished round is discarded. Only complete rounds below the limit atomically
@@ -228,12 +229,8 @@ exceed the limit before rejection. Rebuilding sorted candidate files costs disk
 space and I/O. Label states and their indexes are still needed in memory; this is
 not full external-memory propagation, and independent memory safety checks remain.
 
-Step 3 also writes `carbon_flow_summary.xlsx` in its output directory, copying
-one Summary sheet per saved Enumeration workbook, including AI-reviewed versions.
-It collects existing files in that directory, not nested cases; older saved results
-may be included. Sheet names use the model name, `_AI` for reviewed mappings,
-and are shortened with numeric suffixes when needed for Excel's 31-character limit.
-No fitting or recalculation is performed. The run manifest is `carbon_flow_run.json`.
+Each model/version keeps its own Summary sheet. Step 3 does not generate a
+separate summary-collection workbook. The run manifest is `carbon_flow_run.json`.
 Inspect its current status and saved rounds rather than trusting an older output file.
 
 Propagation checks available Linux/WSL memory during enumeration, state merging
@@ -264,12 +261,37 @@ python3 step3_carbon_flow.py Escherichia_coli_non_IUPD Escherichia_coli_IUPD --r
 ```
 
 
+
+Later rounds do not build or stage complete reaction-provenance rows. They retain
+one minimum-step entry per unique product state for that round's Summary.
+The global state catalogue, positional assignments and earliest steps are stored
+in temporary SQLite tables, with bounded caches and ordered pages of 256 states.
+No whole-state copy is needed for convergence checks. Layer/round snapshot
+boundaries, ProductionIDs and exported ordering are unchanged. The maximum round
+count remains 10; reducing output does not eliminate combinatorial computation.
+
+Output buffers flush at the configured row bound or an estimated 8 MiB, whichever
+comes first. Candidate chunks also account for molecule size, not just combination
+count. Working-disk checks reserve at least 1 GiB or 1% of the filesystem capacity.
+Low disk space is a resource failure, not convergence. Last complete workbooks
+remain available; temporary working databases are not resumable checkpoints.
+Normal cleanup removes only the current run's temporary directory. Files left by
+an older interrupted run are not deleted automatically.
+
+Memory checks also cover model/input loading, mapper batches and rule workers,
+state-page decoding, Summary scans, EMU arrays/solver preparation and Excel export.
+Workbook-load reservations use uncompressed archive sizes. These checks and
+allocation estimates are safeguards, not hard OS limits: an external process,
+a large native-library allocation or host pressure hidden from WSL can still
+exhaust resources. In particular, sparse solver fill-in is estimated conservatively.
+
 ### Console output and estimated time
 
 Steps 2 and 3 show short progress messages and result locations by default.
 For example: `Example / RXNMapper: 50% (174/348 reactions).`
 Mapper dependency warnings, library messages and per-reaction errors are saved in
 `logs/<model>_<mapper>.log` under the analysis result directory (latest run per tool).
+The shared EnzymeMap run writes `logs/EnzymeMap.log`.
 A short notice identifies reactions that need checking; final workbook summaries
 still report the review count. These messages do not change calculation or selection.
 Use `--verbose` to show library output and technical progress directly in the terminal. Routine batch, layer and resource details are available with
@@ -281,14 +303,20 @@ python3 step2_atom_mapping.py --verbose
 python3 step3_carbon_flow.py --verbose
 ```
 
-Progress refreshes at computation checkpoints about every 15 seconds. ETA is
-recomputed from recent observed speed, so it can move up or down. Step 2 estimates
-the current mapper after model loading. Step 3 estimates the current reaction's
-substrate combinations or Excel-writing rows; it does not extrapolate earlier
-rounds into a full-run estimate. Source lookups/model loading, EMU solving and
-unknown work counts show `Estimating...` or `Unavailable` where an estimate is
-not justified. A long individual prediction or library call may delay the next
-update. Parallel tasks identify their model/tool or mapping version on each line.
+Progress refreshes at computation checkpoints about every 15 seconds. Approximate
+remaining time uses recent completed work, including samples between printed updates,
+and resets when the phase or reaction changes. It waits for initial samples and
+withdraws the estimate after a prolonged gap without completions. Variable reaction
+costs can still move the estimate up or down; times are rounded rather than exact.
+Step 2 counts unique mapper requests after duplicate reuse. EnzymeMap database
+matching and rule prediction have separate counters; only rule prediction is timed.
+Step 3 counts completed, ordered enumeration chunks, never prefetched combinations.
+Its estimates cover the current reaction or Excel row preparation, excluding final
+workbook compression. They do not predict growth in later rounds or full-run time.
+Structure queries, model/database loading, solver work and scheduling waits have no
+reliable ETA. Default output shows counts or elapsed time in those phases; verbose
+output may show `Estimating...` or `Unavailable`. A blocking library call may delay
+updates. Parallel tasks identify their model/tool or mapping version on each line.
 These are changing execution estimates, not convergence or biological rates.
 
 ### Optional: propagate using AI-reviewed mapping copies
@@ -312,6 +340,56 @@ are included; model selection applies to both available versions of that model.
 Both versions must pass input-hash, direction and structure checks. The suffix
 selects a file; it does not certify correctness. Step 3 performs no AI review or
 mapper prediction. The separate step-4 entry has been removed.
+
+
+### Automatic task scheduling
+
+Steps 2 and 3 share `carbon_flow_tools/task_scheduler.py`; users do not run it
+separately. Existing `MAX_MAPPER_PROCESSES`, `MAPPER_MEMORY_GB`,
+`MAX_CARBON_PROCESSES` and `CARBON_MEMORY_GB` settings remain at the top of the
+entry scripts. No external scheduler or extra dependency is required.
+
+- Independent model/mapper jobs and mapping-workbook analyses use a bounded queue.
+  Larger estimated jobs start first; returned results keep their original order.
+  Original precedes AI for a model when only one slot is available.
+- CPU affinity, cgroup CPU quotas and available memory bound the capacity. Free
+  memory is checked again before every job starts. Active per-task estimates are
+  reserved conservatively, so memory pressure can reduce concurrency further.
+  These estimates are not measured peak guarantees; runtime MemoryGuard stays active.
+- LocalMapper and RXNMapper jobs run concurrently as before. EnzymeMap then uses
+  a separate phase, sharing one database scan across pending models with the same
+  adapter, interpreter and options. Its independent rule searches use a process pool
+  sized to available CPUs, memory and reaction count; `MAX_MAPPER_PROCESSES` can cap
+  this pool too. It is not fixed to 32 threads. Each rule worker loads the pinned
+  rules once, uses one native-library thread, and does not scan the database.
+- Exact duplicate reaction SMILES are predicted once per mapper call and restored
+  to every original row. EnzymeMap shares this reuse across the merged models.
+  Direction, component multiplicity, charges and stereochemistry remain part of the
+  exact input. Different configurations never share predictions. Existing workbook
+  reuse still applies on later runs; no new permanent prediction cache is created.
+- EnzymeMap reserves 1 GiB for its parent and estimates 0.5 GiB per rule worker,
+  with the shared scheduler checking free memory before each reaction starts.
+  These are estimates, not hard memory caps; difficult reactions can require more.
+  One reaction's internal official rule order is unchanged. Rule workers and spawned
+  analysis processes inherit thread limits before numerical-library imports.
+- A task failure stops new admissions; already running jobs finish normally before
+  the original error is raised. An idle queue with insufficient memory fails clearly
+  rather than waiting forever. Unknown memory readings permit only serial admission.
+- Rounds and reaction traversal remain ordered. Large Enumeration reactions can
+  compute independent candidate chunks in parallel; the parent consumes chunks in
+  original order, assigns ProductionIDs, merges states and writes SQLite/Excel.
+  Workers never update the shared catalogue or start the next round. Enumeration
+  and EMU remain separate sequential calculations within the same model job.
+- Step 3's `MAX_ENUMERATION_PROCESSES = None` uses the CPU/memory share assigned
+  to that model, not every CPU for every model. Set it to `1` for serial candidates.
+  Small reactions stay serial to avoid startup overhead. Molecule templates and
+  fixed atom transfers are reused without changing canonical labelled structures.
+
+Scheduling improves use of independent work, not the combinatorial size of one
+reaction. Small jobs may be dominated by process startup and Excel writing; no
+fixed speedup or full CPU utilization is guaranteed. Use `--verbose` for queue and
+resource details. Ordinary progress remains concise.
+
 
 ## 6. Read the results
 

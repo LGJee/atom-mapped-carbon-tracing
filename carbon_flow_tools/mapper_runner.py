@@ -59,7 +59,25 @@ def validate_mapper_config(name, settings):
         raise ValueError("Mapper options must be a dictionary.")
 
 
-def run_mapper(strain, reactions, name, settings, cpu_threads=1):
+def group_mapper_jobs(pending):
+    """Share one database scan across pending EnzymeMap jobs with identical settings."""
+    tasks, groups = [], {}
+    for strain, name, candidates, settings in pending:
+        if settings["module"] != "carbon_flow_tools.mappers.enzymemap_adapter":
+            tasks.append((strain, candidates, name, settings))
+            continue
+        signature = (name, str(settings["python"]),
+                     json.dumps(settings.get("options", {}), sort_keys=True))
+        if signature not in groups:
+            shared = dict(settings, log_file=str(Path(settings["log_file"]).with_name("EnzymeMap.log")))
+            task = ("All models", [], name, shared)
+            groups[signature] = task
+            tasks.append(task)
+        groups[signature][1].extend(candidates)
+    return tasks
+
+
+def run_mapper(strain, reactions, name, settings, cpu_threads=1, memory_gb=6):
     """Run an isolated mapper process without biochemical corrections."""
     validate_mapper_config(name, settings)
     from .carbon_mapping_rules import structure_kind, STRUCTURE_LIMITS
@@ -74,13 +92,21 @@ def run_mapper(strain, reactions, name, settings, cpu_threads=1):
     ready = [r for r in reactions if r.status == "ready"]
     if not ready:
         return
+    # Exact strings retain stoichiometry, direction, charges, stereo and atom order.
+    # Reuse predictions only inside this call, whose adapter/options are identical.
+    unique = list(dict.fromkeys(r.reaction_smiles for r in ready))
+    if len(unique) != len(ready):
+        print("{} / {}: {} identical reaction inputs will share predictions."
+              .format(strain, name, len(ready) - len(unique)), flush=True)
     worker = Path(__file__).with_name("mapper_worker.py")
     with tempfile.TemporaryDirectory() as folder:
         request, response = Path(folder) / "input.json", Path(folder) / "output.json"
         request.write_text(
             json.dumps(
                 {
-                    "reactions": [r.reaction_smiles for r in ready],
+                    "reactions": unique,
+                    "cpu_threads": cpu_threads,
+                    "memory_gb": memory_gb,
                     "options": settings.get("options", {}),
                     "log_file": str(settings.get("log_file", Path(folder) / "mapper.log")),
                 }
@@ -94,7 +120,8 @@ def run_mapper(strain, reactions, name, settings, cpu_threads=1):
             "OPENBLAS_NUM_THREADS",
             "NUMEXPR_NUM_THREADS",
         ):
-            environment[key] = str(cpu_threads)
+            environment[key] = str(1 if settings["module"] ==
+                "carbon_flow_tools.mappers.enzymemap_adapter" else cpu_threads)
         result = subprocess.run(
             [
                 str(settings["python"]),
@@ -117,9 +144,11 @@ def run_mapper(strain, reactions, name, settings, cpu_threads=1):
                         settings.get("log_file", "rerun with --verbose for details"))
             )
         results = json.loads(response.read_text(encoding="utf-8"))
-    if not isinstance(results, list) or len(results) != len(ready):
+    if not isinstance(results, list) or len(results) != len(unique):
         raise RuntimeError(name + " returned a result count inconsistent with input.")
-    for reaction, result in zip(ready, results):
+    lookup = dict(zip(unique, results))
+    for reaction in ready:
+        result = lookup[reaction.reaction_smiles]
         if not isinstance(result, dict):
             raise RuntimeError(name + " must return a dictionary per reaction.")
         reaction.mapped_smiles = clean(result.get("mapped_rxn"))

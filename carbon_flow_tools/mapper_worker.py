@@ -9,11 +9,19 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from carbon_flow_tools.console import Progress, detail, verbose, library_output
+from carbon_flow_tools.config import MemoryGuard, MemoryPressureError
 
 
 def checked_batch(adapter, model, batch):
+    guard = MemoryGuard()
+    guard.check("starting mapper batch", force=True)
     results = adapter.map_batch(model, batch)
-    if not isinstance(results, list) or len(results) != len(batch):
+    guard.check("validating mapper batch", force=True)
+    return checked_results(results, len(batch))
+
+
+def checked_results(results, count):
+    if not isinstance(results, list) or len(results) != count:
         raise RuntimeError("Adapter result count differs from input count")
     for result in results:
         if not isinstance(result, dict) or not isinstance(
@@ -41,6 +49,8 @@ def main():
     with Path(log_file).open("w", encoding="utf-8") as log:
         log.write("{}: latest mapper run\n".format(label))
     options = payload.get("options", {})
+    guard = MemoryGuard()
+    guard.check("loading mapper", force=True, extra_bytes=512 * 1024 ** 2)
     with library_output(log_file):
         adapter = importlib.import_module(module)
         model = (
@@ -48,31 +58,43 @@ def main():
             if options
             else adapter.load_model()
         )
+    guard.check("mapper loaded", force=True)
     progress = Progress(label + " | mapping" if verbose() else label, len(reactions), unit)
     results, retries = [], 0
-    for start in range(0, len(reactions), size):
-        batch = reactions[start : start + size]
-        detail(
-            "[{} {} {}-{}/{}] Mapping atoms...".format(
-                strain, name, start + 1, start + len(batch), len(reactions)
-            ),
-            flush=True,
-        )
-        try:
-            with library_output(log_file):
-                mapped = checked_batch(adapter, model, batch)
-        except Exception as error:
-            retries += 1
-            detail("Batch failed; retrying individually: " + str(error), flush=True)
-            mapped = []
-            for reaction in batch:
-                try:
-                    with library_output(log_file):
-                        mapped.append(checked_batch(adapter, model, [reaction])[0])
-                except Exception as exc:
-                    mapped.append({"error": str(exc)})
-        results.extend(mapped)
-        progress.update(len(results), force=len(results) == len(reactions))
+    if hasattr(adapter, "map_reactions"):
+        results = checked_results(adapter.map_reactions(model, reactions,
+            payload.get("cpu_threads", 1), payload.get("memory_gb", 6),
+            log_file, progress), len(reactions))
+    else:
+        for start in range(0, len(reactions), size):
+            batch = reactions[start : start + size]
+            detail(
+                "[{} {} {}-{}/{}] Mapping atoms...".format(
+                    strain, name, start + 1, start + len(batch), len(reactions)
+                ),
+                flush=True,
+            )
+            try:
+                with library_output(log_file):
+                    mapped = checked_batch(adapter, model, batch)
+            except (MemoryPressureError, MemoryError):
+                raise
+            except Exception as error:
+                retries += 1
+                detail("Batch failed; retrying individually: " + str(error), flush=True)
+                mapped = []
+                for reaction in batch:
+                    try:
+                        with library_output(log_file):
+                            mapped.append(checked_batch(adapter, model, [reaction])[0])
+                    except (MemoryPressureError, MemoryError):
+                        raise
+                    except Exception as exc:
+                        mapped.append({"error": str(exc)})
+            results.extend(mapped)
+            progress.update(len(results), force=len(results) == len(reactions))
+    guard.check("saving mapper results", force=True,
+        extra_bytes=sum(len(result.get("mapped_rxn", "")) for result in results) * 12)
     if retries:
         detail("{} | {} batch(es) retried individually; per-reaction outcomes are saved."
               .format(label, retries), flush=True)

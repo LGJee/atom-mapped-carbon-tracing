@@ -1,5 +1,7 @@
 import math
 import os
+import shutil
+from zipfile import ZipFile, BadZipFile
 import time
 from pathlib import Path
 
@@ -27,6 +29,36 @@ def configure(batch_size, max_reaction_atoms):
     )
 
 
+def task_memory_budget(memory_gb, total_gb, available_gb=None):
+    """Use the same per-task estimate in capacity planning and live admission."""
+    return max(2, (total_gb or available_gb or 0) / 4) if memory_gb is None else memory_gb
+
+
+def available_cpus():
+    """Respect CPU affinity and tighter cgroup-v2 quotas on shared servers."""
+    count = (len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity")
+             else os.cpu_count() or 1)
+    root = Path("/sys/fs/cgroup")
+    try:
+        for line in Path("/proc/self/cgroup").read_text().splitlines():
+            if not line.startswith("0::"):
+                continue
+            group = root / line.split("::", 1)[1].lstrip("/")
+            for directory in (group,) + tuple(group.parents):
+                if directory != root and root not in directory.parents:
+                    break
+                try:
+                    quota, period = (directory / "cpu.max").read_text().split()
+                    if quota != "max":
+                        count = min(count, max(1, int(quota) // int(period)))
+                except (OSError, ValueError, ZeroDivisionError):
+                    continue
+            break
+    except OSError:
+        pass
+    return max(1, count)
+
+
 def parallel_capacity(
     task_count, max_processes=None, memory_per_process_gb=6, task_kind="prediction"
 ):
@@ -44,25 +76,14 @@ def parallel_capacity(
     if task_count == 0:
         detail("No pending predictions; no mapper processes needed.", flush=True)
         return 1, 1
-    cpus = (
-        len(os.sched_getaffinity(0))
-        if hasattr(os, "sched_getaffinity")
-        else os.cpu_count() or 1
-    )
+    cpus = available_cpus()
     available, total = None, None
     try:
-        for line in Path("/proc/meminfo").read_text().splitlines():
-            if line.startswith("MemTotal:"):
-                total = int(line.split()[1]) / (1024**2)
-            elif line.startswith("MemAvailable:"):
-                available = int(line.split()[1]) / (1024**2)
-                break
-    except (OSError, ValueError):
+        available, total = available_memory()
+    except (OSError, ValueError, KeyError):
         pass
     automatic = memory_per_process_gb is None
-    if automatic:
-        # Budget one quarter of total memory per strain; this is not a peak bound.
-        memory_per_process_gb = max(2, (total or available or 0) / 4)
+    memory_per_process_gb = task_memory_budget(memory_per_process_gb, total, available)
 
     # Reserve 2 GiB or 20%; use serial execution when memory cannot be detected.
     memory_limit = (
@@ -134,6 +155,18 @@ class MemoryGuard:
         self.minimum_gb = minimum_gb
         self.last_check = None
 
+    def check_file(self, path, context="loading input"):
+        """Reserve for decoded tables, not only a compressed workbook's file size."""
+        path = Path(path)
+        size = path.stat().st_size
+        if path.suffix.lower() == ".xlsx":
+            try:
+                with ZipFile(str(path)) as archive:
+                    size = sum(info.file_size for info in archive.infolist())
+            except BadZipFile:
+                pass  # The actual reader supplies the format error.
+        self.check(context, force=True, extra_bytes=size * 12)
+
     def check(self, context="", force=False, extra_bytes=0):
         now = time.monotonic()
         if not force and self.last_check is not None and now - self.last_check < 0.5:
@@ -155,3 +188,25 @@ class MemoryGuard:
                 "Free memory or reduce MAX_CARBON_PROCESSES before rerunning."
                 .format(context or "carbon propagation", available, required)
             )
+
+
+class DiskSpaceLimitError(OSError):
+    """Keep the last complete workbook when working storage is nearly full."""
+
+
+class DiskGuard:
+    def __init__(self, directory):
+        self.directory, self.last_check = str(directory), None
+
+    def check(self, force=False):
+        now = time.monotonic()
+        if not force and self.last_check is not None and now - self.last_check < 1:
+            return
+        self.last_check = now
+        total, _, free = shutil.disk_usage(self.directory)
+        reserve = max(1024 ** 3, total * .01)
+        if free < reserve:
+            raise DiskSpaceLimitError(
+                "Low working-disk space: {:.2f} GiB free; {:.2f} GiB reserve required. "
+                "Incomplete round discarded; this stop is not convergence."
+                .format(free / 1024 ** 3, reserve / 1024 ** 3))
