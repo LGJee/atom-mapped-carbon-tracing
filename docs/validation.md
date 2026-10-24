@@ -4,7 +4,7 @@ Validated on 2026-10-24 (Asia/Shanghai), branch codex/major-rework.
 The pre-removal local snapshot is a28ec6c4bc908f2939a7a0509f4dcf16e28b41b7.
 Historical combined-method validation records remain accessible in that Git
 commit; they describe an older interface, not current supported commands.
-This cleanup is local and has not been pushed.
+This records the initial local cleanup checks. See publication-validation.md for the subsequent publication checks.
 
 ## Scope
 
@@ -60,10 +60,5 @@ ordinary/AI files remain historical until explicitly recalculated with this code
 The retained solver is size-1 EMU-inspired, not full multi-carbon isotopomer EMU.
 Unknown is not redistributed and full-reaction turnover remains unchanged.
 
-Installed carbon-tracing-review-skill and carbon-tracing-workflow-skill still
-contain combined-method/round/Summary instructions. Their automatic stage-3
-handoff and completion parsing must be adapted to docs/interfaces.md before
-using those older instructions with this EMU-only version. External skill files
-and repositories were inspected but not edited or published. Model-setup's
-step-2 handoff is unchanged. Shared mapper scheduling and EnzymeMap parallelism
-remain active; memory estimates are safeguards rather than hard OOM guarantees.
+Companion skills were subsequently adapted separately to the EMU-only interface.
+Their current handoff compatibility is recorded in publication-validation.md.

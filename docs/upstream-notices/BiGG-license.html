@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QZHE1T5916"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-QZHE1T5916');
+</script>
+
+    <title>BiGG License</title>
+
+    <!-- Bootstrap and jQuery -->
+    <script src="//code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css"/>
+
+    <!-- BiGG styles and js -->
+    <script src="/static/js/script.js"></script>
+    <script src="/static/js/question_mark.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css"/>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/assets/favicon.ico">
+
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="google" content="notranslate">
+    <meta name="description" content="">
+    <meta http-equiv="Content-Language" content="en">
+  </head>
+  <body>
+    <style>
+  :root { --legacy-banner-h: 52px; }
+  #legacy-banner {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1050;
+    background-color: #1f2d3d;
+    color: #ffffff;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+  #legacy-banner .legacy-banner-inner {
+    max-width: 1320px;
+    margin: 0 auto;
+    /* Symmetric side padding keeps the row centred while reserving room for
+       the dismiss button on the right. */
+    padding: 10px 40px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 14px;
+    text-align: center;
+  }
+  #legacy-banner .legacy-banner-text { margin: 0; }
+  #legacy-banner .legacy-banner-text strong { font-weight: 600; }
+  #legacy-banner .legacy-banner-note { color: #b7c4d4; }
+  #legacy-banner .legacy-banner-cta {
+    display: inline-block;
+    white-space: nowrap;
+    padding: 5px 14px;
+    border: 1px solid #ffffff;
+    border-radius: 3px;
+    color: #ffffff !important;
+    font-weight: 600;
+    text-decoration: none !important;
+  }
+  #legacy-banner .legacy-banner-cta:hover,
+  #legacy-banner .legacy-banner-cta:focus {
+    background-color: #ffffff;
+    color: #1f2d3d !important;
+  }
+  #legacy-banner .legacy-banner-close {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background-color: transparent;
+    color: #b7c4d4;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  #legacy-banner .legacy-banner-close:hover,
+  #legacy-banner .legacy-banner-close:focus {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+  }
+  #legacy-banner-spacer {
+    height: 52px;
+    height: var(--legacy-banner-h, 52px);
+  }
+  /* The front page pins its navbar to the viewport, so move it below the banner. */
+  .navbar-fixed-top {
+    top: 52px;
+    top: var(--legacy-banner-h, 52px);
+  }
+</style>
+
+<div id="legacy-banner" role="region" aria-label="Legacy site notice">
+  <div class="legacy-banner-inner">
+    <p class="legacy-banner-text">
+      <strong>You are viewing the legacy BiGG Models site.</strong>
+      <span class="legacy-banner-note">Its data has not been updated since October 2019.</span>
+    </p>
+    <a class="legacy-banner-cta" href="https://bigg.bio" target="_blank" rel="noopener noreferrer">A new version is available at bigg.bio &rarr;</a>
+  </div>
+  <button type="button" id="legacy-banner-close" class="legacy-banner-close"
+          aria-label="Dismiss this notice" title="Dismiss">&times;</button>
+</div>
+<div id="legacy-banner-spacer"></div>
+
+<script>
+  (function () {
+    var banner = document.getElementById('legacy-banner')
+    if (!banner) return
+    var spacer = document.getElementById('legacy-banner-spacer')
+    var STORAGE_KEY = 'bigg-legacy-banner-dismissed'
+
+    function setHeight (px) {
+      document.documentElement.style.setProperty('--legacy-banner-h', px + 'px')
+    }
+    function fit () { setHeight(banner.offsetHeight) }
+
+    // The banner is out of flow, so hiding it also has to collapse the spacer
+    // that holds its place and zero the height the front page navbar is
+    // offset by.
+    function hide () {
+      banner.style.display = 'none'
+      if (spacer) spacer.style.display = 'none'
+      setHeight(0)
+      window.removeEventListener('resize', fit)
+    }
+
+    // Reading storage throws outright in some privacy modes.
+    var dismissed = false
+    try {
+      dismissed = window.sessionStorage.getItem(STORAGE_KEY) === '1'
+    } catch (e) {}
+
+    if (dismissed) {
+      hide()
+      return
+    }
+
+    fit()
+    window.addEventListener('resize', fit)
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit)
+
+    var close = document.getElementById('legacy-banner-close')
+    if (close) {
+      close.addEventListener('click', function () {
+        try {
+          window.sessionStorage.setItem(STORAGE_KEY, '1')
+        } catch (e) {}
+        hide()
+      })
+    }
+  })()
+</script>
+
+      <div id="nav-title-background">
+        <div class="container">
+          <div id="nav-title">
+            <h1><a href="/">BiGG Models</a></h1>
+          </div>
+        </div>
+      </div>
+
+      <div class="navbar navbar-default" role="navigation">
+        <div class="container">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+              <span class="sr-only">Toggle navigation</span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <!--<a class="navbar-brand" href="http://gcrg.ucsd.edu/"><strong>SBRG</strong></a>-->
+          </div>
+
+          <div class="navbar-collapse collapse ">
+
+            <ul class="nav navbar-nav navbar-left">
+
+              <li><a href="/">Home</a></li>
+              <li><a href="/advanced_search">Advanced Search</a></li>
+              <li><a href="/data_access">Data Access</a></li>
+              <li><a href="https://memote.io" target="_blank" class="link-out">
+                Memote Validator
+              </a></li>
+
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+
+              <form id="search-form" class="navbar-form" action="/search" method="get">
+                <div class="form-group" style="display: inline; margin-right: 3px;">
+                  <input id="search" type="text" name="query"
+                         class="form-control" placeholder="Search Database"
+                         style="width:150px;" />
+                </div>
+                <button type="submit" class="btn btn-default">Search</button>
+              </form>
+            </ul>
+
+          </div>
+        </div>
+      </div>
+
+
+
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-12" >
+
+  <div class="modal-header">
+
+  <h4 class="modal-title">About BiGG Models</h4>
+</div>
+
+<div class="modal-body">
+
+  <p>BiGG Models is a knowledgebase of genome-scale metabolic network
+  reconstructions.</p>
+
+	<p>BiGG Models integrates more than 70 published genome-scale metabolic
+	  networks into a single database with a set of stardized identifiers called
+	  BiGG IDs. Genes in the BiGG models are mapped to NCBI genome annotations,
+	  and metabolites are linked to many external databases (KEGG, PubChem, and
+	  many more). For details about updates to the BiGG Models website and
+    database, see the <a href="/updates">updates page</a> and the
+    <a href="https://github.com/SBRG/bigg_models/releases">GitHub repository</a>.</p>
+
+	<p>BiGG is freely available for non-commercial use. It is hosted and
+	  maintained by the <a href="http://systemsbiology.ucsd.edu/">Systems Biology
+	  Research Group</a> at the <a href="http://ucsd.edu"> University of California, San Diego</a>.</p>
+
+  <p>BiGG Models has replaced the original BiGG Database. If you are looking for
+    the old BiGG, you can still find it here: </p>
+
+  <p><a href="http://bigg1.ucsd.edu">http://bigg1.ucsd.edu</a></p>
+
+  <p>If you have questions or find any bugs in the database, please sumbit an
+    issue to our <a href="https://github.com/SBRG/bigg_models/issues" target="_blank">issue tracker</a>
+    or contact Zachary King (zaking-AT-ucsd-DOT-edu).</p>
+</div>
+
+<div class="modal-header">
+  <h4 class="modal-title">How do I use BiGG Models?</h4>
+</div>
+<div class="modal-body">
+  <p>BiGG can be browsed on this website or accessed using a <a href="/data_access">web
+    API</a>. Try searching for a metabolite, reaction, gene, or organism in the
+    search box to browse the content of genome-scale models. Question marks like
+    this <a tabindex="0" role="button" type="button" class="btn btn-default btn-xs"
+   style="position: relative; top: -8px; padding: 0.2em; height: 1.8em;" data-trigger="click"
+   data-toggle="popover" data-placement="bottom"
+   data-title=""
+   data-content="">
+   ?
+</a> are available throughout the site to
+    provide more help. Further information is available in the
+    <a href="http://dx.doi.org/10.1093/nar/gkv1049">BiGG Models publication</a>.
+  </p>
+</div>
+
+<div class="modal-header">
+    <h4 class="modal-title">How do I add my model to BiGG?</h4>
+</div>
+<div class="modal-body">
+    <p>We encourage contributions of models to BiGG. The following are the minimal
+        requirements for acceptance into the knowledge base:
+
+        <ul>
+            <li>A genome-scale metabolic network reconstruction that has been
+                published in a peer-reviewed journal</li>
+            <li>A COBRApy-compatible file (SBML, MAT, or JSON) representing all
+            model content, ideally included as a supplementary file to the
+                original publication</li>
+            <li>The accession ID for a NCBI RefSeq genome annotation. In some
+                cases we can accept genome annotations in Genbank format, but we
+                prefer annotations from a well-known genome repository.</li>
+            <li>Reactions, metabolites, and compartments using the BiGG Models
+                namespace</li>
+            <li>Gene identifiers that match locus tags from the genome annotation</li>
+        </ul>
+
+        <p>If you have all of these, please open a new issue here where the BiGG
+            team can provide communication and feedback:
+
+            <a href="https://github.com/SBRG/bigg_models/issues/new">https://github.com/SBRG/bigg_models/issues/new</a></p>
+
+        <p>Please note that loading models into BiGG is time-consuming, so we
+            cannot make any guarantee regarding the time it will take to load a model.</p>
+    </p>
+</div>
+
+<div class="modal-header">
+  <h4 class="modal-title">How do I cite BiGG Models?</h4>
+</div>
+<div class="modal-body">
+  <p>When using the BiGG Models knowledgebase in your research, we kindly ask
+    that you cite the latest publication. Your citation of BiGG Models will help
+    us to apply for ongoing funding to maintain this resource. </p>
+  <p style="font-size: 15px;">
+  Latest BiGG Models publication:
+  <br/><br/>
+  King ZA, Lu JS, Dräger A, Miller PC, Federowicz S, Lerman JA, Ebrahim A,
+  Palsson BO, and Lewis NE. <b>BiGG Models: A platform for
+  integrating, standardizing, and sharing genome-scale models</b>
+  (2016) Nucleic Acids Research 44(D1):D515-D522.
+  doi:<a href="http://dx.doi.org/10.1093/nar/gkv1049" target="_blank">10.1093/nar/gkv1049</a>
+</p>
+</div>
+
+<div class="modal-header">
+  <h4 class="modal-title" id="license">License</h4>
+</div>
+<div class="modal-body">
+
+	<p> Copyright &copy; 2019 The Regents of the University of California </p>
+
+	<p> All Rights Reserved </p>
+
+	<p> Permission to use, copy, modify and distribute any part of BiGG Models for
+	  educational, research and non-profit purposes, without fee, and without a
+	  written agreement is hereby granted, provided that the above copyright
+	  notice, this paragraph and the following three paragraphs appear in all
+	  copies. </p>
+
+	<p> Those desiring to incorporate BiGG Models into commercial products or use
+	  for commercial purposes should contact the Technology Transfer &
+	  Intellectual Property Services, University of California, San Diego, 9500
+	  Gilman Drive, Mail Code 0910, La Jolla, CA 92093-0910, Ph: (858) 534-5815,
+	  FAX: (858) 534-7345, e-mail: invent@ucsd.edu. </p>
+
+	<p> In no event shall the University of California be liable to any party for
+	  direct, indirect, special, incidental, or consequential damages, including
+	  lost profits, arising out of the use of this bigg database, even if the
+	  University of California has been advised of the possibility of such damage. </p>
+
+	<p> The BiGG Models provided herein is on an "as is" basis, and the University
+	  of California has no obligation to provide maintenance, support, updates,
+	  enhancements, or modifications. The University of California makes no
+	  representations and extends no warranties of any kind, either implied or
+	  express, including, but not limited to, the implied warranties of
+	  merchantability or fitness for a particular purpose, or that the use of the
+	  BiGG Models will not infringe any patent, trademark or other rights. </p>
+
+</div>
+<div class="modal-footer">
+
+</div>
+
+        </div>
+      </div>
+
+      <footer class="row">
+        <div class="col-lg-12" style="margin:60px 0;">
+          <hr>
+          <p style="font-size: 15px;">
+  Latest BiGG Models publication:
+  <br/><br/>
+  King ZA, Lu JS, Dräger A, Miller PC, Federowicz S, Lerman JA, Ebrahim A,
+  Palsson BO, and Lewis NE. <b>BiGG Models: A platform for
+  integrating, standardizing, and sharing genome-scale models</b>
+  (2016) Nucleic Acids Research 44(D1):D515-D522.
+  doi:<a href="http://dx.doi.org/10.1093/nar/gkv1049" target="_blank">10.1093/nar/gkv1049</a>
+</p>
+          <hr>
+          <p>Copyright &copy; 2019 The Regents of the University of California.</p>
+        </div>
+      </footer>
+    </div>
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
+<link href="/static/css/typeahead.css" rel="stylesheet"/>
+<script>
+ var bh = new Bloodhound({
+   datumTokenizer: Bloodhound.tokenizers.whitespace,
+   queryTokenizer: Bloodhound.tokenizers.whitespace,
+   remote: {
+     url: '/autocomplete?query=%QUERY',
+     wildcard: '%QUERY',
+   },
+ })
+   $('#search').typeahead({
+     minLength: 3,
+     highlight: true,
+     hint: true,
+   }, {
+     name: 'search',
+     source: bh,
+   }).bind('typeahead:select', function (event, suggestion) {
+     $('#search-form').trigger('submit')
+   }).keypress(function (event) {
+     if (event.keyCode == 13)
+       $('#search-form').trigger('submit')
+   })
+</script>
+  </body>
+</html>

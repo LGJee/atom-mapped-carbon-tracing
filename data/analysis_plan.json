@@ -1,0 +1,6251 @@
+{
+  "version": 3,
+  "models": {
+    "Saccharomyces_cerevisiae_non_IUPD": {
+      "input_file": "results/Saccharomyces_cerevisiae_non_IUPD_1_pFBA_nonzero_reactions.xlsx",
+      "carbon_sources": [
+        "D-glucose[e]"
+      ],
+      "input_sha256": "dd51715e65f96a1efc586eb7f67a80ad9b9c4fff72fafdac7a01bd41c4ecac50",
+      "preparation": {
+        "model_id": "model",
+        "solver": "optlang.glpk_interface",
+        "objective_direction": "max",
+        "objective_reactions": {
+          "r_1012": 1.0
+        },
+        "objective_value": 0.16390362691000432,
+        "total_absolute_flux": 148.15754081087582,
+        "nonzero_tolerance": 1e-08,
+        "carbon_supply_mode": "simultaneous",
+        "source_uptake": {
+          "D-glucose[e]": {
+            "metabolite_ids": [
+              "s_0565"
+            ],
+            "exchange_imports": {
+              "r_1714": 2.0
+            },
+            "net_import": 2.0,
+            "present_in_nonzero_network": true
+          }
+        },
+        "exchange_conditions": {
+          "r_1542": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1545": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1546": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1547": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1548": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1549": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1550": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1551": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1552": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1553": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1554": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1563": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1564": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1565": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1566": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1572": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1577": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1580": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1581": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1586": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1589": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1598": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1604": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1621": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1625": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1627": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1629": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1630": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1631": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1634": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1639": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1641": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1643": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1648": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1649": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1650": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1651": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1654": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.26362630822951405
+          },
+          "r_1663": {
+            "lower_bound": 0.0,
+            "upper_bound": 0.0,
+            "flux": 0.0
+          },
+          "r_1671": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1672": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 5.460982989703916
+          },
+          "r_1683": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1687": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1702": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1705": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1706": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1709": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1710": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1711": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1712": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1714": {
+            "lower_bound": -2.0,
+            "upper_bound": 1000.0,
+            "flux": -2.0
+          },
+          "r_1715": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1716": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1718": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1727": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1730": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1749": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1753": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1757": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1761": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1764": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1765": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1788": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1791": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1792": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1793": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1798": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1800": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1806": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1807": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1808": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1810": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1814": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 2.619538303211191e-06
+          },
+          "r_1815": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1818": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1820": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1832": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -1.539335563063602
+          },
+          "r_1834": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1841": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1843": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1847": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1861": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -1.2732740038307174e-06
+          },
+          "r_1862": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1865": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1866": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1867": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1870": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1873": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1875": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1878": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1879": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1880": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1881": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1883": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1886": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1889": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1891": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1893": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1896": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1897": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1899": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1900": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1902": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1903": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1904": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1906": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1909": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1911": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1912": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1913": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1914": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1915": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.16238974331978023
+          },
+          "r_1916": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1931": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1947": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1952": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1967": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1968": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1984": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1987": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1989": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1992": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -3.3599661536754297
+          },
+          "r_1993": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1994": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1999": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2000": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2001": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2005": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.011313755127129857
+          },
+          "r_2020": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.00014719695799088648
+          },
+          "r_2024": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2028": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2033": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2038": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2043": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2044": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2046": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2049": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.00016098400226658788
+          },
+          "r_2051": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2052": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2055": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2056": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2058": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2060": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.005646522680383476
+          },
+          "r_2061": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2062": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2066": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2067": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2068": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2073": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2083": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2090": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2091": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2092": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2100": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 6.870576456302364
+          },
+          "r_2102": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2104": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2106": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2134": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2137": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2187": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2188": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2189": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2193": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4043": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4044": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4442": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4494": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4496": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4497": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4498": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4499": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4500": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4501": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4502": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4503": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4504": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4505": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4506": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4507": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4508": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4509": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4510": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4511": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4512": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4513": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4514": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4515": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4516": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4517": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4518": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4519": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4520": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4521": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4522": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4523": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4524": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4525": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4526": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4527": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4528": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4529": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4530": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4531": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4532": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4533": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4534": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4535": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4536": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4537": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4538": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4539": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4540": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4541": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4542": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4543": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4544": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4545": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4546": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4547": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4548": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4549": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4550": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4551": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4552": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4553": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4554": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4555": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4556": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4557": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4558": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4559": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4560": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4561": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4562": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4563": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4564": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4565": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4593": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -5.230966548804976e-05
+          },
+          "r_4594": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -2.672253412284504e-05
+          },
+          "r_4595": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.00011070184912106957
+          },
+          "r_4596": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -3.0331494574149878e-05
+          },
+          "r_4597": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -5.038527587745832e-05
+          },
+          "r_4600": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -8.799377272531365e-06
+          },
+          "r_4644": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4645": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4646": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4647": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4648": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4658": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4659": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4667": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4668": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4676": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4677": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4689": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4692": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4695": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4699": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4708": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4710": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4727": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4729": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4731": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4733": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4735": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4737": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4739": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4741": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4743": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4780": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          }
+        },
+        "knocked_out_genes": [],
+        "added_reactions": []
+      },
+      "source_model": {
+        "path": "data/Saccharomyces_cerevisiae/yeast-GEM.mat",
+        "sha256": "9f985af321f9ef5e8c6041de3def9e0e95efbed7aff90c81490578f451ace524",
+        "variable_name": "model"
+      },
+      "preparation_script": {
+        "path": "step1_prepare_carbon_tracing_inputs.py",
+        "sha256": "bc4f95ea2c2084e3f3a62308142a646362953ab70d720e09824f160d52d89f97"
+      }
+    },
+    "Saccharomyces_cerevisiae_IUPD": {
+      "input_file": "results/Saccharomyces_cerevisiae_IUPD_1_pFBA_nonzero_reactions.xlsx",
+      "carbon_sources": [
+        "D-glucose[e]",
+        "isoprenol[e]"
+      ],
+      "input_sha256": "41d6ffff3da74bbdadbd05254a5e5dbae6eaee177e37bbfc8a55ded994863327",
+      "preparation": {
+        "model_id": "model",
+        "solver": "optlang.glpk_interface",
+        "objective_direction": "max",
+        "objective_reactions": {
+          "r_1012": 1.0
+        },
+        "objective_value": 0.34833331305826964,
+        "total_absolute_flux": 111.6729361679507,
+        "nonzero_tolerance": 1e-08,
+        "carbon_supply_mode": "simultaneous",
+        "source_uptake": {
+          "D-glucose[e]": {
+            "metabolite_ids": [
+              "s_0565"
+            ],
+            "exchange_imports": {
+              "r_1714": 1.0
+            },
+            "net_import": 1.0,
+            "present_in_nonzero_network": true
+          },
+          "isoprenol[e]": {
+            "metabolite_ids": [
+              "isoprenol[e]"
+            ],
+            "exchange_imports": {
+              "Ex_isopentenol_e": 2.0899999999999985
+            },
+            "net_import": 2.0899999999999985,
+            "present_in_nonzero_network": true
+          }
+        },
+        "exchange_conditions": {
+          "r_1542": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1545": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1546": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1547": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1548": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1549": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1550": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1551": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1552": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1553": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1554": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1563": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1564": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1565": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1566": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1572": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1577": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1580": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1581": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1586": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1589": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1598": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1604": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1621": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1625": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1627": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1629": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1630": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1631": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1634": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.9476082331149859
+          },
+          "r_1639": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1641": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1643": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1648": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1649": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1650": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1651": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1654": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.2668684480023548
+          },
+          "r_1663": {
+            "lower_bound": 0.0,
+            "upper_bound": 0.0,
+            "flux": 0.0
+          },
+          "r_1671": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1672": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 2.4763895415603314
+          },
+          "r_1683": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1687": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1702": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1705": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1706": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1709": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1710": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1711": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1712": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1714": {
+            "lower_bound": -1.0,
+            "upper_bound": 1000.0,
+            "flux": -1.0
+          },
+          "r_1715": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1716": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1718": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1727": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1730": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1749": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1753": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1757": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1761": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1764": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1765": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1788": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1791": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1792": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1793": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1798": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1800": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1806": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1807": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1808": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1810": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.00324213450501063
+          },
+          "r_1814": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 2.5708781492069116e-06
+          },
+          "r_1815": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": -1.5725844901320425e-15
+          },
+          "r_1818": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1820": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1832": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.908732585100245
+          },
+          "r_1834": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1841": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1843": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1847": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1861": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -1.2732740038307174e-06
+          },
+          "r_1862": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1865": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1866": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1867": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1870": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1873": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1875": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1878": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1879": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1880": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1881": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1883": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1886": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1889": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1891": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1893": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1896": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1897": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1899": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1900": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1902": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1903": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1904": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1906": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1909": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1911": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1912": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1913": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1914": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1915": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.3468201145743068
+          },
+          "r_1916": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1931": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1947": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1952": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1967": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1968": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1984": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1987": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1989": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1992": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -2.3438356645114946
+          },
+          "r_1993": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1994": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_1999": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2000": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2001": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2005": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.011314097680268894
+          },
+          "r_2020": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0001471969579908865
+          },
+          "r_2024": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2028": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2033": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2038": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2043": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2044": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2046": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2049": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0001609840022665879
+          },
+          "r_2051": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2052": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2055": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2056": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2058": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2060": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0056465226803836845
+          },
+          "r_2061": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2062": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2066": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2067": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2068": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2073": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2083": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2090": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2091": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2092": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2100": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 4.81137191702791
+          },
+          "r_2102": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2104": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2106": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2134": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2137": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2187": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2188": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2189": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_2193": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4043": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4044": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4442": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4494": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4496": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4497": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4498": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4499": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4500": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4501": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4502": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4503": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4504": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4505": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4506": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4507": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4508": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4509": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4510": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4511": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4512": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4513": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4514": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4515": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4516": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4517": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4518": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4519": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4520": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4521": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4522": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4523": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4524": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4525": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4526": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4527": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4528": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4529": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4530": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4531": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4532": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4533": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4534": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4535": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4536": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4537": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4538": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4539": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4540": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4541": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4542": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4543": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4544": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4545": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4546": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4547": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4548": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4549": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4550": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4551": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4552": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4553": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4554": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4555": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4556": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4557": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4558": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4559": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4560": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4561": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4562": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4563": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4564": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4565": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4593": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -5.230966548804977e-05
+          },
+          "r_4594": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -2.6722534122845043e-05
+          },
+          "r_4595": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.00011070184912106958
+          },
+          "r_4596": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -3.0331494574149885e-05
+          },
+          "r_4597": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -5.038527587745833e-05
+          },
+          "r_4600": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -8.799377272531365e-06
+          },
+          "r_4644": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4645": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4646": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4647": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4648": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4658": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": -1.5734886450724282e-15
+          },
+          "r_4659": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4667": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4668": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4676": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4677": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4689": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4692": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4695": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4699": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4708": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4710": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4727": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4729": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4731": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4733": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4735": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4737": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4739": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4741": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4743": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "r_4780": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "Ex_isopentenol_e": {
+            "lower_bound": -2.09,
+            "upper_bound": 1000.0,
+            "flux": -2.0899999999999985
+          }
+        },
+        "knocked_out_genes": [
+          "YML126C"
+        ],
+        "added_reactions": [
+          "Ex_isopentenol_e",
+          "Ex_isopentenol_e_t",
+          "PisopentenolK",
+          "isopentenolK"
+        ]
+      },
+      "source_model": {
+        "path": "data/Saccharomyces_cerevisiae/yeast-GEM.mat",
+        "sha256": "9f985af321f9ef5e8c6041de3def9e0e95efbed7aff90c81490578f451ace524",
+        "variable_name": "model"
+      },
+      "preparation_script": {
+        "path": "step1_prepare_carbon_tracing_inputs.py",
+        "sha256": "bc4f95ea2c2084e3f3a62308142a646362953ab70d720e09824f160d52d89f97"
+      }
+    },
+    "Escherichia_coli_non_IUPD": {
+      "input_file": "results/Escherichia_coli_non_IUPD_1_pFBA_nonzero_reactions.xlsx",
+      "carbon_sources": [
+        "D-glucose[e]"
+      ],
+      "input_sha256": "6499d01d406571ef20825ed968a1cd3eabce20ba913ed78e1b2396bfb93ee72a",
+      "preparation": {
+        "model_id": "iML1515",
+        "solver": "optlang.glpk_interface",
+        "objective_direction": "max",
+        "objective_reactions": {
+          "SQS": 1.0
+        },
+        "objective_value": 1.910554224695614,
+        "total_absolute_flux": 1074.349567803384,
+        "nonzero_tolerance": 1e-08,
+        "carbon_supply_mode": "simultaneous",
+        "source_uptake": {
+          "D-glucose[e]": {
+            "metabolite_ids": [
+              "glc__D_e"
+            ],
+            "exchange_imports": {
+              "EX_glc__D_e": 20.0
+            },
+            "net_import": 20.0,
+            "present_in_nonzero_network": true
+          }
+        },
+        "exchange_conditions": {
+          "EX_pi_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.4229783875098304
+          },
+          "EX_co2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 44.68501989561892
+          },
+          "EX_met__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_metsox_S__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acgam_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cellb_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_crn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_hxan_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ile__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_chol_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fe3_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_lac__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_leu__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glcn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_no3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_h_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 4.029100164022016
+          },
+          "EX_orn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gln__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pro__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glyc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_man_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ade_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mn2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0003030025375845237
+          },
+          "EX_4abut_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ac_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_akg_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ala__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_arg__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_asp__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pyr_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_succ_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_thymd_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_rib__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tyr__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cytd_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dcyt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fum_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_sbt__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glu__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gua_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_btn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ptrc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_spmd_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_thym_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_xtsn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fe2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.007042726130455911
+          },
+          "EX_glc__D_e": {
+            "lower_bound": -20.0,
+            "upper_bound": 1000.0,
+            "flux": -20.0
+          },
+          "EX_alltn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ura_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_val__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_xan_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dgsn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_arab__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fru_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gal_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_xyl__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_duri_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_for_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gly_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_h2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_lys__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ser__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_thm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_trp__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_din_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fmn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gthox_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tmao_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acald_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_melib_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_sucr_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tre_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_zn2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0001495280250598011
+          },
+          "EX_hdcea_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_lac__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ttdcea_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_h2s_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gthrd_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_26dap__M_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acnam_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_amp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dha_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fuc__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_met__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tartr__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_taur_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_maltpt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glyald_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glcur_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_nmn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_urea_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_f6p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_rmn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ttdca_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glyclt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g6p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_2ddglcn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mmet_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_galct__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_idon__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_indole_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3hcinnm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acac_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acmana_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_galur_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_adn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ins_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mg2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0038039754175770517
+          },
+          "EX_glyc3p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_but_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_lcts_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ocdca_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cbl1_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_nac_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dad_2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ser__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gam6p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_15dap_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ocdcea_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cynt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_galctn__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glyb_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ca2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.002282385250546231
+          },
+          "EX_so3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ascb__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ala_B_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_agm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_minohp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ppt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_hxa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_lyx__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acmum_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dca_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_all__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_octa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gbbtn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_xylu__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gdp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gtp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tma_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fruur_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_malttr_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cbi_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_arbtn_fe3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cpgn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ch4_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_adocbl_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ppa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ni2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.00014163505012995827
+          },
+          "EX_no_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fad_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_meoh_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 8.769972144269861e-07
+          },
+          "EX_fe3dcit_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fe3hox_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fecrm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_feenter_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_feoxam_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3amp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3gmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3ump_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cu2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0003108955125143665
+          },
+          "EX_glyc__R_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_eca4colipa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mal__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_sel_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_hg2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cobalt2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -1.0962465180337327e-05
+          },
+          "EX_pheme_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mso3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_23camp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_23cgmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_23cump_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_sulfac_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_butso3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ethso3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tym_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_imp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fe3hox_un_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_23dappa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cd2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_enter_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fecrm_un_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cgly_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_chtbs_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_h2o2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ump_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pydam_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_frulys_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_enlipa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": -5.632370932237e-17
+          },
+          "EX_hacolipa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_etha_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_hdca_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glcr_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_h2o_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 65.81732678695687
+          },
+          "EX_ala__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mnl_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_malt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pnto__R_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_asn__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cit_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mal__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_no2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gam_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_inost_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mobd_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -3.0694902504944512e-06
+          },
+          "EX_so4_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.11042271926850081
+          },
+          "EX_phe__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_thr__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_uri_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_nh4_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -4.735747685524278
+          },
+          "EX_ddca_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_r5p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glyc2p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_halipa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_malthx_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_csn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_etoh_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g3pe_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pacald_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_his__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_k_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.08559185863782333
+          },
+          "EX_na1_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dmso_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_12ppd__S_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pppn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acgam1p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_galt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glcur1p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_thrp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fald_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pydxn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acgal_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_so2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dms_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acgal1p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cyan_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tyrp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_uacgam_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_udpacgal_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_udpg_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_udpgal_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_udpglcur_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_14glucan_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pser__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_xmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_damp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dimp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_isetac_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_aso3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tcynt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fe3dhbzs_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_feoxam_un_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g3pc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g3pg_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g3pi_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g3ps_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_peamn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_34dhpac_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cys__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gsn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_orot_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_manglyc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_metsox_R__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cl_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0022823852505462314
+          },
+          "EX_dgmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_4hoxpacd_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3hpppn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_man6p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tsul_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_n2o_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_maltttr_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_alaala_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dtmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_lipoate_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pydx_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g1p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_o2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -19.867327069908814
+          },
+          "EX_progly_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gal_bD_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dump_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_12ppd__R_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_o2s_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gal1p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dcmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_23ccmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3cmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_urate_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_skm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cpgn_un_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ag_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cys__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acser_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cu_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_arbtn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dopa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tartr__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_galctn__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_hom__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tungs_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_crn__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_LalaDgluMdapDala_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_5dglcn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_LalaDgluMdap_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_psclys_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_anhgm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ppal_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_slnt_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_LalaDglu_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_5mtr_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_LalaLglu_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ttrcyc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mincyc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_arbt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dxylnt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mththf_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_doxrbcn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dhps_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cs1_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fusa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mepn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_novbcn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_2dglc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_sq_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_4abzglu_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_rfamp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_metglcur_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_quin_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3hpp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          }
+        },
+        "knocked_out_genes": [],
+        "added_reactions": [
+          "DM_squalene",
+          "SQS"
+        ]
+      },
+      "source_model": {
+        "path": "data/Escherichia_coli/iML1515.mat",
+        "sha256": "223db0b1ed69a7cc782f2a3093c1f48911a3c8bbd5bdf4bcdb13185cab5fdaa0",
+        "variable_name": "iML1515",
+        "source_record": {
+          "path": "data/Escherichia_coli/source.json",
+          "sha256": "2f41d8e7f29ffb1dda7f5090a8c15ab82582ecda86300a1c1c201679bcdbea50"
+        }
+      },
+      "preparation_script": {
+        "path": "step1_prepare_carbon_tracing_inputs.py",
+        "sha256": "bc4f95ea2c2084e3f3a62308142a646362953ab70d720e09824f160d52d89f97"
+      }
+    },
+    "Escherichia_coli_IUPD": {
+      "input_file": "results/Escherichia_coli_IUPD_1_pFBA_nonzero_reactions.xlsx",
+      "carbon_sources": [
+        "D-glucose[e]",
+        "isoprenol[e]"
+      ],
+      "input_sha256": "8df2f0548f76ab1a9406840f0f4433c973bd4bfe6ed29a9852d4cf543afd5d27",
+      "preparation": {
+        "model_id": "iML1515",
+        "solver": "optlang.glpk_interface",
+        "objective_direction": "max",
+        "objective_reactions": {
+          "SQS": 1.0
+        },
+        "objective_value": 3.4831587378045596,
+        "total_absolute_flux": 814.4426043336721,
+        "nonzero_tolerance": 1e-08,
+        "carbon_supply_mode": "simultaneous",
+        "source_uptake": {
+          "D-glucose[e]": {
+            "metabolite_ids": [
+              "glc__D_e"
+            ],
+            "exchange_imports": {
+              "EX_glc__D_e": 10.0
+            },
+            "net_import": 10.0,
+            "present_in_nonzero_network": true
+          },
+          "isoprenol[e]": {
+            "metabolite_ids": [
+              "isoprenol[e]"
+            ],
+            "exchange_imports": {
+              "Ex_isopentenol_e": 20.9
+            },
+            "net_import": 20.9,
+            "present_in_nonzero_network": true
+          }
+        },
+        "exchange_conditions": {
+          "EX_pi_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.42297838750977684
+          },
+          "EX_co2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 19.526962829473927
+          },
+          "EX_met__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_metsox_S__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acgam_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cellb_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_crn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_hxan_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ile__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_chol_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fe3_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0034237971251229486
+          },
+          "EX_lac__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_leu__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glcn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_no3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_h_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -5.626977383872901
+          },
+          "EX_orn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gln__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pro__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glyc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_man_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ade_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mn2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0003030025375845237
+          },
+          "EX_4abut_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ac_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 11.239423017896671
+          },
+          "EX_akg_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ala__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_arg__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_asp__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pyr_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_succ_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_thymd_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_rib__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tyr__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cytd_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dcyt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fum_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_sbt__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glu__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gua_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_btn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ptrc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_spmd_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_thym_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_xtsn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fe2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.003618929005332962
+          },
+          "EX_glc__D_e": {
+            "lower_bound": -10.0,
+            "upper_bound": 1000.0,
+            "flux": -10.0
+          },
+          "EX_alltn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ura_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_val__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_xan_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dgsn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_arab__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fru_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gal_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_xyl__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_duri_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_for_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0010756370834947586
+          },
+          "EX_gly_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_h2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_lys__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ser__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_thm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_trp__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_din_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fmn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gthox_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tmao_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acald_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_melib_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_sucr_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tre_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_zn2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0001495280250598011
+          },
+          "EX_hdcea_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_lac__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ttdcea_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_h2s_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gthrd_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_26dap__M_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acnam_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_amp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dha_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fuc__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_met__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tartr__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_taur_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_maltpt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glyald_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glcur_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_nmn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_urea_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_f6p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_rmn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ttdca_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glyclt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g6p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_2ddglcn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mmet_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_galct__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_idon__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_indole_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3hcinnm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acac_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acmana_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_galur_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_adn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ins_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mg2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0038039754175770517
+          },
+          "EX_glyc3p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_but_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_lcts_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ocdca_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cbl1_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_nac_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dad_2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ser__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gam6p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_15dap_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ocdcea_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cynt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_galctn__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glyb_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ca2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.002282385250546231
+          },
+          "EX_so3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ascb__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ala_B_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_agm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_minohp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ppt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_hxa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_lyx__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acmum_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dca_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_all__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_octa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gbbtn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_xylu__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gdp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gtp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tma_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fruur_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_malttr_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cbi_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_arbtn_fe3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cpgn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ch4_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_adocbl_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ppa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ni2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.00014163505012995827
+          },
+          "EX_no_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fad_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_meoh_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 8.769972144269861e-07
+          },
+          "EX_fe3dcit_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fe3hox_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fecrm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_feenter_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_feoxam_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3amp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3gmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3ump_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cu2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0003108955125143665
+          },
+          "EX_glyc__R_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_eca4colipa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mal__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_sel_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_hg2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cobalt2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -1.0962465180337327e-05
+          },
+          "EX_pheme_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mso3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_23camp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_23cgmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_23cump_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_sulfac_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_butso3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ethso3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tym_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_imp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fe3hox_un_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_23dappa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cd2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_enter_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fecrm_un_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cgly_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_chtbs_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_h2o2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ump_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pydam_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_frulys_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_enlipa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_hacolipa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_etha_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_hdca_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glcr_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_h2o_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 48.52058038779367
+          },
+          "EX_ala__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mnl_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_malt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pnto__R_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_asn__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cit_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mal__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_no2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gam_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_inost_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mobd_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -3.0694902504944512e-06
+          },
+          "EX_so4_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.11042271926850192
+          },
+          "EX_phe__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_thr__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_uri_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_nh4_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -4.735747685524156
+          },
+          "EX_ddca_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_r5p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glyc2p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_halipa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_malthx_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_csn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_etoh_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g3pe_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pacald_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_his__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_k_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.08559185863782333
+          },
+          "EX_na1_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dmso_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_12ppd__S_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pppn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acgam1p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_galt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_glcur1p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_thrp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fald_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pydxn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acgal_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_so2_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dms_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acgal1p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cyan_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tyrp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_uacgam_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_udpacgal_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_udpg_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_udpgal_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_udpglcur_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_14glucan_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pser__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_xmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_damp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dimp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_isetac_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_aso3_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tcynt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fe3dhbzs_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_feoxam_un_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g3pc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g3pg_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g3pi_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g3ps_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_peamn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_34dhpac_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cys__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gsn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_orot_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_manglyc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_metsox_R__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cl_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -0.0022823852505462314
+          },
+          "EX_dgmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_4hoxpacd_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3hpppn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_man6p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tsul_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_n2o_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_maltttr_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_alaala_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dtmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_lipoate_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_pydx_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_g1p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_o2_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": -16.851395459162358
+          },
+          "EX_progly_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gal_bD_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dump_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_12ppd__R_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_o2s_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_gal1p_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dcmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_23ccmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3cmp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_urate_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_skm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cpgn_un_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ag_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cys__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_acser_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cu_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_arbtn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dopa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tartr__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_galctn__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_hom__L_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_tungs_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_crn__D_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_LalaDgluMdapDala_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_5dglcn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_LalaDgluMdap_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_psclys_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_anhgm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ppal_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_slnt_e": {
+            "lower_bound": -1000.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_LalaDglu_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_5mtr_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_LalaLglu_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_ttrcyc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mincyc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_arbt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dxylnt_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mththf_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_doxrbcn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_dhps_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cs1_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_fusa_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_mepn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_cm_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_novbcn_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_2dglc_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_sq_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_4abzglu_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_rfamp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_metglcur_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_quin_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "EX_3hpp_e": {
+            "lower_bound": 0.0,
+            "upper_bound": 1000.0,
+            "flux": 0.0
+          },
+          "Ex_isopentenol_e": {
+            "lower_bound": -20.9,
+            "upper_bound": 1000.0,
+            "flux": -20.9
+          }
+        },
+        "knocked_out_genes": [
+          "b2515"
+        ],
+        "added_reactions": [
+          "DM_squalene",
+          "Ex_isopentenol_e",
+          "Ex_isopentenol_e_t",
+          "PisopentenolK",
+          "SQS",
+          "isopentenolK"
+        ]
+      },
+      "source_model": {
+        "path": "data/Escherichia_coli/iML1515.mat",
+        "sha256": "223db0b1ed69a7cc782f2a3093c1f48911a3c8bbd5bdf4bcdb13185cab5fdaa0",
+        "variable_name": "iML1515",
+        "source_record": {
+          "path": "data/Escherichia_coli/source.json",
+          "sha256": "2f41d8e7f29ffb1dda7f5090a8c15ab82582ecda86300a1c1c201679bcdbea50"
+        }
+      },
+      "preparation_script": {
+        "path": "step1_prepare_carbon_tracing_inputs.py",
+        "sha256": "bc4f95ea2c2084e3f3a62308142a646362953ab70d720e09824f160d52d89f97"
+      }
+    }
+  },
+  "output_dir": "results"
+}

@@ -19,5 +19,20 @@ Adapters call public interfaces without copying mapper implementations.
 The environment files identify additional dependencies, whose distributions
 supply their own license notices. Our MIT license does not relicense them.
 
-The example is a synthetic test network. Original non-IUPD/IUPD study inputs and large
-research outputs are not published in this code release.
+The example is a synthetic test network. Selected non-IUPD/IUPD computed inputs and results are published in results/.
+They are derived analysis artifacts, not experimental fermentation measurements.
+Original model files and full evidence/database caches are not redistributed.
+See results/README.md for provenance and limitations.
+
+
+The E. coli reference uses [BiGG iML1515](https://bigg.ucsd.edu/models/iML1515).
+Retrieve original files from BiGG and retain their applicable upstream notices.
+Model downloads are not relicensed by this repository. Derived workbooks contain
+model identifiers, annotations and flux subsets; cite their original models as well
+as this workflow. No new blanket license is asserted over third-party annotations.
+
+Official upstream notices are retained in
+[Yeast9 LICENSE](docs/upstream-notices/Yeast9-LICENSE.md) and
+[BiGG license page](docs/upstream-notices/BiGG-license.html).
+BiGG permits educational, research and nonprofit distribution subject to its notices;
+commercial use requires upstream permission. These terms are not replaced by MIT.

@@ -7,8 +7,28 @@ __pycache__/
 data/*
 !data/manual_smiles.csv
 !data/manual_atom_mappings.csv
-results/
+!data/ai_smiles.csv
+!data/ai_atom_mappings.csv
+!data/analysis_plan.json
+# Selected public workbooks; runtime directories remain local.
+results/*
+!results/README.md
+!results/manifest.json
+!results/*_1_pFBA_nonzero_reactions.xlsx
+!results/*_2_atom_mapping.xlsx
+!results/*_2_atom_mapping_AIGenerated.xlsx
+!results/*_3_carbon_flow.xlsx
+!results/*_3_carbon_flow_AIGenerated.xlsx
+!results/Ai_reports/
+results/Ai_reports/*
+!results/Ai_reports/*.md
 analyses/**/analysis_plan.json
 *.tmp.xlsx
 ~$*
 *.log
+
+# Local execution artifacts; published results are explicitly selected.
+.cache/
+
+# Deterministic integration-script outputs.
+scripts/results/

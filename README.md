@@ -19,6 +19,12 @@ step3_carbon_flow.py
 
 ## 1. Install Python environments
 
+Want an AI assistant to install it? Copy the self-contained instruction in
+[INSTALL.md](INSTALL.md#ask-an-ai-to-install). Installation does not run the study.
+Existing computed workbooks are available in the [results index](results/README.md);
+no installation is needed to open them in Excel or LibreOffice.
+
+
 In Linux/WSL x86_64, install [Miniforge](https://github.com/conda-forge/miniforge)
 and Git, then run:
 
@@ -52,7 +58,8 @@ automatically reads supported native structures and scans that folder for matchi
 annotations. Companion filenames need not match the computational model.
 
 MAT is an upstream model **data format**, read directly by COBRApy and SciPy.
-Model files, large datasets and environments are not bundled.
+Original model files, full mapper datasets and environments are not bundled.
+Selected computed workbooks and their analysis plan are published.
 
 ## 3. Configure and run step 1
 

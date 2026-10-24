@@ -1,0 +1,273 @@
+{
+  "description": "Computed artifacts; original current run report unavailable at publication",
+  "files": [
+    {
+      "path": "results/Escherichia_coli_IUPD_1_pFBA_nonzero_reactions.xlsx",
+      "bytes": 46588,
+      "sha256": "8df2f0548f76ab1a9406840f0f4433c973bd4bfe6ed29a9852d4cf543afd5d27",
+      "stage": 1,
+      "mapping_version": "Original",
+      "sheets": [
+        "Nonzero",
+        "Metabolites"
+      ]
+    },
+    {
+      "path": "results/Escherichia_coli_IUPD_2_atom_mapping.xlsx",
+      "bytes": 597303,
+      "sha256": "d9f0640a90a61ad1fa564ec914d557e544e07445d12f092377148d582a7d183f",
+      "stage": 2,
+      "mapping_version": "Original",
+      "sheets": [
+        "Mapping_Selection",
+        "Final_Mapping",
+        "Nonzero",
+        "Metabolites",
+        "LocalMapper",
+        "RXNMapper",
+        "EnzymeMap",
+        "Mapping_Info"
+      ]
+    },
+    {
+      "path": "results/Escherichia_coli_IUPD_2_atom_mapping_AIGenerated.xlsx",
+      "bytes": 586931,
+      "sha256": "9d6551424cad3c3f5ca6509e9f4cd53c97c5e53d674db2919d36b13fa91fadad",
+      "stage": 2,
+      "mapping_version": "AI-reviewed",
+      "sheets": [
+        "Mapping_Selection",
+        "Final_Mapping",
+        "Nonzero",
+        "Metabolites",
+        "LocalMapper",
+        "RXNMapper",
+        "EnzymeMap",
+        "Mapping_Info"
+      ]
+    },
+    {
+      "path": "results/Escherichia_coli_IUPD_3_carbon_flow.xlsx",
+      "bytes": 33099,
+      "sha256": "160354b0915ca4fd1a366d0217a6915771064c5dfe6b6da84fbd6a4b9bae20f3",
+      "stage": 3,
+      "mapping_version": "Original",
+      "sheets": [
+        "EMU_Metabolites",
+        "EMU_BoundaryInputs"
+      ]
+    },
+    {
+      "path": "results/Escherichia_coli_IUPD_3_carbon_flow_AIGenerated.xlsx",
+      "bytes": 32783,
+      "sha256": "002fce2702863ab8970c472a1386bf2d5d50e342db659baf1274c93d95b3f102",
+      "stage": 3,
+      "mapping_version": "AI-reviewed",
+      "sheets": [
+        "EMU_Metabolites",
+        "EMU_BoundaryInputs"
+      ]
+    },
+    {
+      "path": "results/Escherichia_coli_non_IUPD_1_pFBA_nonzero_reactions.xlsx",
+      "bytes": 46818,
+      "sha256": "6499d01d406571ef20825ed968a1cd3eabce20ba913ed78e1b2396bfb93ee72a",
+      "stage": 1,
+      "mapping_version": "Original",
+      "sheets": [
+        "Nonzero",
+        "Metabolites"
+      ]
+    },
+    {
+      "path": "results/Escherichia_coli_non_IUPD_2_atom_mapping.xlsx",
+      "bytes": 600295,
+      "sha256": "b45a504caeb12d47cb54afb61ee40f8c139a4ebc1ac4b6e53430cc5989226d7c",
+      "stage": 2,
+      "mapping_version": "Original",
+      "sheets": [
+        "Mapping_Selection",
+        "Final_Mapping",
+        "Nonzero",
+        "Metabolites",
+        "LocalMapper",
+        "RXNMapper",
+        "EnzymeMap",
+        "Mapping_Info"
+      ]
+    },
+    {
+      "path": "results/Escherichia_coli_non_IUPD_2_atom_mapping_AIGenerated.xlsx",
+      "bytes": 590621,
+      "sha256": "2d100a8e069291b9fc838bbd0ec2f156fa4e2752db4de72bb0e788fd08d12165",
+      "stage": 2,
+      "mapping_version": "AI-reviewed",
+      "sheets": [
+        "Mapping_Selection",
+        "Final_Mapping",
+        "Nonzero",
+        "Metabolites",
+        "LocalMapper",
+        "RXNMapper",
+        "EnzymeMap",
+        "Mapping_Info"
+      ]
+    },
+    {
+      "path": "results/Escherichia_coli_non_IUPD_3_carbon_flow.xlsx",
+      "bytes": 31781,
+      "sha256": "f4a62357745f7b6aaf8c85eb50a16c6707cdd9d84cfb3e45bf17600eabea7a13",
+      "stage": 3,
+      "mapping_version": "Original",
+      "sheets": [
+        "EMU_Metabolites",
+        "EMU_BoundaryInputs"
+      ]
+    },
+    {
+      "path": "results/Escherichia_coli_non_IUPD_3_carbon_flow_AIGenerated.xlsx",
+      "bytes": 31553,
+      "sha256": "0491031a79643b4c738b9964c3b70bd061ffb41c75811cd38c255930d4593995",
+      "stage": 3,
+      "mapping_version": "AI-reviewed",
+      "sheets": [
+        "EMU_Metabolites",
+        "EMU_BoundaryInputs"
+      ]
+    },
+    {
+      "path": "results/Saccharomyces_cerevisiae_IUPD_1_pFBA_nonzero_reactions.xlsx",
+      "bytes": 47124,
+      "sha256": "41d6ffff3da74bbdadbd05254a5e5dbae6eaee177e37bbfc8a55ded994863327",
+      "stage": 1,
+      "mapping_version": "Original",
+      "sheets": [
+        "Nonzero",
+        "Metabolites"
+      ]
+    },
+    {
+      "path": "results/Saccharomyces_cerevisiae_IUPD_2_atom_mapping.xlsx",
+      "bytes": 537257,
+      "sha256": "0e3d8ed0e70d90ec2a6ecbe9033a59bdf201db7352f621943e85f6a2d02802d7",
+      "stage": 2,
+      "mapping_version": "Original",
+      "sheets": [
+        "Mapping_Selection",
+        "Final_Mapping",
+        "Nonzero",
+        "Metabolites",
+        "LocalMapper",
+        "RXNMapper",
+        "EnzymeMap",
+        "Mapping_Info"
+      ]
+    },
+    {
+      "path": "results/Saccharomyces_cerevisiae_IUPD_2_atom_mapping_AIGenerated.xlsx",
+      "bytes": 539997,
+      "sha256": "d845643e9c37fa417db6758bde4f4d4d383d875c3ff60e92559835e485308a28",
+      "stage": 2,
+      "mapping_version": "AI-reviewed",
+      "sheets": [
+        "Mapping_Selection",
+        "Final_Mapping",
+        "Nonzero",
+        "Metabolites",
+        "LocalMapper",
+        "RXNMapper",
+        "EnzymeMap",
+        "Mapping_Info"
+      ]
+    },
+    {
+      "path": "results/Saccharomyces_cerevisiae_IUPD_3_carbon_flow.xlsx",
+      "bytes": 33545,
+      "sha256": "f023b1e6e09279cbfc2c2599be894f7dd26d9dc2598e1e99c8283d36fb7ebe85",
+      "stage": 3,
+      "mapping_version": "Original",
+      "sheets": [
+        "EMU_Metabolites",
+        "EMU_BoundaryInputs"
+      ]
+    },
+    {
+      "path": "results/Saccharomyces_cerevisiae_IUPD_3_carbon_flow_AIGenerated.xlsx",
+      "bytes": 34382,
+      "sha256": "36d75ddba16d51111182a3bf283884ed5e018b031ea4147d9f20e35d2505c151",
+      "stage": 3,
+      "mapping_version": "AI-reviewed",
+      "sheets": [
+        "EMU_Metabolites",
+        "EMU_BoundaryInputs"
+      ]
+    },
+    {
+      "path": "results/Saccharomyces_cerevisiae_non_IUPD_1_pFBA_nonzero_reactions.xlsx",
+      "bytes": 48072,
+      "sha256": "dd51715e65f96a1efc586eb7f67a80ad9b9c4fff72fafdac7a01bd41c4ecac50",
+      "stage": 1,
+      "mapping_version": "Original",
+      "sheets": [
+        "Nonzero",
+        "Metabolites"
+      ]
+    },
+    {
+      "path": "results/Saccharomyces_cerevisiae_non_IUPD_2_atom_mapping.xlsx",
+      "bytes": 555047,
+      "sha256": "8264b94da76aa1f80cbd73023b3fefe449abecdbce43cb1fe0a2ebde84476dac",
+      "stage": 2,
+      "mapping_version": "Original",
+      "sheets": [
+        "Mapping_Selection",
+        "Final_Mapping",
+        "Nonzero",
+        "Metabolites",
+        "LocalMapper",
+        "RXNMapper",
+        "EnzymeMap",
+        "Mapping_Info"
+      ]
+    },
+    {
+      "path": "results/Saccharomyces_cerevisiae_non_IUPD_2_atom_mapping_AIGenerated.xlsx",
+      "bytes": 558831,
+      "sha256": "1e121c5df7cdca34ccaf09144f7677f5e1367c6d345bbf8382d1fc06f4a32fa0",
+      "stage": 2,
+      "mapping_version": "AI-reviewed",
+      "sheets": [
+        "Mapping_Selection",
+        "Final_Mapping",
+        "Nonzero",
+        "Metabolites",
+        "LocalMapper",
+        "RXNMapper",
+        "EnzymeMap",
+        "Mapping_Info"
+      ]
+    },
+    {
+      "path": "results/Saccharomyces_cerevisiae_non_IUPD_3_carbon_flow.xlsx",
+      "bytes": 31838,
+      "sha256": "06feb66b6642d19830c84fd575651bdb6a371a036f406e98577e251823aa7819",
+      "stage": 3,
+      "mapping_version": "Original",
+      "sheets": [
+        "EMU_Metabolites",
+        "EMU_BoundaryInputs"
+      ]
+    },
+    {
+      "path": "results/Saccharomyces_cerevisiae_non_IUPD_3_carbon_flow_AIGenerated.xlsx",
+      "bytes": 32392,
+      "sha256": "f51cd870e8bb8b72121794724836b1f6950469c669ffbce5c4dce898dceff222",
+      "stage": 3,
+      "mapping_version": "AI-reviewed",
+      "sheets": [
+        "EMU_Metabolites",
+        "EMU_BoundaryInputs"
+      ]
+    }
+  ]
+}
