@@ -25,6 +25,15 @@ If you only want to view the published Excel files, open the
 
 ### Option A: Install with Codex
 
+| Your computer | Where Codex and the project run |
+|---|---|
+| **Windows** | Use Codex on Windows with access to a **WSL Ubuntu terminal**. Install and run the project inside WSL Ubuntu; Codex itself does not need to be installed inside Ubuntu. |
+| **Linux** | Use Codex with access to the local Linux terminal. Install and run the project directly on Linux; WSL is not needed. |
+
+The project requires Linux x86_64. On Windows, set up a working WSL Ubuntu
+environment first. The project setup script installs project dependencies;
+it does **not** install WSL or Ubuntu.
+
 Open Codex with access to your local files and terminal. Copy the instruction in
 [Install with Codex](INSTALL.md#option-a-install-with-codex) into a new Codex task.
 Codex will check your computer, configure the required environments and run small
