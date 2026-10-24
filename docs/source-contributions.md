@@ -8,25 +8,18 @@ the selected positional atom mappings.
 
 ## Configuration and output
 
-At the top of step3_carbon_flow.py, ANALYSIS_METHODS selects Enumeration, EMU or
-both. EMU_ALLOW_INORGANIC_CARBON_RECYCLING (default True) and EMU_TOLERANCE
-(default 1e-8) are separate from Enumeration rounds and recycling settings.
-Shared memory/concurrency and workbook-size safeguards apply to each output.
+Step 3 now runs this solver directly. EMU_ALLOW_INORGANIC_CARBON_RECYCLING
+(default True) and EMU_TOLERANCE (1e-8) remain in step3_carbon_flow.py.
+There is no enumeration method selector or round configuration.
+Shared model-level scheduling, memory/disk and workbook-size safeguards remain.
 
-Both methods read the same Final_Mapping version. Each model/version creates one
-<model>_3_carbon_flow.xlsx or <model>_3_carbon_flow_AIGenerated.xlsx:
-
-- Summary and Carbon_Flow belong to Enumeration. By default only R1-R3 detail rows are
-  exported by default; Summary continues across all completed rounds.
-- EMU_Metabolites contains carbon counts, inflow/outflow and source/Unknown
-  fractions. FluxResidual and Status remain internal validation fields.
-  All workbooks omit StructureType, KnownCarbonCount and ContributionScope;
-  the solver retains these fields internally.
-- EMU_BoundaryInputs records actual carbon imports and their origin categories.
-
-There is no EMU Summary, atom-position/diagnostic sheet, or separate method file.
-carbon_flow_run.json records EMU completion, assumptions and numerical checks.
-No separate summary-collection workbook is generated.
+Each ordinary or AI-reviewed mapping produces one <model>_3_carbon_flow.xlsx or
+<model>_3_carbon_flow_AIGenerated.xlsx. Each contains EMU_Metabolites (carbon
+counts, inflow/outflow, source/Unknown fractions) and EMU_BoundaryInputs.
+FluxResidual, Status, StructureType, KnownCarbonCount and ContributionScope
+remain internal, not exported. There is no Summary or summary collection.
+carbon_flow_run.json records solving, export completion, assumptions and numerical
+checks. Old combined/Enumeration workbooks remain historical and unchanged.
 
 ## Partial mappings and Unknown
 
@@ -35,8 +28,7 @@ fluxes. Saved CarbonRules pairs use abs(Flux) * TransferCoefficient for each
 explicit carbon pair, including decimal amounts such as 55.3. Sparse mapper
 carbon maps contribute only their shared positive map IDs. Only the remaining
 unmapped product-position inflow is Unknown. Over-assigned donor or product
-positions fail validation. Qualitative unit subreactions from Enumeration must
-never replace the original stoichiometry in this solver.
+positions fail validation. Reduced mapped views must never replace the original stoichiometry in this solver.
 
 Molecular formulas provide carbon counts and input checks, not positional
 correspondences. Missing structures, missing maps, invalid metabolite balances,
@@ -64,6 +56,6 @@ the single-carbon origin-balance scope.
 .envs/localmapper/bin/python -m unittest scripts.test_source_contributions scripts.test_step3_methods
 ```
 
-Combined output is published atomically with each complete Enumeration round.
-If the first round is rejected, previous output stays unchanged; emu_solved may
-be true while emu_completed is false. Select EMU alone for independent delivery.
+Output is atomically saved only after a complete solve and export. A rejected
+export keeps previous output unchanged; emu_solved can be true while
+emu_completed is false. The process returns a nonzero status on such a failure.

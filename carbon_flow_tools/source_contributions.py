@@ -11,10 +11,23 @@ from scipy.sparse import coo_matrix, diags
 from scipy.sparse.linalg import MatrixRankWarning, spsolve
 
 from .atom_helpers import mapped_components
-from .carbon_trace import inorganic_carbon_names
 from .consensus import mapping_signatures
 from .carbon_mapping_rules import structure_kind, STRUCTURE_LIMITS, carbon_structure_issues
 from .reactions import clean, get_smiles, parse_side, split_equation
+
+def inorganic_carbon_names(smiles):
+    """Recognize CO2 and carbonate protonation forms independently of model IDs."""
+    structures = {"O=C=O", "O=C([O-])O", "O=C(O)O", "O=C([O-])[O-]"}
+    names = set()
+    for name, structure in smiles.items():
+        molecule = Chem.MolFromSmiles(structure) if structure else None
+        if molecule is not None:
+            for atom in molecule.GetAtoms():
+                atom.SetAtomMapNum(0)
+            if Chem.MolToSmiles(molecule) in structures:
+                names.add(name)
+    return names
+
 
 TOL = 1e-8
 UNKNOWN = "Unknown"

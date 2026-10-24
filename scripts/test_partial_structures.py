@@ -16,7 +16,6 @@ from openpyxl import load_workbook
 from carbon_flow_tools.carbon_mapping_rules import (
     _REFERENCES, STRUCTURE_LIMITS, apply_rules, apply_manual_mappings, carbon_pairs, carbon_presence,
     carbon_structure_issues, repeat_formula, rule_transfers, structure_kind)
-from carbon_flow_tools.carbon_trace import initialize_sources, prepare_mappings, map_one_reaction, propagate_rounds
 from carbon_flow_tools.consensus import select_mappings, mapping_signatures
 from carbon_flow_tools.pipeline import finish_analysis, load_final_mappings
 from carbon_flow_tools.reactions import prepare_reactions
@@ -167,7 +166,7 @@ class PartialStructureTests(unittest.TestCase):
                 source.to_excel(writer, sheet_name="Nonzero", index=False)
                 metabolites.to_excel(writer, sheet_name="Metabolites", index=False)
             finish_analysis("Test", dict(input_file=path, metabolite_sheet="Metabolites"), metabolites,
-                predictions, [], 1, list(predictions), root, stage="map")
+                predictions, [], list(predictions), root, stage="map")
             output = root / "Test_2_atom_mapping.xlsx"
             loaded, saved, restored = load_final_mappings(output, {})
             self.assertEqual(saved.iloc[0].Equation, source.iloc[0].Equation)
@@ -179,15 +178,6 @@ class PartialStructureTests(unittest.TestCase):
                 final = pd.read_excel(excel, sheet_name="Final_Mapping")
                 self.assertEqual(final.iloc[0].MappingCoverage, "Partial")
                 self.assertTrue(final.iloc[0].ReviewRequired)
-            prepared = prepare_mappings(loaded)
-            donor = next(iter(prepared[0][1][0]))[0].metabolite
-            molecule = Chem.MolFromSmiles(dict(zip(metabolites.MetaboliteName, metabolites.SMILES_Manual))[donor])
-            assignment = tuple((0, atom.GetIdx(), "C"+str(i+1)) for i,atom in enumerate(
-                atom for atom in molecule.GetAtoms() if atom.GetAtomicNum() == 6))
-            _, rows, _ = map_one_reaction(*prepared[0], {donor: {1: assignment}}, 1, {}, 2,
-                dict(zip(metabolites.MetaboliteName, metabolites.SMILES_Manual)))
-            self.assertTrue(rows)
-            self.assertTrue(rows[0]["CarbonLabels"])
             # A false completeness claim is rejected at the step-3 trust boundary.
             wb = load_workbook(output)
             fields = [cell.value for cell in wb["Final_Mapping"][1]]
@@ -264,11 +254,7 @@ class PartialStructureTests(unittest.TestCase):
         self.assertTrue(pd.isna(rows.loc["Polymer[c]", "CarbonCount"]))
         for name, text in [("Partial[c]", "*CCO"), ("Polymer[c]", POLYMER)]:
             with self.assertRaisesRegex(ValueError, "complete, explicit"):
-                initialize_sources([name], {name:text})
-            with self.assertRaisesRegex(ValueError, "complete, explicit"):
                 solve_source_contributions(reactions, metabolites, [name])
-        with self.assertRaisesRegex(ValueError, "complete, explicit"):
-            next(propagate_rounds("Test", reactions, metabolites, 1, ["Polymer[c]"]))
 
 
 if __name__ == "__main__":

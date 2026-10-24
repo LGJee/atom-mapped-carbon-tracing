@@ -1,586 +1,69 @@
-# Validation record
-
-Current behavior (2026-10-23): step 3 no longer generates a separate
-summary-collection workbook. Each model/version retains its own Summary.
-Summary-collection entries below describe historical behavior.
-
-The current reference setup contains four conditions: non-IUPD/IUPD pairs for
-Saccharomyces_cerevisiae and Escherichia_coli. Historical entries below describe
-checks performed before this scope reduction. Their model counts and local
-`data/validation/` artifact paths refer to the archived pre-removal state; they
-are not evidence of a fresh full-network rerun. The original record is preserved
-in the pre-removal Git snapshot and external data backup.
-
-## Current two-species reference scope (2026-10-21)
-
-Step 1 registers four conditions: non-IUPD/IUPD pairs for S. cerevisiae and E. coli.
-Their four model blocks are unchanged from the pre-removal snapshot. Retained
-source models and current Excel workbooks passed hash comparisons. The existing
-plan passes step-2 and step-3 loading checks with four models; Summary collection
-contains eight separate ordinary/AI sheets.
-
-The analysis-plan integration, manual mapping, species-isolation, script-settings,
-model-structure and model-preparation regression modules passed. Preparation tests
-include 14 isolated checks. No full mapper or long-round propagation was rerun.
-Historical mixed-species audit and validation artifacts were archived outside the
-active checkout with explicit user approval, preserving original evidence rather
-than rewriting old reports. The pre-removal Git snapshot retains the source history.
-
-## Exclusive-source counts in the final saved round (2026-10-17)
-
-Step 3 adds `<source>_ExclusiveSourceMetabolites` only to the last saved Summary
-row. It tests the union of all labels recorded for each product in that round,
-not individual ProductionIDs. A product with separate pure-source states from
-different sources is excluded. Counts retain the existing mapped MetaboliteID
-and compartment conventions. Optional `Exclusive_Source_Metabolites` output is
-disabled by default and participates in the same candidate-workbook size checks.
-No atom mapping or propagation rule was changed.
-
-Validation passed: four focused exclusivity tests, including alternative sources
-appearing in later rounds, normal/AI copies, the default-off list, and preservation
-of the previous round's counts/list after rejection; batched-output, output-limit
-and Summary-collection unit tests; script-settings, stage-handoff and scientific
-carbon-tracing regression programs. Existing Summary values remain unchanged.
-
-A retained historical ordinary-mapping example at round 10 gave:
-
-| Model | Glucose-exclusive metabolites | Isoprenol-exclusive metabolites |
-|---|---:|---:|
-| Escherichia_coli_IUPD | 216 | 10 |
-
-All previous comparable Summary fields matched. These counts concern observed
-labels in the saved round; they are not quantitative source contributions or
-proof of complete carbon origin. The check did not rewrite these workbooks or
-rerun mappers/propagation. Local validation inputs/results are recorded under
-`data/validation/exclusive_sources/`. Other full model outputs were not rechecked.
-
-## Carbon-flow filenames without a method suffix (2026-10-17)
-
-Step 3 now writes `<model>_3_carbon_flow.xlsx` and
-`<model>_3_carbon_flow_AIGenerated.xlsx`. Summary collection reads these exact
-suffixes and continues to keep ordinary/AI versions separate. The run report
-records the resulting paths; its method metadata and the propagation algorithm
-remain unchanged. An old method-suffixed file is not collected as a duplicate.
-
-Validation passed: 22 Summary/output/memory unit tests; stage-handoff,
-analysis-plan, script-setting, consensus and parallel-propagation regressions;
-19 AI-review helper tests; and installed/maintained skill metadata validation.
-No real model or mapper computation was rerun for this naming-only change.
-
-## Restored Summary collection (2026-10-17)
-
-Step 3 again rebuilds `carbon_flow_summary.xlsx` in its output directory, with
-one copied Summary table per existing Enumeration workbook, including AI-reviewed
-versions. It reads no flow records, preserves source files, handles long/colliding
-sheet names and uses plain Calibri formatting. Earlier saved files are included;
-`carbon_flow_run.json` alone establishes current-run completion status. A failed
-collection preserves the preceding aggregate, and propagation errors are not
-masked by a collection error. No fitting or aggregate statistics were added.
-
-Validation passed in the existing tracing environment:
-
-- 22 unit tests covering Summary collection, output limits, batched writes and
-  memory protection, including incomplete-round rejection and saved-round copies.
-- Stage-handoff, analysis-plan, parallel-propagation and script-setting regressions.
-  The stage check compares each ordinary/AI Summary copy with its source table.
-- No real mapper or full model propagation was rerun. The current development
-  results directory has step-1 inputs only; a production aggregate will be created
-  when saved step-3 workbooks are available.
-
-## Simplified step-3 analysis (2026-10-16)
-
-Step 3 now runs label-state Enumeration only. The experimental source-contribution
-solver, compatibility entry, method selector, dedicated documentation and tests
-were removed. The pre-removal code snapshot is commit `fefa1f9`; it records the
-unfinished symmetry experiment and its unresolved regression failure.
-Historical result files are preserved, but are not current validated outputs.
-The original/AI mapping inputs, propagation rules, size/memory guards and
-per-workbook Summary remain in use. Summary collection was subsequently restored
-as described below.
-
-
-Removal checks passed in the existing tracing environment:
-
-- 20 focused output-limit, batched-output and memory-guard tests.
-- Seven regression scripts: carbon tracing, stage handoff, analysis plans, script
-  settings, parallel propagation, consensus mapping and structure completion.
-- 19 AI-review helper integration tests; an existing NumPy binary-size warning
-  remains in that environment.
-- Metadata validation for installed and maintained workflow, model-setup and
-  AI-review skills (six folders).
-- All 14 pipeline function bodies match the pre-removal snapshot when docstrings
-  are ignored.
-
-A read-only check used the comparison project's saved Saccharomyces cerevisiae
-WT original and AI-reviewed mappings. Both produced 247 first-round records,
-identical to the historical ordinary first-round baseline. Shared Summary values
-also matched for the ordinary output. There is no independent historical AI
-propagation baseline for this check. Input mapping hashes remained unchanged;
-new outputs were written under /tmp. The development results directory currently
-has no step-2 mapping workbooks, so a full reference-model rerun was not performed.
-No mapper predictions were rerun and no historical result files were deleted.
-
-## Batched carbon-flow output checks (2026-10-16)
-
-The current implementation stages rows in a temporary SQLite database and streams
-candidate XLSX workbooks. It discards an incomplete round when the candidate
-reaches the configured size limit or exceeds one worksheet's data-row limit.
-There is no worksheet pagination. Ordinary and AI-reviewed propagation share this
-implementation.
-
-Validated in Ubuntu_Lab using the existing LocalMapper tracing environment:
-
-- `python -m unittest scripts.test_batched_output scripts.test_output_limits scripts.test_memory_guard`: 21 tests passed.
-- `python -m scripts.test_carbon_tracing`: passed.
-- `python -m scripts.test_stages`: passed, including ordinary/AI files and parallel execution.
-- `python -m scripts.test_analysis_plan`: passed with isolated case plans and fake mapper adapters.
-- Workflow, model-setup and AI-review skill metadata validation passed for installed and maintained copies.
-- `git diff --check`: passed.
-
-Checks compare staged records, ordering, ProductionIDs and convergence with the
-existing in-memory algorithm, including mixed sources and CO2/bicarbonate
-termination. Exact 50,000,000-byte and overshoot decisions use mocked file sizes;
-a real saved XLSX is also tested against a small limit. Size rejection, row
-rejection, memory pressure and simulated disk failure preserve the preceding
-complete output; rejection in the first round reports no output for the run.
-
-These checks did not rerun real mapper predictions or full research analyses.
-The 17 existing three-carbon-source case workbooks match their saved SHA-256
-hashes. Six root carbon-flow workbooks differ from the older migration snapshot,
-but their modification times precede this batching change; they were not rewritten
-by these fixture-only tests. No staging directories remained in results.
-
-The size check occurs at batch/layer/round checkpoints, not after each byte.
-Rebuilding candidate workbooks uses additional disk space and I/O. Accumulated
-label states and indexes still require RAM, so the independent memory guard can
-stop a run. This is not resumable computation and no full-scale performance
-benchmark was run for the new writer.
-
-# Validation of the COBRApy development workflow
-
-This file contains historical validation records. Earlier post-save-size and
-pagination policies are superseded by the batch-checkpoint policy in the
-[current README](../README.md). `scripts/test_batched_output.py` and
-`scripts/test_output_limits.py` exercise the current behavior.
-
-The current step 1 uses COBRApy 0.30.0 with GLPK through swiglpk 5.0.12 on
-Linux/WSL x86_64. It preserves the reference model conditions, six named blocks,
-input schema and version-3 analysis-plan interface. Source MAT files are read
-as arrays by COBRApy/SciPy. No alternative implementation is maintained here.
-
-The environment check solves a real small pFBA problem. Model preparation
-checks optimal status, finite fluxes, positive biological objective, steady-state
-residual below 1e-6 and reaction-bound compliance. The primary production flux
-is read from the selected reaction, not pFBA's total-flux objective value.
-
-`scripts/test_model_preparation.py` exercises model loading, pFBA, medium filtering,
-export/provenance and failure handling. The existing mapping, propagation, source
-numbering, inorganic-carbon endpoint and reviewed-workbook tests remain separate.
-These checks do not certify every biological reconstruction or atom mapping.
-
-Real-model comparison results are recorded below after execution. Matching
-objective values alone does not imply an identical nonzero network: equally
-optimal pFBA representatives may differ. Previous results are comparison data,
-not constraints added to force the new solver's answer.
-
-## Observed checks (2026-10-15)
-
-A fresh isolated preparation environment was installed from its specification;
-the real COBRApy/GLPK smoke test and `pip check` passed. The default
-`python3 step1_prepare_carbon_tracing_inputs.py` command selected that interpreter,
-optimized the then-configured reference models and generated six inputs plus the version-3 plan.
-Seven focused preparation tests and all eight existing deterministic regression
-programs passed. The custom iML1515 growth example also exported in isolation.
-The existing compatible tracing interpreter was used for downstream regressions;
-a clean reinstallation of the three unchanged mapper environments was not run.
-
-The actual reference-model checks verified the non-IUPD/IUPD shared fixed growth, doubled
-non-IUPD glucose bounds, 2.09-fold IUPD isoprenol bounds, nonfunctional knocked-out
-genes and the expected blocked reactions. The unchanged step-2 reader accepted
-all reference inputs with offline structure completion; input hashes were unchanged.
-Shared metabolite names, formulas, charges and available InChI/InChIKey values
-matched the reference exports. Calibri fonts and plain tables were retained.
-
-Reference comparison uses rtol=1e-6 and atol=1e-8 for fixed growth, production
-flux and total absolute flux. All comparisons passed those numerical
-criteria. Reaction sets are **not identical**:
-
-| Model | Reference reactions | COBRApy reactions | Removed / added |
-|---|---:|---:|---:|
-| Saccharomyces_cerevisiae_non_IUPD | 493 | 505 | 32 / 44 |
-| Saccharomyces_cerevisiae_IUPD | 486 | 492 | 23 / 29 |
-| Escherichia_coli_non_IUPD | 434 | 434 | 2 / 2 |
-| Escherichia_coli_IUPD | 436 | 436 | 5 / 5 |
-
-E. coli non-IUPD, for example, uses PYK2/PYK3 in place of NDPK1/NDPK2 while retaining
-the same numerical objectives. The larger yeast differences include alternative
-pathways and small fluxes near the export cutoff. Such differences are consistent
-with alternate optimal representatives and numerical solver behavior; objective
-agreement alone does not certify every position-specific downstream conclusion.
-No constraints were added to force an old reaction set. These development
-exports must not be called an exact reproduction of previous carbon-flow data.
-
-Detailed per-reaction comparisons, input hashes, versions and the environment
-freeze are local runtime records under `data/validation/`, excluded from version
-control. The original reference inputs were read without modification. Source
-model MAT files are data files; their Python reader needs no external runtime.
-
-Full-network mapper predictions and carbon propagation on the newly selected
-networks were not rerun. No model data, environments, credentials or private
-research results were added to tracked files. Validation was on Linux/WSL x86_64;
-native Windows, macOS and ARM installations remain unverified. No changes were
-pushed to GitHub.
-
-## Readability-only step-1 revision (2026-10-15)
-
-The six strain blocks now show COBRApy knockout, reaction stoichiometry, separate
-biomass bounds and `pfba()` calls directly. The pFBA wrapper and nested
-stoichiometry comprehensions were removed; loading, validation and export remain
-shared. The custom-model example follows the same direct pFBA convention.
-
-Before and after this revision, the then-configured reference models were serialized and their
-complete pFBA flux vectors compared using the same preparation environment.
-Model data, inactive genes and every reaction flux were identical (maximum
-absolute flux difference: 0 for each model). These checks compare the two Python
-revisions, not the older reference implementation. All seven preparation tests
-and static checks passed. Existing input exports and the analysis plan were not
-rewritten; full-network mapping and carbon propagation were not rerun.
-
-## Automatic structure discovery (2026-10-15)
-
-Step 1 now records source-model paths, source SHA256 and MAT variable names
-automatically. Step 2 reads supported native structures and compatible same-folder
-JSON/YAML annotations without an analysis-name-to-YAML configuration table.
-The optional E. coli companion setting was removed from step 1; step 2 loads its
-InChIKeys automatically instead. Structure completion does not change pFBA bounds,
-reaction stoichiometry, objectives, or label-propagation rules.
-
-Eight preparation tests and nine discovery tests passed. The discovery checks
-cover native MAT/JSON SMILES, differently named YAML companions, identity matching,
-directory isolation, source metadata records, source hash changes, manual/input
-priority, equivalent SMILES, conflicting structures and identifier-based lookup.
-All eight existing deterministic regression programs also passed, including the
-reference-model plan-to-mapping-to-propagation integration check and step-4 settings.
-
-For the six real reference networks, complete pFBA flux vectors were identical to
-the preceding Python revision (maximum absolute difference 0). Model data were
-identical except that E. coli companion InChIKey enrichment moved to step 2.
-Offline automatic structure selection matched the previous explicit-YAML selection
-for every exported metabolite in all reference networks; E. coli InChIKeys were also
-restored exactly when the old exported identifier column was removed in a test.
-Input Excel bytes were unchanged. The existing generated plan was refreshed with
-source provenance without rewriting its workbooks. Detailed local-only evidence
-is under `data/validation/auto_structure_*`.
-
-No new dependencies, online structure retrieval, real mapper predictions, or
-full-network carbon-flow runs were needed for this revision. Native SBML structure
-notes and arbitrary YAML layouts are not parsed by the automatic annotation reader.
-Unsupported structures can still use the existing database/manual workflow.
-No original test-project files were changed and no changes were published.
-
-## Per-strain carbon-source settings (2026-10-15)
-
-Each step-1 strain block now defines its own ordered `carbon_sources` list and
-exports it together with that model's solution. The separate global source table
-was removed. All nine preparation tests passed, including two independent source
-lists with different introduction orders. The then-configured reference models retained exactly
-the same source lists and complete flux vectors (maximum absolute difference 0).
-No existing input, mapping or carbon-flow workbook was rewritten.
-
-## Uniform model blocks and validation scope (2026-10-15)
-
-The reference strain blocks use the same reading order: model loading, ordered carbon
-sources, culture/model modifications, growth constraints, production pFBA and
-registration for export. Fixed-version enforcement was removed. non-IUPD biomass
-objectives are assigned explicitly instead of requiring a matching source objective.
-
-The generic requirement that a gene knockout must change reaction bounds was
-removed; redundant or already inactive genes can be valid knockouts. COBRApy still
-raises on missing gene/reaction IDs. Maximum-growth solutions are validated before
-use. Duplicate production checks were removed from the model blocks; the existing
-exporter still verifies optimal status, finite fluxes, steady state and bounds
-before creating output.
-
-All ten preparation tests passed, including invalid-solution rejection before any
-output was created. A fresh comparison of the then-configured reference models found identical
-serialized model data, inactive genes, ordered source lists and complete pFBA flux
-vectors (maximum absolute difference 0). Local evidence is in
-`data/validation/uniform_blocks_*`. Existing workbooks and the generated analysis
-plan were not rewritten. Mapping and propagation were not rerun; no changes were
-published.
-
-## non-IUPD terminology (2026-10-15)
-
-The comparison group now uses `non-IUPD` in descriptions and `non_IUPD` in code
-identifiers, analysis names and filenames. The three existing comparison input
-workbooks were renamed without rewriting them; all input SHA256 values remained
-unchanged. Manual structure scopes and the generated analysis plan were updated
-together. Chemical structures, source order and source-model provenance were
-preserved.
-
-Reversing the name substitutions produces the identical parsed step-1 computation.
-All ten preparation tests and eight existing regression programs passed. Offline
-checks on the six actual inputs verified identical selected structures and review
-flags before/after renaming, unchanged source lists, and the expected normal/AI
-filenames. Details are recorded locally in `data/validation/non_iupd_*`.
-Real-model optimization, mapper prediction and full-network propagation were not
-rerun for this naming-only revision. No reference-project files were changed or
-published.
-
-## Runtime memory protection (2026-10-15)
-
-Run the focused safety tests with:
-
-    .envs/localmapper/bin/python -m scripts.test_memory_guard
-
-All seven tests passed: reserve/temporary-allocation checks, throttling and
-unreadable-memory failure, nested cgroup limits, stopping inside combination
-enumeration, unchanged propagation results, preservation of saved round 1 when
-round 2 stops, and guarded Excel writes/step-4 setting inheritance.
-
-Existing carbon-tracing and script-settings regressions passed. The reference-model
-analysis-plan fixture passed with mocked safe-memory readings. The stage/AI-copy
-regression passed with mocked safe-memory readings and serial execution forced;
-the parallel-process path was not rerun while a live analysis occupied about
-33 GiB. A real low-memory reading (about 0.9 GiB free) also stopped a fixture
-before loading a mapping workbook, as intended.
-
-The committed pre-change propagation implementation was compared against this
-revision on a small mixed-source cycle with repeated stoichiometric copies and
-both source introduction orders. All table values, row order, ProductionIDs,
-new-state counts and convergence results matched exactly (10, 11 and 12 rows
-in rounds 1, 2 and 3 for each source order).
-
-These checks used synthetic fixtures, not six full real-model propagation runs.
-No real mapper was rerun, existing research workbooks were not overwritten,
-and the active analysis was not interrupted. No changes were published.
-
-## Strict output limit and Summary collection (2026-10-15, historical)
-
-The strict rollback policy tested in this section was replaced on 2026-10-16
-by the 50 MB post-save stopping policy described in the current README. The
-comparisons below document the earlier implementation and preserved outputs.
-
-Run the focused checks with:
+# Validation record: EMU-only local development version
+
+Validated on 2026-10-24 (Asia/Shanghai), branch codex/major-rework.
+The pre-removal local snapshot is a28ec6c4bc908f2939a7a0509f4dcf16e28b41b7.
+Historical combined-method validation records remain accessible in that Git
+commit; they describe an older interface, not current supported commands.
+This cleanup is local and has not been pushed.
+
+## Scope
+
+Step 3 now directly runs fixed-flux, single-carbon source balances. Enumeration,
+rounds, state catalogs, provenance-row staging and enumeration workers were
+removed. The original/AI workbook naming contract remains. New workbooks have
+only EMU_Metabolites and EMU_BoundaryInputs; existing historical results are not
+rewritten or removed. No Summary collector is introduced.
+
+The AST of solve_source_contributions is identical to the saved version.
+Its inorganic-carbon recognition helper was moved out of the deleted enumeration
+module without changing the helper logic. No changes were made to step-1/step-2
+scientific settings, models, data tables, environments or existing results.
+
+## Checks actually performed
+
+- 138 compatible tracing-environment unit tests passed, including source balances,
+  partial structures/rules, original-versus-AI mapping separation, single/multiple
+  sources, plan/hash validation, exported columns, serial/parallel equality,
+  scheduler admission, initializer support and abrupt worker failure.
+- 17 COBRApy preparation tests passed in the preparation environment. Test calls
+  now explicitly pass an empty argument list rather than consuming unittest's
+  command-line arguments. Production model-preparation code is unchanged.
+- Deterministic mapper-backend, consensus/reuse, and SMILES-completion integration
+  scripts passed. Fake mappers run in isolated temporary directories. Legacy
+  concurrency assumptions were corrected to respect live memory admission.
+- Native EnzymeMap single-step rule smoke test passed in its existing environment.
+- step2_atom_mapping.py --help and step3_carbon_flow.py --help passed. The old
+  --rounds argument is rejected; analysis plans retain their version-3 contract.
+- Atomic export tests preserve prior bytes on size, disk or memory failure and
+  distinguish emu_solved from emu_completed. Internal metadata stays unchanged
+  while the requested five fields remain absent from EMU_Metabolites.
+- All active Python source/test/example files compile. Current source was checked
+  for removed enumeration imports/functions/options. Git diff checks were run.
+
+Run commands from the project root with the appropriate interpreter. For example:
 
 ```bash
-.envs/localmapper/bin/python -m scripts.test_output_limits
+.envs/localmapper/bin/python -m unittest scripts.test_source_contributions scripts.test_step3_methods scripts.test_analysis_plan scripts.test_output_limits scripts.test_parallel_carbon scripts.test_task_scheduler
+.envs/preparation/bin/python -m unittest scripts.test_model_preparation
+.envs/enzymemap/bin/python -m scripts.test_enzymemap_rules
 ```
 
-Five tests cover exact byte limits and rejected-save preservation, complete-round
-rollback, first-round rejection without reusing stale outputs, Calibri,
-separate Original/AI Summary copies, source-workbook preservation, step-4 setting
-inheritance, and collecting saved rounds before re-raising a memory-stop error.
-The eight related regression scripts also passed: output_limits, memory_guard,
-carbon_tracing, script_settings, analysis_plan, stages, parallel_carbon and
-consensus_mapping. They include real concurrent processes and synthetic AI
-mapping changes; no external mapper was called by propagation.
+Detailed command/exit records are retained locally in .cache/emu_only/checks.json
+and accompanying logs; these are temporary validation artifacts, not public
+research results. Environment-specific tests cannot all run under one interpreter.
 
-The then-configured step-2 workbooks were propagated for one round in an isolated
-validation directory. Every first-round carbon-flow value and original Summary
-count matched the existing output exactly. Input and mapping file hashes were
-unchanged. This was not a full rerun of later rounds or real AI-reviewed models.
+## Boundaries and external compatibility
 
-Existing ordinary outputs were preserved under
-`results/archive/before_size_limit_fit_20261015_213122/`. Their already-computed
-rounds were used to produce bounded workbooks without another mapper
-or multi-round propagation run. The Saccharomyces_cerevisiae_non_IUPD output
-retains rounds 1-8 (about 16.65 MB) rather than rounds 1-9 (about 273 MB);
-round 9 was removed in full, including all its pages. The other five outputs
-retain all ten rounds. Retained flow-sheet uncompressed sizes/CRCs and all
-original Summary observations were verified against the archive. The copied
-Summary sheets match their per-model sources, and all new outputs are below
-100,000,000 bytes.
+No full-model recalculation, real three-predictor sweep, new environment install,
+server stress test, GitHub push or external skill update was performed. Existing
+ordinary/AI files remain historical until explicitly recalculated with this code.
+The retained solver is size-1 EMU-inspired, not full multi-carbon isotopomer EMU.
+Unknown is not redistributed and full-reaction turnover remains unchanged.
 
-Automatic curve fitting was subsequently removed at the user's request.
-Current Summary sheets contain only calculated observations. The temporary
-function/statistics columns were removed from the six current workbooks, and
-the aggregate was regenerated. Their saved rounds, original Summary values,
-Calibri formatting and all flow-sheet contents remain unchanged. The output
-limit no longer reserves space for fitting metadata.
-
-Internal historical records in `data/validation/flow_limit_fit/` retain the earlier
-one-round comparisons. Removal checks and current regression logs are under
-`data/validation/remove_auto_fitting/`; both directories are ignored by Git.
-Historical archives are preserved. The old test project was not changed and no
-GitHub push was performed.
-
-## Separate analysis plans and automation interfaces (2026-10-15)
-
-The default reference-model script and no-argument stage commands remain available.
-An optional copied COBRApy recipe can generate a separate analysis plan and
-results under `results/results_by_AI/<name>/`; steps 2 and 3 select it with `--plan`. Each analysis
-shares the installed environments and original model data. Generated plans add
-preparation provenance, exchange conditions and actual source uptake. Propagation
-adds one batch status report, without changing Excel tables or tracing rules.
-Stage scripts contain no LLM/skill calls. The documented future orchestrator
-includes external mapping review by default, followed by step 3 for normal and reviewed mappings.
-
-Thirteen preparation tests passed, including multiple allowed carbon exchanges,
-an unused supplied source, isolated plan invalidation and preparation-script
-hashes. The analysis-plan suite exercised two separate analyses through mocked
-mapping and two propagation rounds, checked a zero-uptake source without changing
-the mapped-network denominator, and verified interpreter relaunch arguments.
-Under the then-current strict size policy, it also verified that a rejected
-first round reports zero current saves and preserves an older workbook. The
-five output-limit tests passed with the new
-size-stop and memory-stop report checks.
-
-Nine other regression programs passed: memory_guard, carbon_tracing,
-script_settings, stages, parallel_carbon, consensus_mapping, model_structures,
-smiles_completion and mapper_backends. These include concurrent propagation and
-AI-copy fixtures; real external mapping predictors were not rerun.
-
-The new glucose/xylose example was solved with real COBRApy/GLPK in isolation.
-The single-source model used 10 mmol/gDW/h glucose; the simultaneously supplied
-model used 5 glucose and 6 xylose. Biological growth objectives were approximately
-0.876997214 and 0.871354700, respectively. This validates input preparation,
-not a new full-network mapping or carbon-propagation result.
-
-The then-configured study inputs were independently regenerated using a selected validation
-plan. `Nonzero` and `Metabolites` tables matched the existing exports, including
-row order and numerical values within 1e-9 tolerance. The default plan and all
-12 existing root-level result workbooks retained identical SHA256 hashes.
-Preparation comparison and fixture logs are kept locally under the ignored
-`data/validation/case_interfaces/` directory. The original test checkout was
-not modified; nothing was pushed to GitHub. No new skill was created.
-
-## Post-save 50 MB stopping threshold (2026-10-16)
-
-Steps 3 and 4 now save each complete round before checking its file size. The
-default threshold is 50,000,000 bytes. A round reaching or exceeding it is kept
-in full; no next round starts for that model. The run report records
-`file_size_limit` ahead of a simultaneous convergence condition. This replaces
-the historical strict rollback behavior without changing propagation, mapping
-selection, Summary counting or memory safeguards.
-
-All seven output-limit tests passed, covering exact-threshold, overshoot and
-first-round size stops, below-threshold continuation, step-4 setting inheritance,
-failed-save preservation, Summary copying, and memory-stop reporting. Boundary
-tests mock observed sizes while saving and reading actual small workbooks; no
-large workbook was created. Separate generic capped-save behavior remains tested.
-The analysis-plan fixture also used a real small threshold to verify that round
-1 is retained, its unchanged flow/Summary values are copied, and the report
-records one saved round and its output path.
-
-Eight regression programs passed: output_limits, analysis_plan, memory_guard,
-carbon_tracing, script_settings, stages, parallel_carbon and consensus_mapping.
-This includes concurrent propagation and reviewed-copy fixtures. Original model
-inputs, the default analysis plan, the reference preparation script and existing
-root-level workbooks were not rewritten. Logs are kept locally under
-`data/validation/post_save_size_50mb/`. No real mapper or full research-model
-propagation was rerun, and no GitHub push was performed.
-
-
-## Combined Enumeration / size-1 EMU interface (2026-10-18)
-
-Restored the fefa1f9 positional source-balance core, with original-coefficient
-support for saved partial carbon rules and sparse mapper carbon views. Both
-methods now share one output per model/mapping version. Default detail export is
-R1-R3; later rounds still update Summary. Unknown is not redistributed, and
-formulas alone do not create positional links.
-
-Isolated validation reselected 2,641 reactions across six ordinary model
-workbooks, preserved all source/raw data, and ran one Enumeration round plus
-source balances for each model. Detailed counts, residuals and same-input
-historical/restored squalene comparisons are recorded in the local validation
-report, results/results_by_AI/combined_stage3_validation_20261018/report.md.
-These local outputs are not a new published benchmark. Full real AI versions
-and ten-round model runs were not repeated. Synthetic regressions cover both
-mapping versions, five-round detail omission, fractional transfer amounts,
-first-round rollback, malformed Summary collection and input preservation.
-
-
-## Withdrawal of additional fallback rules (2026-10-18)
-
-Automatic NoCarbon classification, FAD/FMN-family skeleton recovery and the IspG
-carbon template were withdrawn after the combined-method validation above. Its
-local reference-model outputs are historical comparisons with those additions enabled,
-not results from the current rule set. Existing workbooks were not modified.
-
-After withdrawal, all 13 carbon-rule tests passed, including explicit checks that
-formula-only carbon-free reactions remain unresolved and withdrawn flavin/IspG
-fallbacks are not generated. Consensus selection, stage handoff and both combined
-method tests also passed. These checks use isolated small fixtures; reference-model
-research outputs and mapper predictions were not regenerated.
-
-
-## Nonempty mapper predictions (2026-10-18)
-
-All 14 carbon-rule tests passed. The additional export regression checks each
-mapper as the only nonempty source and three conflicting unusable candidates.
-Both selection and final sheets retain the chosen prediction, original tool
-records remain unchanged, CarbonRules is not called, and unresolved candidates
-remain excluded from propagation. Consensus and stage-handoff regressions also
-passed. No existing research workbook or real mapper was rerun.
-
-
-## Reduced mapper inputs and maintained manual records (2026-10-18)
-
-Six focused checks passed for forward/reverse reduced inputs, original equation
-and flux preservation, nonempty retained sides, invalid/missing metabolite data,
-noncarbon retained candidates, workbook reload, false Complete rejection, source
-balances with original stoichiometry, and manual priority/amount/atom-budget checks.
-A matching manual record overrides software while leaving raw predictions intact;
-the saved partial remains usable without the external CSV.
-
-Fourteen project regression modules passed. Twenty-three AI-review checks and seven
-structure-handoff checks passed, including reduced-context extraction, accepted
-partial retention, rejected/unresolved disabling and complete-map guards. Source
-identity discovery and native mapper predictions were not tested against new real
-reactions in this change; external mapper calls in fixtures use synthetic results.
-
-A separate read-only-input IspG check used existing iML1515 annotations and the
-user-designated manual CSV record. Its five carbon pairs reload successfully with
-unchanged original equation/flux. Only an isolated validation workbook was written
-under data/validation/reduced_mapper_inputs_20261018/ispg/. No research-result
-workbook, original test project, or GitHub repository was replaced.
-
-
-## Full species directories and manual structures (2026-10-18)
-
-Model directories use full species names. The original model/annotation files retained their
-pre-migration SHA-256 hashes. The manual SMILES table uses exactly Species,
-MetaboliteName and SMILES; 39 condition/ID records were consolidated into eight
-unique species/name records, with the original table preserved locally under
-data/validation/species_layout_20261018/.
-
-Sixteen project regression modules passed after the plan fixture explicitly
-selected Enumeration for its Enumeration-only sheet assertions. Five focused
-species/name tests cover reuse across conditions and compartments, source-model
-identity, cross-species isolation, conflicting structures, formula/charge guards
-and schema validation. Eight AI structure-handoff tests and 23 workbook-review
-tests passed. All three affected skills passed their structural validation and
-were synchronized with their maintained local copies; no skills were published.
-
-The results directory contained no research workbooks at final verification, so
-the six existing real-input comparisons could not be completed. No step-1 solve,
-real mapper call or research propagation was rerun; original input hashes in the
-analysis plan were retained rather than fabricated or regenerated.
-
-
-## Three-column manual mappings and separate AI records (2026-10-18)
-
-The manual mapping CSV now contains Species, ReactionID, MappedReactionSMILES.
-The original detailed file is backed up under
-data/validation/manual_mapping_schema_20261018/. Its user-designated IspG
-five-carbon pairs were replayed and confirmed unchanged. Species-matched manual
-maps reach both selection and final sheets without reserializing their supplied
-SMILES (except automatic reversal for negative selected flux). Reduced maps
-retain derived positional/amount records and require review.
-
-All 17 isolated project regression modules passed. Six new manual-table tests
-cover complete maps, partial copy/fractional amounts, species/provenance matching,
-reverse flux, invalid/ambiguous data and standalone reload. Nine AI-structure
-handoff tests and 24 workbook-review/index tests passed, including source merging,
-accepted-only indexing and unchanged manual files. The existing 11 immutable
-review archives supplied 51 historical accepted proposals, consolidated into 19
-species/reaction/mapped-SMILES rows in ai_atom_mappings.csv. These are indexed
-historical records, not new predictions or renewed scientific validation.
-There were no historical structure archives to populate ai_smiles.csv; its header
-is ready for future discoveries. AI structures only fill missing input structures
-and retain review flags; AI mapping indexes do not automatically override step 2.
-
-No real mapper, preparation solve, reference-model propagation or external lookup was
-run. Existing research workbooks were not regenerated. Only local skills and their
-maintained copies were synchronized; no repository was pushed.
+Installed carbon-tracing-review-skill and carbon-tracing-workflow-skill still
+contain combined-method/round/Summary instructions. Their automatic stage-3
+handoff and completion parsing must be adapted to docs/interfaces.md before
+using those older instructions with this EMU-only version. External skill files
+and repositories were inspected but not edited or published. Model-setup's
+step-2 handoff is unchanged. Shared mapper scheduling and EnzymeMap parallelism
+remain active; memory estimates are safeguards rather than hard OOM guarantees.

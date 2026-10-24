@@ -2,8 +2,8 @@
 
 Use existing threads to launch isolated mappers and spawned processes for analyses.
 Admit one job at a time after checking live cgroup-aware memory. A task's memory
-budget is an estimate, not a peak guarantee; propagation retains its MemoryGuard.
-Each analysis owns its catalogue, atom-state order, SQLite writer and workbook.
+budget is an estimate, not a peak guarantee; each analysis retains its MemoryGuard
+and owns its mapping input, source-balance solver and output workbook.
 """
 
 from concurrent.futures import ThreadPoolExecutor
@@ -23,10 +23,12 @@ def _cancel_analysis(signum, frame):
     raise KeyboardInterrupt("Analysis process cancelled")
 
 
-def _analysis_process(function, args, connection):
-    # A normal spawned Process permits a bounded inner candidate pool on Python 3.6.
+def _analysis_process(function, args, connection, initializer, initargs):
+    # Detect abrupt worker exits instead of waiting forever for a missing result.
     signal.signal(signal.SIGTERM, _cancel_analysis)
     try:
+        if initializer is not None:
+            initializer(*initargs)
         connection.send((True, function(*args)))
     except BaseException as error:
         try:
@@ -38,10 +40,10 @@ def _analysis_process(function, args, connection):
 
 
 class _AnalysisResult:
-    def __init__(self, function, args):
+    def __init__(self, function, args, initializer=None, initargs=()):
         context = get_context("spawn")
         self.connection, sender = context.Pipe(duplex=False)
-        self.process = context.Process(target=_analysis_process, args=(function, args, sender))
+        self.process = context.Process(target=_analysis_process, args=(function, args, sender, initializer, initargs))
         try:
             self.process.start()
         except BaseException:
@@ -76,7 +78,7 @@ class _AnalysisResult:
 
 
 def run_tasks(function, tasks, workers, memory_gb, processes=True, weights=None,
-              cpu_threads=1, initializer=None, initargs=(), on_result=None, allow_children=False,
+              cpu_threads=1, initializer=None, initargs=(), on_result=None,
               on_wait=None):
     """Run expensive jobs first, but return results in the original input order.
 
@@ -109,11 +111,6 @@ def run_tasks(function, tasks, workers, memory_gb, processes=True, weights=None,
                 previous_env = {key: os.environ.get(key) for key in _THREAD_VARIABLES}
                 for key in _THREAD_VARIABLES:
                     os.environ[key] = str(cpu_threads)
-                if not allow_children:
-                    pool = get_context("spawn").Pool(processes=workers,
-                        initializer=initializer, initargs=initargs)
-                elif initializer is not None:
-                    raise ValueError("Independent analysis processes do not accept a pool initializer")
             else:
                 pool = ThreadPoolExecutor(max_workers=workers)
         waiting_notice = False
@@ -167,8 +164,7 @@ def run_tasks(function, tasks, workers, memory_gb, processes=True, weights=None,
                     if on_result is not None:
                         on_result()
                 elif processes:
-                    active[index] = (_AnalysisResult(function, tasks[index]) if allow_children
-                                     else pool.apply_async(function, tasks[index]))
+                    active[index] = _AnalysisResult(function, tasks[index], initializer, initargs)
                     reservations[index] = budget if available is not None else 0
                 else:
                     active[index] = pool.submit(function, *tasks[index])
@@ -179,22 +175,15 @@ def run_tasks(function, tasks, workers, memory_gb, processes=True, weights=None,
                 if on_wait is not None:
                     on_wait()
                 time.sleep(0.05)
-        if processes and pool is not None:
-            pool.close()
         return results
     except BaseException:
-        if processes and allow_children:
+        if processes:
             for result in active.values():
                 result.terminate()
-        if processes and pool is not None:
-            pool.terminate()
         raise
     finally:
         if pool is not None:
-            if processes:
-                pool.join()
-            else:
-                pool.shutdown(wait=True)
+            pool.shutdown(wait=True)
         for key, value in previous_env.items():
             if value is None:
                 os.environ.pop(key, None)

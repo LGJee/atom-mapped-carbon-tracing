@@ -63,7 +63,7 @@ Running this input export again replaces its previous input exports.
 ## Configure and run the reference analyses
 
 Step 1 supplies the reference inputs and ordered carbon sources through its
-automatically generated plan. Step 3 sets the 10-round limit with `ROUNDS`. Run steps 2 and 3 after the Python
+automatically generated plan. Step 3 solves fixed-flux source balances. Run steps 2 and 3 after the Python
 export without editing their default settings. For another study, change step 1's
 model blocks and analysis settings; advanced mapper and propagation execution
 settings remain at the top of the corresponding Python step.
@@ -75,11 +75,9 @@ python3 step3_carbon_flow.py
 
 Use `Saccharomyces_cerevisiae_non_IUPD` or `Saccharomyces_cerevisiae_IUPD` as a positional argument to run only that reference analysis.
 
-Glucose initialization uses biochemical C1-C6 for the supported cyclic form.
-Isoprenol is numbered from the hydroxyl end along the chain, then the terminal
-alkene carbon and methyl branch. Glucose followed by isoprenol therefore uses
-C1-C6 and C7-C11, respectively; isoprenol alone uses C1-C5.
-These labels identify source atom origins, not experiment-derived abundances.
+EMU source fractions use the configured source names; they do not use enumeration
+C1-C6/C7-C11 label identifiers or rounds. Mean contributions are model-dependent,
+not experiment-derived abundances.
 
 Return to the [main workflow](../README.md).
 

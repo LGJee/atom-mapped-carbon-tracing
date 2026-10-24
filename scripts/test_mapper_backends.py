@@ -6,7 +6,6 @@ from unittest.mock import patch
 import pandas as pd
 
 from carbon_flow_tools import config
-from carbon_flow_tools.carbon_trace import prepare_mappings, map_one_reaction
 from carbon_flow_tools.mapper_runner import (
     run_mapper,
     validate_mapper_config,
@@ -18,7 +17,6 @@ from carbon_flow_tools.reactions import (
     parse_side,
     prepare_reactions,
 )
-from carbon_flow_tools.atom_helpers import isoprenol_labels
 
 
 def load_model(options=None):
@@ -129,16 +127,6 @@ def main():
     with patch("carbon_flow_tools.mapper_runner.subprocess.run") as worker:
         run_mapper("Test", prepared[:4] + prepared[-1:], "ExampleMapper", settings)
         worker.assert_not_called()
-    labels = tuple(
-        (0, atom, label)
-        for atom, label in isoprenol_labels(structures["isoprenol[e]"]).items()
-    )
-    mapping = prepare_mappings(prepared[:1])[0][1]
-    _, rows, _ = map_one_reaction(
-        prepared[0], mapping, {"isoprenol[e]": {1: labels}}, 1, {}, 2, structures
-    )
-    assert rows[0]["Production"] == "isoprenol[c]" and rows[0]["Step"] == 1
-    assert rows[0]["LabeledSMILES"] == "O[CH2:7][CH2:8][C:9](=[CH2:10])[CH3:11]"
     config.configure(1, 1)
     assert prepare_reactions(table.iloc[:1], metabolites)[0].is_transport
     config.configure(3, 800)
@@ -161,19 +149,6 @@ def main():
         status="mapped",
         mapped_smiles=raw,
     )
-    prepared = prepare_mappings([reaction])
-    assert len(prepared) == 1 and reaction.mapped_smiles == raw
-    _, rows, _ = map_one_reaction(
-        reaction,
-        prepared[0][1],
-        {"D-glucose[c]": {1: ((0, 0, "C1"),)}},
-        1,
-        {},
-        2,
-        structures,
-    )
-    assert rows[0]["LabeledSMILES"] == "C[CH2:1]O"
-    assert rows[0]["CarbonLabels"] == "C1"
     print(
         "PASS: new adapter, batch fallback, isolated failure, raw mapping and source labels"
     )

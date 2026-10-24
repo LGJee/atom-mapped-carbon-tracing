@@ -32,7 +32,6 @@ class PreparedReaction:
     confident: Any = ""
     is_transport: bool = False
     partial_maps: List[Dict] = field(default_factory=list)
-    parent_reaction_id: str = ""
     omitted_components: List[Dict] = field(default_factory=list)
     mapping_equation: str = ""  # Active-direction input view; the model equation is unchanged.
 

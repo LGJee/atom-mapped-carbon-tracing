@@ -295,7 +295,7 @@ class PreparationTests(unittest.TestCase):
                 side_effect=ValueError("Missing configured model"),
             ):
                 with self.assertRaisesRegex(ValueError, "Missing configured model"):
-                    step1.main()
+                    step1.main([])
             self.assertFalse(plan.exists())
 
     def test_each_model_exports_its_own_ordered_sources(self):
@@ -310,7 +310,7 @@ class PreparationTests(unittest.TestCase):
             with patch.object(step1, "ROOT", root), patch.object(
                 step1, "prepare_models", return_value=prepared
             ):
-                step1.main()
+                step1.main([])
             models = json.loads((root / "data/analysis_plan.json").read_text())[
                 "models"
             ]
@@ -352,14 +352,14 @@ class PreparationTests(unittest.TestCase):
                 step1.os, "execv", side_effect=RuntimeError("interpreter selected")
             ) as launch:
                 with self.assertRaisesRegex(RuntimeError, "interpreter selected"):
-                    step1.main()
+                    step1.main([])
                 self.assertEqual(launch.call_args[0][0], str(python))
             python.unlink()
             with patch.object(step1, "ROOT", root), patch.object(
                 step1.importlib.util, "find_spec", return_value=None
             ):
                 with self.assertRaisesRegex(SystemExit, "setup_environments.sh"):
-                    step1.main()
+                    step1.main([])
 
     def test_unused_supplied_carbon_source_is_exported_without_forcing_uptake(self):
         with tempfile.TemporaryDirectory() as directory:

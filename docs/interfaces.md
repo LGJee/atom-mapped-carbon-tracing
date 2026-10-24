@@ -27,8 +27,7 @@ study script still generates the four-model reference plan in
 `data/analysis_plan.json` and writes to `results/`.
 
 Steps 2 and 3 accept `--plan` with a project-relative or absolute generated plan path,
-optional positional model names, and their existing stage-specific overrides.
-`--rounds` applies only to propagation. All relative paths stored inside plans
+optional positional model names, and their existing stage-specific overrides. All relative paths stored inside plans
 are relative to the project root, not the plan's folder or current directory.
 `--example` is an installation check and cannot be combined with `--plan`.
 All analyses share the existing project environments and stage execution settings.
@@ -47,8 +46,7 @@ for users to edit. Failed preparation invalidates only its selected plan.
 Current scenarios are static simultaneous supplies. Opening an uptake bound
 permits uptake; it does not force it. `preparation.source_uptake` records actual
 net imports. A supplied source that is unused by pFBA is retained with a warning;
-the nonzero reaction sheet stays unchanged. Source-list order determines label
-identifiers and computational introduction order, not biological feeding time.
+the nonzero reaction sheet stays unchanged. Source-list order determines output column order, not biological feeding time.
 
 Step 2 writes `<model>_2_atom_mapping.xlsx`: raw LocalMapper, RXNMapper and
 EnzymeMap predictions, `Mapping_Selection`, `Final_Mapping`, enriched metabolites
@@ -90,65 +88,45 @@ It retains provenance checks for each copy and performs no review. The suffix
 selects a file, not a quality grade.
 This revision does not create or implement the future orchestrator skill.
 
-## Propagation status
+## Carbon-source analysis and completion
 
-Step 3 writes `<model>_3_carbon_flow.xlsx` for normal mappings and
-`<model>_3_carbon_flow_AIGenerated.xlsx`. Each version combines Enumeration and
-size-1 EMU-inspired balances when both methods are selected. `Summary` contains
-all completed Enumeration rounds; `EXPORT_DETAIL_ROUNDS=3` exports only the
-first three rounds of details in one `Carbon_Flow` sheet by default, with
-`Carbon_Flow_Round` as its first column. `EMU_Metabolites` and
-`EMU_BoundaryInputs` contain the independent source-balance result. EMU-only
-runs have no Summary. Only the last saved Summary row
-contains `<source>_ExclusiveSourceMetabolites`: distinct mapped metabolite IDs whose
-recorded states all carry labels from that one source. Separate pure-source states
-from different sources disqualify a metabolite. The optional step-3 setting
-`EXPORT_EXCLUSIVE_SOURCE_METABOLITES` (default `False`) adds an
-`Exclusive_Source_Metabolites` sheet for that round; it does not change propagation.
-Each model/version retains its own Summary; no separate summary-collection
-workbook is generated.
+Step 3 reads Final_Mapping through the current saved-structure/partial-record
+validation. It solves fixed-flux size-1 EMU-inspired origin balances only.
+The public command is python3 step3_carbon_flow.py [model names] --plan <plan>;
+--output-dir can redirect new results while mapping inputs stay in the plan's
+output directory. There is no --rounds or analysis-method selection.
 
-Each batch writes `carbon_flow_run.json`. Version 1 records the finish
-timestamp, batch `status` (`finished` or `error`) and one entry per mapping
-workbook. Normal and AI entries may share a model name; `mapping_file` and
-`output_file` identify the version unambiguously:
+The internal entry is run_carbon_flow(jobs, output_dir, max_processes=None,
+memory_gb=None). Jobs specify carbon_sources and mapping_file or mapping_files,
+with optional EMU numerical/recycling/resource settings. run_analyses and
+finish_analysis also no longer take a rounds argument.
 
-| Field | Meaning |
-|---|---|
-| `model`, `carbon_sources` | Analysis identity and ordered sources |
-| `mapping_file`, `mapping_sha256` | Actual selected mapping workbook |
-| `requested_rounds` | Requested upper limit |
-| `completed_rounds` | Complete rounds saved in this invocation |
-| `output_file` | Current saved output, or null when this run saved none |
-| `stop_reason` | `converged`, `round_limit`, `file_size_limit`, `row_limit`, `memory_limit`, `error`, `batch_interrupted` or `not_completed` |
+Ordinary and AI mappings produce separate <model>_3_carbon_flow.xlsx and
+<model>_3_carbon_flow_AIGenerated.xlsx. Each has only EMU_Metabolites and
+EMU_BoundaryInputs. There is no Summary or summary collector. Metabolite exports
+omit FluxResidual, Status, StructureType, KnownCarbonCount and ContributionScope;
+those fields remain internal. Source fractions and Unknown are unchanged.
+Partial-structure averages cover explicit known carbon positions only, with
+unknown total CarbonCount left blank. Unspecified polymer totals are unavailable.
 
-Check the process exit status first. Invalid inputs can fail before a new report
-exists; do not treat an old report or workbook as a new success. Memory/errors
-raise a nonzero exit status and retain saved rounds. Other interrupted workers
-may have only their saved output/round count recovered in an error report.
-Size and row-limit stops return normally, retaining only complete rounds.
-`output_batch_rows` (default 50,000) controls staged row batches; `max_excel_bytes`
-records the configured size threshold (default 50,000,000). At batch/layer
-checkpoints the actual candidate XLSX is measured. A candidate reaching the
-threshold or exceeding the combined `Carbon_Flow` sheet's row limit is discarded, with
-`file_size_limit` or `row_limit`; there are no pagination sheets. Only a complete
-candidate below the threshold atomically replaces the previous output.
-`completed_rounds` and `output_file` describe this invocation's published rounds,
-not the rejected candidate. For combined runs, zero completed Enumeration rounds means no new output; the
-previous workbook is retained. EMU-only runs can save independently with zero
-Enumeration rounds. emu_solved distinguishes a solved balance from emu_completed
-(successfully saved tables). Reruns start at round 1, not a checkpoint.
-The `emu` manifest field records numerical residual, unresolved positions,
-source-balance assumptions, independent recycling setting and mapping version.
+The batch writes carbon_flow_run.json (version 1, method EMU). Each model/version
+records model, mapping_file, mapping_sha256, carbon_sources, output_file,
+emu_solved, emu_completed and stop_reason. A successful result has
+emu_completed=true, a new output_file and stop_reason=emu_solved. The emu object
+records assumptions, tolerance, residual, structure limitations and recycling.
+Round counters are no longer part of the active interface.
 
-Enumeration describes possible carbon-origin label reachability, not measured
-isotope abundance, physical time or quantitative carbon allocation. EMU gives
-model-dependent mean source fractions, not full isotopomer distributions. Existing
-propagation rules, inorganic-carbon settings and Summary denominators are unchanged.
+Check process exit status and the report timestamp/input hashes. A failed read
+can happen before a report is written. Resource/export errors return nonzero
+and preserve prior workbooks; emu_solved alone does not mean output was saved.
+Stop reasons include memory_limit, disk_space_limit, file_size_limit, error and
+not_completed. In a failed batch, another worker may have saved a complete file;
+its completion is recovered from the changed atomic output. Historical files
+are not current completion records. Concurrent runs should use separate output
+directories. Existing historical combined results remain untouched.
 
-`--output-dir <folder>` optionally changes the propagation destination without
-changing the selected plan's mapping locations. Step 3 selects Enumeration, EMU, or both through ANALYSIS_METHODS; method settings stay separate.
-
+Older external skills requesting enumeration/rounds/Summary must update their
+calls and completion checks to this contract. Normal scripts call no LLM.
 
 ## Known-structure mapper inputs
 

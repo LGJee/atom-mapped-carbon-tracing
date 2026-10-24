@@ -106,7 +106,7 @@ def parallel_capacity(
 
 
 class MemoryPressureError(RuntimeError):
-    """Stop incomplete propagation before the system runs out of memory."""
+    """Stop carbon-source analysis before the system runs out of memory."""
 
 
 def available_memory():
@@ -143,7 +143,7 @@ def available_memory():
 
 
 class MemoryGuard:
-    """Check a shared memory reserve without truncating states or combinations."""
+    """Check a shared memory reserve before large allocations and exports."""
 
     def __init__(self, minimum_gb=2):
         if (
@@ -208,5 +208,5 @@ class DiskGuard:
         if free < reserve:
             raise DiskSpaceLimitError(
                 "Low working-disk space: {:.2f} GiB free; {:.2f} GiB reserve required. "
-                "Incomplete round discarded; this stop is not convergence."
+                "The incomplete export is discarded; existing outputs remain unchanged."
                 .format(free / 1024 ** 3, reserve / 1024 ** 3))

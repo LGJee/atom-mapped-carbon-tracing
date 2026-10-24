@@ -101,7 +101,7 @@ class FormulaMatchingTests(unittest.TestCase):
             before = path.read_bytes()
             reactions = prepare_reactions(source,enriched)
             finish_analysis("Escherichia_coli_Test",dict(input_file=path,metabolite_sheet="Metabolites"),
-                enriched,{"LocalMapper":reactions},[],1,["LocalMapper"],root,stage="map")
+                enriched,{"LocalMapper":reactions},[],["LocalMapper"],root,stage="map")
             output = root/"Escherichia_coli_Test_2_atom_mapping.xlsx"
             final = pd.read_excel(output,sheet_name="Final_Mapping",engine="openpyxl")
             self.assertTrue(final.iloc[0].ReviewRequired)

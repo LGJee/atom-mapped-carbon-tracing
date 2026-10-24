@@ -109,11 +109,9 @@ compares a reduced map as if it described the full original equation.
 No full-reaction SMILES is claimed for a reaction with unknown participants.
 
 Rules and partial mapper views have ReviewRequired=TRUE and AIGenerated=FALSE.
-Step 3 can propagate their established positions; unknown positions cannot
-create labels. It revalidates the saved structures and rules, never reruns a
-mapper. Summary's mapped-network denominator includes only metabolites with
-usable carbon correspondences, including resolved partial donors/products;
-undefined macromolecular pools are not silently included.
+Step 3 uses only established positional transfers in its source balances, with
+original fluxes and coefficients. It revalidates saved structures and rules,
+never reruns a mapper, and retains unresolved carbon inflows as Unknown.
 
 The existing reference workbooks illustrate why this matters: THF has formula
 C19H21N7O6 but model annotation C1CCOC1 contains four carbons. Consequently r_0727
@@ -146,7 +144,7 @@ the saved inputs when read. Source and metabolite sheets stay visible.
 Unknown generic product pools with no internal consumer in the original nonzero
 network are described as terminal. A missing mapped downstream edge alone never
 establishes terminality. This diagnostic does not fabricate pool atom positions
-or change fluxes, original equations or Summary counting rules.
+or change fluxes or original equations.
 
 ## Withdrawn additions
 
@@ -286,9 +284,9 @@ positions stay unmapped. Other partial transfers require a usable software predi
 or independently reviewed manual correspondence. They use the existing hidden
 Mapping_Info records; no Partial_Mapping worksheet is generated.
 
-Step 3 revalidates these sparse maps and propagates only explicit carbon positions.
-Summary counting definitions are unchanged: reachability of a partially described
-metabolite does not mean every carbon in its unknown region was reached. Variable-repeat
+Step 3 revalidates sparse maps and balances only explicit carbon positions.
+A partially described metabolite does not have resolved origins for its unspecified
+region. Variable-repeat
 polymers have no automatically constructed positions. A configured carbon source must
 have a complete explicit structure; generic carbon sources require resolution first.
 Fixed-flux source-contribution exports omit StructureType, KnownCarbonCount and

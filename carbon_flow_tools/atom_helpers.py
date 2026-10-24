@@ -1,59 +1,16 @@
-from functools import lru_cache
-from typing import Dict, Iterable, Tuple
+from typing import Dict
 
 from rdkit import Chem
 
 from .reactions import PreparedReaction
 
 
-def labeled_smiles(smiles: str, assignment: Iterable[Tuple[int, int, str]]) -> str:
-    """Write source-origin carbon labels into the product SMILES atom-map fields."""
-    return _labeled_smiles(smiles, tuple(assignment))
 
 
-@lru_cache(maxsize=512)
-def _structure_template(fragment):
-    """Cache an unlabelled template; callers must copy it before setting labels."""
-    molecule = Chem.MolFromSmiles(fragment)
-    if molecule is None:
-        raise ValueError(f"Invalid SMILES: {fragment}")
-    for atom in molecule.GetAtoms():
-        atom.SetAtomMapNum(0)
-    return molecule
 
 
-@lru_cache(maxsize=8192)
-def _labeled_smiles(smiles, assignment):
-    # Bound reuse of exact structures and positional labels as state counts grow.
-    labels = {
-        (int(part), int(atom)): int(str(label)[1:]) for part, atom, label in assignment
-    }
-    output = []
-    for part, fragment in enumerate(smiles.split(".")):
-        molecule = Chem.Mol(_structure_template(fragment))
-        for (index, atom), label in labels.items():
-            # Match the original loop: ignore positions outside this component.
-            if index == part and 0 <= atom < molecule.GetNumAtoms():
-                molecule.GetAtomWithIdx(atom).SetAtomMapNum(label)
-        output.append(Chem.MolToSmiles(molecule, canonical=True, isomericSmiles=True))
-    return ".".join(output)
 
 
-@lru_cache(maxsize=8192)
-def assignment_from_labeled_smiles(
-    base_smiles: str, marked_smiles: str
-) -> Tuple[Tuple[int, int, str], ...]:
-    """Recover origin labels at exact positions in the input structure."""
-    base_parts = base_smiles.split(".")
-    marked_parts = marked_smiles.split(".")
-    if len(base_parts) != len(marked_parts):
-        return tuple()
-    assignment = []
-    for part, (base, marked) in enumerate(zip(base_parts, marked_parts)):
-        for atom, number in component_atom_maps(base, marked).items():
-            if number > 0:
-                assignment.append((part, atom, f"C{number}"))
-    return tuple(sorted(assignment))
 
 
 def component_atom_maps(base_smiles: str, mapped_smiles: str) -> Dict[int, int]:
@@ -128,99 +85,3 @@ def mapped_components(reaction: PreparedReaction):
         return reaction._mapped_components
     except Exception:
         return None
-
-
-def glucose_labels(smiles: str) -> Dict[int, str]:
-    """Identify biochemical C1-C6 in cyclic glucose."""
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        raise ValueError("Invalid D-glucose SMILES")
-    six_rings = [ring for ring in mol.GetRingInfo().AtomRings() if len(ring) == 6]
-    for ring in six_rings:
-        ring_set = set(ring)
-        oxygens = [i for i in ring if mol.GetAtomWithIdx(i).GetSymbol() == "O"]
-        if len(oxygens) != 1:
-            continue
-        ring_o = oxygens[0]
-        ring_c = [i for i in ring if mol.GetAtomWithIdx(i).GetSymbol() == "C"]
-        c5 = None
-        c6 = None
-        for carbon in ring_c:
-            outside_c = [
-                n.GetIdx()
-                for n in mol.GetAtomWithIdx(carbon).GetNeighbors()
-                if n.GetIdx() not in ring_set and n.GetSymbol() == "C"
-            ]
-            if outside_c:
-                c5, c6 = carbon, outside_c[0]
-                break
-        if c5 is None:
-            continue
-        o_neighbors = [
-            n.GetIdx()
-            for n in mol.GetAtomWithIdx(ring_o).GetNeighbors()
-            if n.GetIdx() in ring_set
-        ]
-        c1_candidates = [i for i in o_neighbors if i != c5]
-        if len(c1_candidates) != 1:
-            continue
-        chain = [c1_candidates[0]]
-        previous = ring_o
-        while chain[-1] != c5:
-            current = chain[-1]
-            next_c = [
-                n.GetIdx()
-                for n in mol.GetAtomWithIdx(current).GetNeighbors()
-                if n.GetIdx() in ring_set
-                and n.GetSymbol() == "C"
-                and n.GetIdx() != previous
-            ]
-            if len(next_c) != 1:
-                break
-            previous, current = current, next_c[0]
-            chain.append(current)
-        if len(chain) == 5 and chain[-1] == c5:
-            labels = {atom: f"C{i}" for i, atom in enumerate(chain, 1)}
-            labels[c6] = "C6"
-            return labels
-    raise ValueError("Cannot identify glucose C1-C6 from the structure")
-
-
-def isoprenol_labels(smiles: str) -> Dict[int, str]:
-    """Identify isoprenol from the hydroxyl end (legacy local labels C7-C11)."""
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        raise ValueError("Invalid isoprenol SMILES")
-    alcohol_oxygen = next(
-        (atom for atom in mol.GetAtoms() if atom.GetSymbol() == "O"), None
-    )
-    if alcohol_oxygen is None:
-        raise ValueError("No oxygen atom found in isoprenol")
-    c1 = next(
-        (n.GetIdx() for n in alcohol_oxygen.GetNeighbors() if n.GetSymbol() == "C"),
-        None,
-    )
-    if c1 is None:
-        raise ValueError("Cannot identify isoprenol C1")
-    c2 = next(
-        n.GetIdx()
-        for n in mol.GetAtomWithIdx(c1).GetNeighbors()
-        if n.GetSymbol() == "C"
-    )
-    c3 = next(
-        n.GetIdx()
-        for n in mol.GetAtomWithIdx(c2).GetNeighbors()
-        if n.GetSymbol() == "C" and n.GetIdx() != c1
-    )
-    branches = [
-        n.GetIdx()
-        for n in mol.GetAtomWithIdx(c3).GetNeighbors()
-        if n.GetSymbol() == "C" and n.GetIdx() != c2
-    ]
-    c4 = next(
-        i
-        for i in branches
-        if mol.GetBondBetweenAtoms(c3, i).GetBondType() == Chem.BondType.DOUBLE
-    )
-    c5 = next(i for i in branches if i != c4)
-    return {c1: "C7", c2: "C8", c3: "C9", c4: "C10", c5: "C11"}

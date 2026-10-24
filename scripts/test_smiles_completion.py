@@ -1,6 +1,5 @@
 """Check structure priority, reviewed name matches, caching and input protection."""
 
-from scripts.test_carbon_tracing import read_carbon_round
 
 import csv
 import hashlib
@@ -255,7 +254,6 @@ def main():
             run_analyses(
                 jobs,
                 1,
-                1,
                 800,
                 root,
                 list(configs),
@@ -281,15 +279,11 @@ def main():
         mapping_digest = hashlib.sha256(mapping.read_bytes()).hexdigest()
         run_carbon_flow(
             {"Test": dict(mapping_file=mapping, carbon_sources=["A[e]"])},
-            2,
             root,
             max_processes=1,
         )
         assert hashlib.sha256(mapping.read_bytes()).hexdigest() == mapping_digest
-        assert (
-            read_carbon_round(root / "Test_3_carbon_flow.xlsx", 1, engine="openpyxl").shape[0]
-            == 2
-        )
+        assert "EMU_Metabolites" in pd.ExcelFile(root / "Test_3_carbon_flow.xlsx", engine="openpyxl").sheet_names
         with patch(
             "carbon_flow_tools.pipeline.run_mapper",
             side_effect=AssertionError("Reuse failed"),
@@ -299,7 +293,6 @@ def main():
         ):
             run_analyses(
                 jobs,
-                1,
                 1,
                 800,
                 root,

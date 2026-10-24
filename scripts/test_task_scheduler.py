@@ -17,6 +17,18 @@ def process_probe(index, folder):
     return index * 2
 
 
+def exit_without_result():
+    os._exit(7)
+
+
+def initialize_probe():
+    os.environ["SCHEDULER_TEST_INITIALIZED"] = "yes"
+
+
+def initialized_probe():
+    return os.environ.get("SCHEDULER_TEST_INITIALIZED")
+
+
 def raise_error():
     raise ValueError("scheduler fixture failure")
 
@@ -123,6 +135,13 @@ class SchedulerTests(unittest.TestCase):
             with patch("carbon_flow_tools.task_scheduler.available_memory", return_value=(32,32)):
                 with self.assertRaisesRegex(ValueError, "scheduler fixture failure"):
                     run_tasks(raise_error, [(), ()], 2, 1, processes=processes)
+
+    def test_abrupt_worker_exit_is_reported_and_initializer_is_supported(self):
+        with patch("carbon_flow_tools.task_scheduler.available_memory", return_value=(32,32)):
+            with self.assertRaisesRegex(RuntimeError, "without a result"):
+                run_tasks(exit_without_result, [(), ()], 2, 1)
+            self.assertEqual(run_tasks(initialized_probe, [(), ()], 2, 1,
+                initializer=initialize_probe), ["yes", "yes"])
 
     def test_capacity_uses_cgroup_aware_memory(self):
         with patch("carbon_flow_tools.config.os.sched_getaffinity", return_value=set(range(32))), \

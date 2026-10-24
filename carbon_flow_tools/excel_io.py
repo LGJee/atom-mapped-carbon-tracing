@@ -200,14 +200,7 @@ def format_columns(worksheet, columns=None):
         "Equation": 50,
         "ReactionSMILES": 65,
         "MappedReactionSMILES": 65,
-        "Carbon_Flow_Round": 22,
-        "Step": 10,
         "Source": 38,
-        "SourceIDs": 20,
-        "Production": 38,
-        "ProductionID": 15,
-        "CarbonLabels": 30,
-        "LabeledSMILES": 70,
         "SelectedMapper": 18,
         "ReviewRequired": 18,
         "SelectionReason": 60,
@@ -227,8 +220,6 @@ def format_columns(worksheet, columns=None):
             if column.endswith(("_ScoreType", "_Validation"))
             else widths.get(column, 18)
         )
-        if "_LabeledCarbon" in column or column == "TotalCarbonMetabolites":
-            width = min(80, max(width, len(column) + 2))
         worksheet.column_dimensions[letter].width = width
     if columns is None:
         format_equation_column(worksheet)

@@ -274,7 +274,6 @@ class DiscoveryTests(unittest.TestCase):
                 )
             },
             1,
-            1,
             800,
             self.root,
             ["LocalMapper", "RXNMapper"],

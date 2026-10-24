@@ -10,7 +10,6 @@ from openpyxl import load_workbook
 from carbon_flow_tools.reactions import prepare_reactions
 from carbon_flow_tools.consensus import select_mappings
 from carbon_flow_tools.carbon_mapping_rules import apply_rules, apply_manual_mappings, COLUMNS, validate_manual_records, partial_mapped_smiles
-from carbon_flow_tools.carbon_trace import prepare_mappings, map_one_reaction
 from carbon_flow_tools.pipeline import finish_analysis, load_final_mappings
 from carbon_flow_tools.source_contributions import solve_source_contributions
 
@@ -31,24 +30,6 @@ def fixture(flux=1):
     return source, metabolites, predictions, selected, choices
 
 class ReducedMapperTests(unittest.TestCase):
-    def test_forward_reverse_preparation_and_enumeration(self):
-        for flux, donor, product in ((1, "A[c]", "B[c]"), (-1, "B[c]", "A[c]")):
-            source, metabolites, predictions, selected, choices = fixture(flux)
-            r = predictions["EnzymeMap"][0]
-            self.assertEqual((r.flux, r.equation), (flux, source.iloc[0].Equation))
-            self.assertEqual(len(r.omitted_components), 2)
-            self.assertEqual(r.mapping_equation, "2 " + donor + " => 2 " + product)
-            self.assertEqual((len(r.left), len(r.right)), (2, 2))
-            self.assertEqual(choices.iloc[0].MappingCoverage, "Partial")
-            self.assertTrue(choices.iloc[0].ReviewRequired)
-            self.assertIn("missing-SMILES participants", choices.iloc[0].SelectionReason)
-            self.assertEqual(r.mapped_smiles, MAPPED)
-            prepared = prepare_mappings(selected)
-            _, rows, _ = map_one_reaction(*prepared[0], {donor: {1: ((0, 0, "C1"), (0, 1, "C2"))}},
-                1, {}, 2, dict(zip(metabolites.MetaboliteName, metabolites.SMILES_Model)))
-            self.assertTrue(rows)
-            self.assertEqual({row["Production"] for row in rows}, {product})
-            self.assertTrue(all(row["CarbonLabels"] == "C1,C2" for row in rows))
 
     def test_missing_side_invalid_structures_and_unknown_names(self):
         source, metabolites, _, _, _ = fixture()
@@ -80,7 +61,7 @@ class ReducedMapperTests(unittest.TestCase):
                 source.to_excel(writer, sheet_name="Nonzero", index=False)
                 metabolites.to_excel(writer, sheet_name="Metabolites", index=False)
             finish_analysis("Test", dict(input_file=path, metabolite_sheet="Metabolites"), metabolites,
-                predictions, [], 1, list(predictions), root, stage="map")
+                predictions, [], list(predictions), root, stage="map")
             output = root / "Test_2_atom_mapping.xlsx"
             loaded, saved, _ = load_final_mappings(output, {})
             self.assertEqual(loaded[0].status, "partial")
@@ -133,7 +114,7 @@ class ReducedMapperTests(unittest.TestCase):
                 source.to_excel(writer, sheet_name="Nonzero", index=False)
                 metabolites.to_excel(writer, sheet_name="Metabolites", index=False)
             finish_analysis("Test", dict(input_file=path, metabolite_sheet="Metabolites"), metabolites,
-                predictions, [], 1, list(predictions), root, stage="map", manual_mapping_file=manual)
+                predictions, [], list(predictions), root, stage="map", manual_mapping_file=manual)
             manual.unlink()
             loaded, _, _ = load_final_mappings(root / "Test_2_atom_mapping.xlsx", {})
             self.assertEqual(loaded[0].status, "partial")

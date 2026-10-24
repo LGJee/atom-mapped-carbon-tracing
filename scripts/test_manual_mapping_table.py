@@ -50,7 +50,7 @@ class ManualTableTests(unittest.TestCase):
             mets.to_excel(writer, sheet_name="Metabolites", index=False)
         model = "Escherichia_coli_non_IUPD"
         finish_analysis(model, dict(input_file=path, metabolite_sheet="Metabolites"), mets,
-                        predictions, [], 1, ["RXNMapper"], self.root, stage="map", manual_mapping_file=self.manual)
+                        predictions, [], ["RXNMapper"], self.root, stage="map", manual_mapping_file=self.manual)
         output = self.root / (model + "_2_atom_mapping.xlsx")
         selection = pd.read_excel(str(output), sheet_name="Mapping_Selection", engine="openpyxl")
         final = pd.read_excel(str(output), sheet_name="Final_Mapping", engine="openpyxl")
@@ -73,7 +73,7 @@ class ManualTableTests(unittest.TestCase):
                 mets.to_excel(writer, sheet_name="Metabolites", index=False)
             model = "Escherichia_coli_IUPD"
             finish_analysis(model, dict(input_file=path, metabolite_sheet="Metabolites"), mets,
-                            predictions, [], 1, ["RXNMapper"], self.root, stage="map", manual_mapping_file=self.manual)
+                            predictions, [], ["RXNMapper"], self.root, stage="map", manual_mapping_file=self.manual)
             output = self.root / (model + "_2_atom_mapping.xlsx")
             self.manual.unlink()
             loaded, _, enriched = load_final_mappings(output, {})

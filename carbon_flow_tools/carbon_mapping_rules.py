@@ -719,20 +719,3 @@ def load_partials(reactions, final, records, metabolites):
         if (row.get("MappingCoverage", "") == "Partial" and not row.MappedReactionSMILES
                 and not lookup[key].partial_maps):
             raise ValueError("Missing partial correspondence for " + key)
-
-
-def partial_reactions(reaction):
-    """Use a unit transfer for reachability; never round fractional stoichiometry."""
-    for index, row in enumerate(reaction.partial_maps):
-        source, target = row["SourceMetabolite"], row["ProductMetabolite"]
-        left = _structure(row["SourceSMILES"])
-        right = _structure(row["ProductSMILES"])
-        maps = [{a.GetIdx(): 0 for a in mol.GetAtoms()} for mol in (left, right)]
-        for number, (_, i, _, j) in enumerate(json.loads(row["CarbonAtomMap"]), 1):
-            maps[0][i] = maps[1][j] = number
-        unit = PreparedReaction(reaction.reaction_id + "::carbon_rule:" + str(index),
-                    reaction.reaction_name, 1, source + " => " + target, "",
-                    [Component(source, 0, row["SourceSMILES"])],
-                    [Component(target, 0, row["ProductSMILES"])], source_text=source,
-                    status="partial", parent_reaction_id=reaction.reaction_id)
-        yield unit, ([(unit.left[0], maps[0])], [(unit.right[0], maps[1])])

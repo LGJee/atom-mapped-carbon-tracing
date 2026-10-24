@@ -11,10 +11,8 @@ from rdkit import Chem
 
 from carbon_flow_tools.carbon_mapping_rules import (
     _REFERENCES, carbon_pairs, apply_rules, load_partials, rule_transfers)
-from carbon_flow_tools.carbon_trace import prepare_mappings, map_one_reaction
 from carbon_flow_tools.consensus import select_mappings
-from carbon_flow_tools.pipeline import (finish_analysis, load_final_mappings,
-                                        carbon_metabolites)
+from carbon_flow_tools.pipeline import finish_analysis, load_final_mappings
 from carbon_flow_tools.reactions import prepare_reactions
 
 NADPH = "C1C=CN(C=C1C(=O)N)C2C(C(C(O2)COP(=O)(O)OP(=O)(O)OCC3C(C(C(O3)N4C=NC5=C(N=CN=C54)N)OP(=O)(O)O)O)O)O"
@@ -186,10 +184,6 @@ class CarbonRuleTests(unittest.TestCase):
         self.assertEqual(choices.iloc[0].MappingCoverage, "Partial")
         self.assertTrue(selected[0].mapped_smiles)
         self.assertFalse(selected[0].partial_maps)
-        prepared = prepare_mappings(selected)
-        _, rows, _ = map_one_reaction(*prepared[0], {"A[c]": {1: ((0, 0, "C1"), (0, 1, "C2"))}},
-                                     1, {}, 2, {"A[c]": "CCO", "B[c]": "CCO"})
-        self.assertEqual(rows[0]["CarbonLabels"], "C1")
         full_carbon = deepcopy(r)
         full_carbon.mapped_smiles = "[CH3:1][CH2:2][OH:1]>>[CH3:1][CH2:2][OH:1]"
         recovered, record = select_mappings({"RXNMapper": [full_carbon]})
@@ -237,9 +231,8 @@ class CarbonRuleTests(unittest.TestCase):
             self.assertTrue(choices.iloc[0].ReviewRequired)
             self.assertEqual(choices.iloc[0].MappingCoverage, "Unresolved")
             self.assertIn("test diagnostic", choices.iloc[0].SelectionReason)
-            self.assertEqual(prepare_mappings(selected), [])
             finish_analysis("Candidate", dict(input_file=path, metabolite_sheet="Metabolites"),
-                            metabolites, predictions, [], 1, list(predictions), root, stage="map")
+                            metabolites, predictions, [], list(predictions), root, stage="map")
         output = root / "Candidate_2_atom_mapping.xlsx"
         with pd.ExcelFile(output, engine="openpyxl") as excel:
             chosen = pd.read_excel(excel, sheet_name="Mapping_Selection").iloc[0]
@@ -263,30 +256,11 @@ class CarbonRuleTests(unittest.TestCase):
         self.assertIn(">>", selected[0].mapped_smiles)
         self.assertEqual(selection.iloc[0].SelectedMappedReactionSMILES, selected[0].mapped_smiles)
         self.assertNotIn("protein", selected[0].mapped_smiles)
-        self.assertEqual(sum(map(len, carbon_metabolites(metabolites, selected)[0].values())), 4)
         self.assertEqual(partials.ReactionID.tolist(), ["B", "B"])
         # A supplied monomer is not a generic protein/RNA pool's atomic structure.
         selected[0].equation = "protein[c] => RNA[c]"
         self.assertEqual(rule_transfers(selected[0], {"protein[c]": "CCO", "RNA[c]": "CCO"}), [])
 
-    def test_real_propagation_and_original_reaction_id(self):
-        _, metabolites, _, selected, _, _ = fixture()
-        selected[1].reaction_id = "B::carbon_rule:0"  # User IDs cannot collide with internal pairs.
-        prepared = prepare_mappings(selected)
-        self.assertNotEqual(prepared[0][0].reaction_id, selected[1].reaction_id)
-        self.assertEqual(len(prepared), 2)
-        self.assertEqual(len(set(r.reaction_id for r, _ in prepared)), 2)
-        smiles = dict(zip(metabolites.MetaboliteName, metabolites.SMILES_Manual))
-        for reaction, components in prepared:
-            name = reaction.left[0].metabolite
-            mol = Chem.MolFromSmiles(smiles[name])
-            assignment = tuple((0, a.GetIdx(), "C" + str(i + 1))
-                        for i, a in enumerate(a for a in mol.GetAtoms() if a.GetAtomicNum() == 6))
-            _, rows, _ = map_one_reaction(reaction, components, {name: {1: assignment}},
-                                         1, {}, 2, smiles)
-            self.assertEqual(len(rows), 1)
-            self.assertEqual(rows[0]["ReactionID"], "B")
-            self.assertEqual(len(rows[0]["CarbonLabels"].split(",")), len(assignment))
 
     def test_reverse_and_ambiguity(self):
         source, metabolites, original, _, _, _ = fixture()
@@ -321,8 +295,7 @@ class CarbonRuleTests(unittest.TestCase):
                 source.to_excel(writer, sheet_name="Reactions", index=False)
                 metabolites.to_excel(writer, sheet_name="Metabolites", index=False)
             finish_analysis("Test", dict(input_file=input_file, metabolite_sheet="Metabolites"),
-                            metabolites, {"LocalMapper": original}, [], 1,
-                            ["LocalMapper"], root, stage="map")
+                            metabolites, {"LocalMapper": original}, [], ["LocalMapper"], root, stage="map")
             output = root / "Test_2_atom_mapping.xlsx"
             saved, _, _ = load_final_mappings(output, {})
             self.assertEqual(saved[0].status, "partial")

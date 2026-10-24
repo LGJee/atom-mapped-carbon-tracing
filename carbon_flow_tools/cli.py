@@ -125,10 +125,6 @@ def load_analysis_plan(path, stage, defaults):
         raise ValueError("Use a nonempty portable output path in the analysis plan")
     settings = dict(defaults)
     settings["output_dir"] = output_dir
-    if stage == "trace" and (
-        type(settings["rounds"]) is not int or settings["rounds"] < 1
-    ):
-        raise ValueError("Propagation rounds must be a positive integer")
     jobs = {}
     for name, entry in models.items():
         if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", name) or not isinstance(
@@ -189,7 +185,7 @@ def main(stage, settings, argv=None):
     parser = argparse.ArgumentParser(
         description="Predict and select atom mappings."
         if stage == "map"
-        else "Enumerate possible carbon-source label propagation."
+        else "Calculate fixed-flux, single-carbon source contributions."
     )
     parser.add_argument(
         "analyses",
@@ -205,9 +201,6 @@ def main(stage, settings, argv=None):
         help="Run the supplied synthetic installation example",
     )
     if stage == "trace":
-        parser.add_argument(
-            "--rounds", type=int, help="Override the maximum Enumeration rounds"
-        )
         parser.add_argument("--output-dir", help="Optional result directory; inputs stay unchanged")
     else:
         parser.add_argument(
@@ -336,7 +329,6 @@ def main(stage, settings, argv=None):
             structure_options["lookup"] = False
         run_analyses(
             jobs,
-            1,
             settings["batch_size"],
             settings["max_reaction_atoms"],
             output,
@@ -361,15 +353,10 @@ def main(stage, settings, argv=None):
                         )
                     )
                 job["carbon_sources"] = settings["carbon_sources"][name]
-            job["analysis_methods"] = settings.get("analysis_methods", ["Enumeration"])
-            job["export_detail_rounds"] = settings.get("export_detail_rounds", 3)
-            job["max_enumeration_processes"] = settings.get("max_enumeration_processes")
             job["emu_allow_inorganic_carbon_recycling"] = settings.get("emu_allow_inorganic_carbon_recycling", True)
             job["emu_tolerance"] = settings.get("emu_tolerance", 1e-8)
             job["min_available_memory_gb"] = settings.get("min_available_memory_gb", 2)
             job["max_excel_size_mb"] = settings.get("max_excel_size_mb", 50)
-            job["output_batch_rows"] = settings.get("output_batch_rows", 50000)
-            job["export_exclusive_source_metabolites"] = settings.get("export_exclusive_source_metabolites", False)
             directory = project_path(job["mapping_file"]).parent
             job["mapping_files"] = [
                 path for path in (
@@ -383,9 +370,6 @@ def main(stage, settings, argv=None):
                     .format(name, directory)
                 )
             job["mapping_file"] = job["mapping_files"][0]
-            job["allow_inorganic_carbon_recycling"] = settings.get(
-                "allow_inorganic_carbon_recycling", False
-            )
         if planned_models is not None:
             import pandas as pd
 
@@ -403,13 +387,8 @@ def main(stage, settings, argv=None):
                             "Mapping does not match this step-1 input; rerun step2_atom_mapping.py: "
                             + str(mapping_file)
                         )
-        rounds = (
-            args.rounds
-            if args.rounds is not None
-            else (1 if args.example else settings["rounds"])
-        )
         from .pipeline import run_carbon_flow
-        run_carbon_flow(jobs, rounds, output,
+        run_carbon_flow(jobs, output,
             max_processes=1 if args.example else settings["max_carbon_processes"],
             memory_gb=settings["carbon_memory_gb"])
     return 0
@@ -431,9 +410,9 @@ def run_cli(stage, settings, argv=None):
             2 if stage == "map" else 3, str(error) or type(error).__name__), file=sys.stderr, flush=True)
         status = getattr(error, "run_status", {})
         if status:
-            print("Model: {}\nMapping file: {}\nComplete rounds saved in this run: {}"
+            print("Model: {}\nMapping file: {}\nEMU output saved in this run: {}"
                   .format(status.get("model", "unknown"), status.get("mapping_file", "unknown"),
-                          status.get("completed_rounds", 0)), file=sys.stderr, flush=True)
+                          status.get("emu_completed", False)), file=sys.stderr, flush=True)
         if isinstance(error, PermissionError):
             action = "Close the workbook in Excel and check output-directory permissions."
         elif isinstance(error, BadZipFile):
