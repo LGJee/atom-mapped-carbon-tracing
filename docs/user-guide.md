@@ -15,6 +15,10 @@ Metabolic model + COBRApy -> pFBA Excel
 
 ## 1. Install Python environments and EnzymeMap data
 
+Choose [installation with Codex](../INSTALL.md#option-a-install-with-codex) or
+[manual installation](../INSTALL.md#option-b-install-manually).
+The commands below describe the manual method.
+
 Run these commands in a **Linux or WSL terminal** with Conda and Git available:
 
 ```bash
@@ -190,8 +194,7 @@ See the [mapping rules](carbon-mapping-rules.md).
 
 Mapper tasks retain CPU/memory-aware scheduling. Identical reaction inputs can
 share predictions, and EnzymeMap uses shared database lookup and bounded rule
-workers. The shared task scheduler is still needed; removing enumeration does
-not remove mapper parallelism.
+workers. A shared task scheduler coordinates these parallel jobs.
 
 ## 4. Analyze carbon sources
 
@@ -203,8 +206,7 @@ run concurrently within CPU/memory limits.
 Relevant script settings are EMU_ALLOW_INORGANIC_CARBON_RECYCLING (True),
 EMU_TOLERANCE (1e-8), MAX_CARBON_PROCESSES, CARBON_MEMORY_GB,
 MIN_AVAILABLE_MEMORY_GB (2), MAX_EXCEL_SIZE_MB (50 decimal MB) and TRACING_PYTHON.
-There are no rounds, per-round details, label-state catalogs or enumeration
-workers. The unchanged default EMU setting allows internal inorganic-carbon
+The default EMU setting allows internal inorganic-carbon
 recycling; disabling it is an explicit modeling assumption, not a claim that
 all biological CO2 escapes.
 
@@ -220,8 +222,6 @@ FluxResidual, Status, StructureType, KnownCarbonCount and ContributionScope in
 the metabolite sheet. Partial-structure fractions refer only to explicit known
 carbons, not to its unspecified group. See [scope](source-contributions.md).
 
-There is no new Summary, Carbon_Flow or summary-collection workbook. Existing
-combined results from earlier versions remain historical and are not rewritten.
 Unknown is not redistributed among supplied sources.
 
 ## 5. Completion, safety and troubleshooting
@@ -236,7 +236,7 @@ replace outputs only after complete saving and size validation. An oversized
 or failed export returns an error and leaves previous output intact. These
 safeguards cannot guarantee that OS/native-library allocations never run out
 of memory. Free memory or reduce MAX_CARBON_PROCESSES when other applications
-consume resources. No resumable enumeration database is created.
+consume resources.
 
 Routine output is short and English; --verbose shows diagnostics and tracebacks.
 Mapper library messages are saved under the selected results/logs/ directory.

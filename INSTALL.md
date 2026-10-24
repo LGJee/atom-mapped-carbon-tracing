@@ -1,8 +1,15 @@
 # Installation
 
-## Ask an AI to install
+Choose **Option A** to let Codex perform the installation, or **Option B** to run
+the commands yourself. To view existing Excel results, no installation is needed.
 
-Copy this instruction to an AI with local filesystem and terminal access:
+## Option A: Install with Codex
+
+Open Codex with access to local files and a terminal, then paste the following
+instruction into a new task. Codex will perform installation and small checks;
+starting a scientific analysis is a separate step.
+
+Copy everything in the instruction below:
 
 > Install https://github.com/LGJee/atom-mapped-carbon-tracing on this computer.
 > Find and reuse an existing checkout if available; do not overwrite local changes,
@@ -18,7 +25,7 @@ Copy this instruction to an AI with local filesystem and terminal access:
 > analysis. If network access or system permissions block installation, explain the
 > actual blocker instead of claiming success.
 
-## Manual installation
+## Option B: Install manually
 
 Run in a Linux x86_64 terminal (on Windows, inside WSL), not PowerShell.
 Git and an initialized Conda installation are required. Install Miniforge from

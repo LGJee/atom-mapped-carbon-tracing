@@ -17,13 +17,20 @@ step3_carbon_flow.py
     -> <model>_3_carbon_flow.xlsx
 ```
 
-## 1. Install Python environments
+## 1. Install
 
-Want an AI assistant to install it? Copy the self-contained instruction in
-[INSTALL.md](INSTALL.md#ask-an-ai-to-install). Installation does not run the study.
-Existing computed workbooks are available in the [results index](results/README.md);
-no installation is needed to open them in Excel or LibreOffice.
+Choose one of the following installation methods.
+If you only want to view the published Excel files, open the
+[results index](results/README.md); installation is not required.
 
+### Option A: Install with Codex
+
+Open Codex with access to your local files and terminal. Copy the instruction in
+[Install with Codex](INSTALL.md#option-a-install-with-codex) into a new Codex task.
+Codex will check your computer, configure the required environments and run small
+installation checks. Installation does not start the study analysis.
+
+### Option B: Install manually
 
 In Linux/WSL x86_64, install [Miniforge](https://github.com/conda-forge/miniforge)
 and Git, then run:
@@ -195,10 +202,10 @@ python3 step3_carbon_flow.py
 python3 step3_carbon_flow.py Escherichia_coli_non_IUPD Escherichia_coli_IUPD
 ```
 
-Step 3 now runs only the existing size-1 EMU-inspired source-balance solver.
+Step 3 uses a size-1 EMU-inspired source-balance solver.
 It calculates fixed-flux mean carbon-origin fractions, keeping Unknown explicit.
 It is not a full isotopomer simulator, isotope-label time course or experimental
-measurement. It does not enumerate label combinations or use rounds/ProductionID.
+measurement.
 
 For each model in the selected plan, both the ordinary step-2 file and an
 available _AIGenerated copy are analyzed independently. Output names remain
@@ -223,9 +230,6 @@ Allocation checks are safeguards, not a hard guarantee against OS-level OOM.
 The current carbon_flow_run.json records the exact mapping hash, selected sources,
 mapping version, solver checks, assumptions, emu_solved and emu_completed.
 A workbook left by an earlier run is not proof of success in a new run.
-Historical combined/Enumeration workbooks are preserved as historical results;
-they are not the output contract of the EMU-only version. No new Summary,
-Carbon_Flow or carbon_flow_summary.xlsx is generated.
 
 ## Optional AI review and custom cases
 
@@ -240,8 +244,8 @@ review structures/correspondences or orchestrate stages:
 Keep original predictions and Mapping_Selection unchanged during final mapping
 review. Approved edits go into Final_Mapping of a separate _AIGenerated copy.
 Keep source hashes and plan identities consistent. Rerun step 3 to analyze both
-versions. Older skill instructions that request rounds, Enumeration, Carbon_Flow
-or Summary must be adapted to the [current interface](docs/interfaces.md).
+versions. See the [interface documentation](docs/interfaces.md) for input, output
+and completion checks.
 
 For an independent case, copy examples/step1_prepare_custom_model_inputs.py to
 results/results_by_AI/<case>/step1_prepare_inputs.py and edit that case's model

@@ -1,6 +1,7 @@
 # Size-1 EMU-inspired source balances
 
-Step 3 restores the fixed-flux single-carbon origin solver from commit fefa1f9.
+Step 3 calculates carbon-source contributions at each carbon position using the
+selected fixed flux distribution.
 It is not a complete multi-carbon EMU/isotopomer simulator and does not fit fluxes
 or experimental isotope measurements. It solves mean source-origin fractions
 under metabolic/origin steady state, well-mixed pools, net-direction fluxes and
@@ -8,18 +9,17 @@ the selected positional atom mappings.
 
 ## Configuration and output
 
-Step 3 now runs this solver directly. EMU_ALLOW_INORGANIC_CARBON_RECYCLING
+Step 3 runs this solver directly. EMU_ALLOW_INORGANIC_CARBON_RECYCLING
 (default True) and EMU_TOLERANCE (1e-8) remain in step3_carbon_flow.py.
-There is no enumeration method selector or round configuration.
 Shared model-level scheduling, memory/disk and workbook-size safeguards remain.
 
 Each ordinary or AI-reviewed mapping produces one <model>_3_carbon_flow.xlsx or
 <model>_3_carbon_flow_AIGenerated.xlsx. Each contains EMU_Metabolites (carbon
 counts, inflow/outflow, source/Unknown fractions) and EMU_BoundaryInputs.
 FluxResidual, Status, StructureType, KnownCarbonCount and ContributionScope
-remain internal, not exported. There is no Summary or summary collection.
+remain internal, not exported.
 carbon_flow_run.json records solving, export completion, assumptions and numerical
-checks. Old combined/Enumeration workbooks remain historical and unchanged.
+checks.
 
 ## Partial mappings and Unknown
 
